@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>捣蛋奶牛猫</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hint">在这页上随便敲键盘</header>
+
+<main id="stage">
+<svg id="scene" viewBox="0 0 800 620" role="img" aria-label="坐在键盘后面的奶牛猫">
+  <defs>
+    <clipPath id="clip-head">
+      <path d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
+    </clipPath>
+    <clipPath id="clip-body">
+      <path d="M 312 412 C 300 336, 322 262, 400 258 C 478 262, 500 336, 488 412 Z"/>
+    </clipPath>
+    <clipPath id="clip-eye-l"><circle cx="345" cy="178" r="29"/></clipPath>
+    <clipPath id="clip-eye-r"><circle cx="455" cy="178" r="29"/></clipPath>
+  </defs>
+
+  <ellipse class="shadow" cx="400" cy="594" rx="300" ry="20"/>
+
+  <!-- 尾巴：黑色带白尖 -->
+  <g id="tail">
+    <path class="tail-outline" d="M 322 370 C 272 372, 222 374, 198 350 C 182 334, 184 314, 198 306"/>
+    <path class="tail-fill" d="M 322 370 C 272 372, 222 374, 198 350 C 182 334, 184 314, 198 306"/>
+    <path class="tail-tip" pathLength="100" d="M 322 370 C 272 372, 222 374, 198 350 C 182 334, 184 314, 198 306"/>
+  </g>
+
+  <!-- 身体：白底，观众右侧一块鞍状黑斑 -->
+  <g id="cat-body">
+    <path class="fur-white" d="M 312 412 C 300 336, 322 262, 400 258 C 478 262, 500 336, 488 412 Z"/>
+    <g clip-path="url(#clip-body)">
+      <path class="fur-black" d="M 446 284 C 478 276, 506 300, 504 350 C 502 392, 470 404, 452 384 C 436 366, 450 346, 444 326 C 438 306, 426 290, 446 284 Z"/>
+    </g>
+    <path class="ink-line" fill="none" d="M 312 412 C 300 336, 322 262, 400 258 C 478 262, 500 336, 488 412"/>
+  </g>
+
+  <!-- 头：大、歪 4 度 -->
+  <g id="cat-head">
+    <g id="ear-l">
+      <path class="fur-black ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z"/>
+      <path class="pink" d="M 302 108 L 304 58 L 341 86 Z"/>
+    </g>
+    <g id="ear-r">
+      <path class="fur-black ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z"/>
+      <path class="pink" d="M 498 108 L 496 58 L 459 86 Z"/>
+    </g>
+
+    <path class="fur-white" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
+    <g clip-path="url(#clip-head)">
+      <!-- 黑色帽子：盖住头顶，在观众左侧向下包住一只眼 -->
+      <path class="fur-black" d="M 255 50 H 545 V 112 C 520 104, 498 101, 470 110 C 452 116, 438 112, 424 122 C 408 134, 398 146, 392 166 C 385 190, 380 214, 346 222 C 316 228, 286 216, 255 202 Z"/>
+    </g>
+    <path class="ink-line" fill="none" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
+
+    <ellipse class="blush" cx="318" cy="232" rx="13" ry="7"/>
+    <ellipse class="blush" cx="484" cy="226" rx="13" ry="7"/>
+
+    <!-- 左眼（黑斑里） -->
+    <g id="eye-l-open">
+      <circle class="sclera" cx="345" cy="178" r="29"/>
+      <g clip-path="url(#clip-eye-l)">
+        <circle id="iris-l" class="iris" cx="345" cy="178" r="21"/>
+        <circle id="pupil-l" class="pupil" cx="345" cy="179" r="13"/>
+        <circle id="shine-l" class="shine" cx="339" cy="173" r="5"/>
+        <rect id="lid-l" class="lid-black" x="314" y="147" width="62" height="10"/>
+        <line id="lidline-l" class="lid-line" x1="314" x2="376" y1="157" y2="157"/>
+      </g>
+      <circle class="eye-ring" cx="345" cy="178" r="29"/>
+    </g>
+    <path id="eye-l-closed" class="eye-arc-light" style="display:none" d="M 323 180 Q 345 196 367 180"/>
+    <path id="eye-l-happy" class="eye-arc-light" style="display:none" d="M 323 186 Q 345 164 367 186"/>
+
+    <!-- 右眼（白脸上） -->
+    <g id="eye-r-open">
+      <circle class="sclera" cx="455" cy="178" r="29"/>
+      <g clip-path="url(#clip-eye-r)">
+        <circle id="iris-r" class="iris" cx="455" cy="178" r="21"/>
+        <circle id="pupil-r" class="pupil" cx="455" cy="179" r="13"/>
+        <circle id="shine-r" class="shine" cx="449" cy="173" r="5"/>
+        <rect id="lid-r" class="lid-white" x="424" y="147" width="62" height="10"/>
+        <line id="lidline-r" class="lid-line" x1="424" x2="486" y1="157" y2="157"/>
+      </g>
+      <circle class="eye-ring" cx="455" cy="178" r="29"/>
+    </g>
+    <path id="eye-r-closed" class="eye-arc" style="display:none" d="M 433 180 Q 455 196 477 180"/>
+    <path id="eye-r-happy" class="eye-arc" style="display:none" d="M 433 186 Q 455 164 477 186"/>
+
+    <!-- 歪的小胡子斑 -->
+    <ellipse class="fur-black" cx="421" cy="214" rx="11" ry="6.5" transform="rotate(-22 421 214)"/>
+
+    <!-- 胡须 -->
+    <path class="whisker" d="M 300 226 L 256 218 M 302 236 L 259 242"/>
+    <path class="whisker" d="M 500 224 L 546 214 M 499 234 L 543 240"/>
+
+    <!-- 鼻子、坏笑的 w 嘴和小尖牙 -->
+    <path class="fang" d="M 404 232 L 408 242 L 412 231 Z"/>
+    <path class="ink-thin" fill="none" d="M 400 219 L 400 228 M 383 227 Q 391 237 400 228 Q 410 237 420 224"/>
+    <path class="pink ink-thin" d="M 389 206 Q 400 201 411 206 Q 409 216 400 220 Q 391 216 389 206 Z"/>
+  </g>
+
+  <g id="zzz">
+    <text id="z1" class="z" style="display:none">Z</text>
+    <text id="z2" class="z" style="display:none">Z</text>
+    <text id="z3" class="z" style="display:none">Z</text>
+  </g>
+
+  <g id="keyboard"></g>
+
+  <!-- 鼠标：朝向猫（掌托靠猫，按键朝观众；猫视角的左键在观众右边） -->
+  <g id="mouse" transform="translate(104 484)">
+    <ellipse class="shadow" cx="2" cy="48" rx="36" ry="8"/>
+    <g transform="rotate(180)">
+      <rect class="mouse-body" x="-28" y="-42" width="56" height="84" rx="28"/>
+      <path id="mouse-btn-l" class="mouse-btn" d="M -28 -14 A 28 28 0 0 1 0 -42 L 0 -4 L -28 -4 Z"/>
+      <path id="mouse-btn-r" class="mouse-btn" d="M 0 -42 A 28 28 0 0 1 28 -14 L 28 -4 L 0 -4 Z"/>
+      <rect class="mouse-wheel" x="-4" y="-32" width="8" height="15" rx="4"/>
+      <rect class="mouse-ring" x="-28" y="-42" width="56" height="84" rx="28"/>
+    </g>
+  </g>
+
+  <!-- 手臂和爪子：按画面左右命名，观众左侧黑（猫的右爪），观众右侧白（猫的左爪） -->
+  <g id="arm-l">
+    <path id="arm-l-outline" class="arm-outline" d="M 338 318 L 332 470"/>
+    <path id="arm-l-fill" class="arm-fill-black" d="M 338 318 L 332 470"/>
+  </g>
+  <g id="arm-r">
+    <path id="arm-r-outline" class="arm-outline" d="M 462 318 L 452 470"/>
+    <path id="arm-r-fill" class="arm-fill-white" d="M 462 318 L 452 470"/>
+  </g>
+  <g id="paw-l" transform="translate(332 478)">
+    <ellipse class="fur-black ink" cx="0" cy="0" rx="21" ry="15"/>
+    <path class="toe-light" d="M -7 5 L -7 12 M 7 5 L 7 12"/>
+  </g>
+  <g id="paw-r" transform="translate(452 478)">
+    <ellipse class="fur-white ink" cx="0" cy="0" rx="21" ry="15"/>
+    <path class="toe-dark" d="M -7 5 L -7 12 M 7 5 L 7 12"/>
+  </g>
+  <!-- 浮起的键名：在猫和键盘之上，正着显示给观众，不接收指针 -->
+  <g id="fx-layer" pointer-events="none"></g>
+</svg>
+</main>
+
+<footer id="controls">
+  <label class="ctl">入睡时间
+    <input id="sleep-range" type="range" min="5" max="120" step="1" value="20">
+    <span id="sleep-label">20 秒</span>
+  </label>
+  <label class="ctl"><input id="mouse-left" type="checkbox"> 鼠标换到猫的左手边</label>
+  <span class="ctl status">状态：<b id="status">awake</b></span>
+</footer>
+
+<script src="keyboard.js"></script>
+<script src="cat.js"></script>
+<script src="input.js"></script>
+<script>
+(function () {
+  'use strict';
+  const params = new URLSearchParams(location.search);
+  const fromUrl = parseFloat(params.get('sleep'));
+  const sleep = Number.isFinite(fromUrl) ? Math.max(5, Math.min(120, fromUrl)) : 20;
+
+  const kb = SillyKeyboard.build(document.getElementById('keyboard'));
+  const cat = SillyCat.createCat({ keyboard: kb, sleepSeconds: sleep });
+  SillyInput.createBrowserInput(cat, {
+    headEl: document.getElementById('cat-head'),
+    ignoreEl: document.getElementById('controls'),
+    stageEl: document.getElementById('stage'),
+  });
+  Object.defineProperty(window, '__cat', { value: cat.debug, writable: false, configurable: false });
+
+  const range = document.getElementById('sleep-range');
+  const label = document.getElementById('sleep-label');
+  range.value = String(sleep);
+  label.textContent = sleep + ' 秒';
+  range.addEventListener('input', () => {
+    cat.setSleepSeconds(+range.value);
+    label.textContent = range.value + ' 秒';
+  });
+  range.addEventListener('change', () => range.blur());
+
+  const left = document.getElementById('mouse-left');
+  left.addEventListener('change', () => {
+    cat.setMouseSide(left.checked ? 'left' : 'right');
+    left.blur();
+  });
+
+  const status = document.getElementById('status');
+  setInterval(() => {
+    status.textContent = __cat.state + (__cat.excited ? ' + 兴奋' : '');
+  }, 200);
+})();
+</script>
+</body>
+</html>

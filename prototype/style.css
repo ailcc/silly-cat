@@ -1,0 +1,134 @@
+:root {
+  --ink: #1d1b22;
+  --fur-black: #26232b;
+  --fur-white: #fffdf8;
+  --pink: #ff9eb0;
+  --iris: #b9e36b;
+  --bg: #dfe6f5;
+  --cream: #fbf6ea;
+  --cream-dark: #e8dfca;
+  --coral: #ff7a59;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.hint {
+  flex: none;
+  padding: 14px 16px 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+#stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px;
+  touch-action: none;
+}
+
+#scene {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 960px;
+}
+
+#controls {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 18px;
+  padding: 6px 16px 12px;
+  font-size: 13px;
+}
+.ctl { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ctl input[type="range"] { width: 120px; accent-color: var(--coral); }
+.ctl input[type="checkbox"] { accent-color: var(--coral); }
+.status b { font-weight: 600; min-width: 4em; display: inline-block; }
+
+/* ---------- SVG ---------- */
+#scene .ink { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+#scene .ink-line { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+#scene .ink-thin { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+#scene .fur-white { fill: var(--fur-white); }
+#scene .fur-black { fill: var(--fur-black); }
+#scene .pink { fill: var(--pink); }
+#scene .blush { fill: var(--pink); opacity: 0.45; }
+#scene .shadow { fill: var(--ink); opacity: 0.1; }
+
+#scene .sclera { fill: var(--fur-white); }
+#scene .iris { fill: var(--iris); }
+#scene .pupil { fill: var(--ink); }
+#scene .shine { fill: #fff; }
+#scene .lid-black { fill: var(--fur-black); }
+#scene .lid-white { fill: var(--fur-white); }
+#scene .lid-line { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+#scene .eye-ring { fill: none; stroke: var(--ink); stroke-width: 5; }
+#scene .eye-arc { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+#scene .eye-arc-light { fill: none; stroke: var(--fur-white); stroke-width: 5; stroke-linecap: round; }
+#scene .whisker { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+#scene .fang { fill: #fff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+
+#scene .tail-outline { fill: none; stroke: var(--ink); stroke-width: 31; stroke-linecap: round; }
+#scene .tail-fill { fill: none; stroke: var(--fur-black); stroke-width: 21; stroke-linecap: round; }
+#scene .tail-tip { fill: none; stroke: var(--fur-white); stroke-width: 21; stroke-linecap: round;
+  stroke-dasharray: 16 84; stroke-dashoffset: 16; }
+
+#scene .arm-outline { fill: none; stroke: var(--ink); stroke-width: 34; stroke-linecap: round; }
+#scene .arm-fill-black { fill: none; stroke: var(--fur-black); stroke-width: 24; stroke-linecap: round; }
+#scene .arm-fill-white { fill: none; stroke: var(--fur-white); stroke-width: 24; stroke-linecap: round; }
+#scene .toe-light { fill: none; stroke: #77707f; stroke-width: 3; stroke-linecap: round; }
+#scene .toe-dark { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+
+#scene .z { fill: var(--ink); font-size: 24px; font-weight: 800; font-family: inherit; }
+
+/* 键盘 */
+#scene .kb-case { fill: var(--cream); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
+#scene .kb-lip { fill: var(--cream-dark); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
+#scene .key-cap { fill: var(--cream); stroke: var(--ink); stroke-width: 2.5; }
+#scene .key-label { fill: var(--ink); font-size: 9px; font-weight: 600; text-anchor: middle; font-family: inherit; pointer-events: none; }
+#scene .key { transition: transform 40ms ease-out; }
+/* 键区整体转了 180°，本地 -2px 等于画面里往下沉 2px */
+#scene .key.down { transform: translateY(-2px); }
+#scene .key.down .key-cap { fill: var(--coral); }
+
+/* 鼠标 */
+#scene .mouse-body { fill: var(--cream); }
+#scene .mouse-btn { fill: var(--cream); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+#scene .mouse-btn.down { fill: var(--coral); }
+#scene .mouse-wheel { fill: var(--cream-dark); stroke: var(--ink); stroke-width: 3; }
+#scene .mouse-ring { fill: none; stroke: var(--ink); stroke-width: 5; }
+
+/* 浮起的键名 */
+#fx-layer, #fx-layer * { pointer-events: none; }
+#scene .keycap-fx rect { fill: var(--cream); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+#scene .keycap-fx.hot rect { fill: var(--coral); }
+#scene .keycap-fx text { fill: var(--ink); font-size: 14px; font-weight: 700; text-anchor: middle; font-family: inherit; }
+
+#cat-head { cursor: grab; }
+#cat-head:active { cursor: grabbing; }
