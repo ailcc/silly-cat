@@ -7,6 +7,7 @@
 // - 鼠标按键：Rust 的鼠标 tap 发来；指针正在猫身上时这次点击交给页面（摸头 / 拖动），不算「点鼠标」。
 // - 点击穿透：用同一份指针位置做 document.elementFromPoint 命中判断，只有指在有画面的地方时窗口才接收鼠标。
 // - 摸头 vs 拖动：在头上按下 = 摸头（和网页版一样）；在身体、尾巴、键盘、鼠标等其他画面上按下 = 拖动窗口。
+// - 右键有画面的地方 = 打开设置窗口（Rust 的 open_settings；已经开着就带到前面）。
 (function () {
   'use strict';
 
@@ -131,6 +132,7 @@
       sink.petEnd();
     }
     function onPointerDown(e) {
+      if (e.button === 2) { openSettings(e); return; }
       if (e.button !== 0) return;
       const h = headEls.find((n) => isNode(e.target) && n.contains(e.target));
       if (h) {
@@ -147,7 +149,16 @@
     }
     function onPointerMove(e) { if (pet && e.pointerId === pet.id) sink.petMove(...rel(e)); }
     function onPointerUp(e) { if (pet && e.pointerId === pet.id) endPet(); }
-    function onContextMenu(e) { e.preventDefault(); }
+    // 右键有画面的地方：打开设置窗口（不摸头、不拖动；pointerdown 和 contextmenu 都可能来，只算一次）
+    let lastSettingsAt = -1e9;
+    function openSettings(e) {
+      if (!inScene(e.target)) return;
+      const now = performance.now();
+      if (now - lastSettingsAt < 500) return;
+      lastSettingsAt = now;
+      invoke('open_settings').catch(() => {});
+    }
+    function onContextMenu(e) { e.preventDefault(); openSettings(e); }
 
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);

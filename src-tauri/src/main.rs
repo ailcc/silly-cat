@@ -9,7 +9,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, LogicalPosition, Manager, WebviewWindow, WindowEvent};
+use tauri::{AppHandle, Emitter, LogicalPosition, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 const MARGIN: f64 = 24.0;
 
@@ -51,6 +51,61 @@ fn input_status() -> InputStatus {
         granted: tap::input_monitoring_granted(),
         keys: tap::KEY_TAP_ACTIVE.load(Ordering::SeqCst),
         mouse: tap::MOUSE_TAP_ACTIVE.load(Ordering::SeqCst),
+    }
+}
+
+fn settings_file(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_config_dir().ok().map(|d| d.join("settings.json"))
+}
+
+/// 读已保存的时间参数（没有或读坏了返回 null，前端用默认值）。字段和校验在前端（settings.js）
+#[tauri::command]
+fn load_settings(app: AppHandle) -> Option<serde_json::Value> {
+    let s = std::fs::read_to_string(settings_file(&app)?).ok()?;
+    serde_json::from_str::<serde_json::Value>(&s).ok().filter(|v| v.is_object())
+}
+
+/// 设置页每次改出合法值就调：写盘，再通知主窗口立即生效
+#[tauri::command]
+fn save_settings(app: AppHandle, settings: serde_json::Value) -> Result<(), String> {
+    if !settings.is_object() {
+        return Err("settings 必须是对象".into());
+    }
+    let f = settings_file(&app).ok_or("找不到配置目录")?;
+    if let Some(dir) = f.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    }
+    let text = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
+    std::fs::write(&f, text).map_err(|e| e.to_string())?;
+    let _ = app.emit_to("main", "silly:settings", settings);
+    Ok(())
+}
+
+/// 打开设置窗口；已经开着就带到前面。同步 command 在主线程跑，连点两次也只会建一个窗口
+#[tauri::command]
+fn open_settings(app: AppHandle) {
+    show_settings(&app);
+}
+
+fn show_settings(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("settings") {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let built = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
+        .title("捣蛋奶牛猫 · 设置")
+        .inner_size(400.0, 620.0)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .center()
+        .focused(true)
+        .build();
+    if let Ok(w) = built {
+        // Accessory 应用默认不是前台应用：激活一下，设置窗口才能成为键盘焦点窗口
+        let _ = w.set_focus();
     }
 }
 
@@ -128,7 +183,7 @@ fn open_input_monitoring_settings() {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![cursor_local, input_status])
+        .invoke_handler(tauri::generate_handler![cursor_local, input_status, load_settings, save_settings, open_settings])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -151,17 +206,22 @@ fn main() {
             });
 
             // 托盘菜单
+            let prefs = MenuItem::with_id(app, "prefs", "设置…", true, None::<&str>)?;
             let toggle = MenuItem::with_id(app, "toggle", "显示/隐藏猫", true, None::<&str>)?;
             let reset = MenuItem::with_id(app, "reset", "重置位置", true, None::<&str>)?;
             let settings = MenuItem::with_id(app, "settings", "打开输入监控设置", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let sep = PredefinedMenuItem::separator(app)?;
-            let menu = Menu::with_items(app, &[&toggle, &reset, &settings, &sep, &quit])?;
+            let menu = Menu::with_items(app, &[&prefs, &toggle, &reset, &settings, &sep, &quit])?;
             let mut tray = TrayIconBuilder::with_id("main")
                 .tooltip("捣蛋奶牛猫")
                 .menu(&menu)
                 .show_menu_on_left_click(true)
                 .on_menu_event(|app, event| {
+                    if event.id().as_ref() == "prefs" {
+                        show_settings(app);
+                        return;
+                    }
                     let Some(win) = app.get_webview_window("main") else { return };
                     match event.id().as_ref() {
                         "toggle" => {

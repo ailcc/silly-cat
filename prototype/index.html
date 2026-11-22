@@ -266,6 +266,7 @@
 <script src="fatigue.js"></script>
 <script src="input.js"></script>
 <script src="input-desktop.js"></script>
+<script src="settings.js"></script>
 <script>
 (function () {
   'use strict';
@@ -282,11 +283,11 @@
   const slumpStyle = params.get('slump-style');
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  let fatigue = null;
+  let fatigue = null, sleepMod = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep,
     modules: [
-      (ctx) => SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo }),
+      (ctx) => (sleepMod = SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo })),
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
     ],
   });
@@ -295,6 +296,21 @@
     // 桌面外壳：全局键鼠代替页面内的键鼠事件（不同时挂两份，避免一次按键算两次）
     const desktop = SillyDesktopInput.create(cat, { headEl, sceneEl: document.getElementById('scene') });
     Object.defineProperty(window, '__desktop', { value: desktop.debug, writable: false, configurable: false });
+
+    // 设置窗口里的时间参数：启动时读 settings.json，之后每次保存都会发 silly:settings 事件过来，立即生效。
+    // 优先级：启动时 URL 参数 > 已保存设置 > 默认值；之后在设置窗口里改的值总是生效（覆盖 URL 参数）。
+    const applySettings = (raw, skipUrl) => {
+      const s = SillySettings.sanitize(raw);
+      const use = (k) => !(skipUrl && num(k) !== null);
+      if (use('sleep')) cat.setSleepSeconds(s.sleep);
+      if (use('drool')) sleepMod.setDroolSeconds(s.drool ?? NaN); // NaN = 自动（入睡时间 × 2）
+      if (use('slump')) sleepMod.setSlumpSeconds(s.slump ?? NaN); // NaN = 自动（入睡时间 × 3.5）
+      if (use('work')) fatigue.setWorkSeconds(s.work);
+      if (use('rest')) fatigue.setRestSeconds(s.rest);
+    };
+    const T = window.__TAURI__;
+    T.core.invoke('load_settings').then((raw) => { if (raw) applySettings(raw, true); }).catch(() => {});
+    T.event.listen('silly:settings', (ev) => applySettings(ev.payload, false));
   } else {
     SillyInput.createBrowserInput(cat, {
       headEl,
