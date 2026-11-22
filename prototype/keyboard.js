@@ -89,6 +89,18 @@
         const k = keys.get(code);
         if (k) k.el.classList.toggle('down', !!on);
       },
+      // 被脸压住：下沉但不高亮
+      setSunk(code, on) {
+        const k = keys.get(code);
+        if (k) k.el.classList.toggle('sunk', !!on);
+      },
+      // 键帽被砸飞：只剩键座
+      setGone(code, on) {
+        const k = keys.get(code);
+        if (k) k.el.classList.toggle('gone', !!on);
+      },
+      isGone: (code) => { const k = keys.get(code); return !!(k && k.el.classList.contains('gone')); },
+      codes: () => [...keys.keys()],
       bounds: { ...CASE },
     };
 

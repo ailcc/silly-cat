@@ -13,7 +13,9 @@
   const BUTTON_BITS = [[1, 0], [2, 2], [4, 1]];
 
   function createBrowserInput(sink, opts = {}) {
-    const headEl = opts.headEl || null;
+    // headEl 可以是一个元素或元素数组（正面的头、罢工时背对观众的头）
+    const headEls = [].concat(opts.headEl || []).filter(Boolean);
+    let headEl = headEls[0] || null; // 当前正在摸的那个
     const ignoreEl = opts.ignoreEl || null;
     const stageEl = opts.stageEl || document.body;
 
@@ -26,7 +28,12 @@
 
     const isNode = (t) => typeof Node !== 'undefined' && t instanceof Node;
     const inIgnored = (t) => !!(ignoreEl && isNode(t) && ignoreEl.contains(t));
-    const onHead = (t) => !!(headEl && isNode(t) && headEl.contains(t));
+    const onHead = (t) => {
+      if (!isNode(t)) return false;
+      const h = headEls.find((n) => n.contains(t));
+      if (h) headEl = h;
+      return !!h;
+    };
 
     function rel(e) {
       const r = headEl.getBoundingClientRect();

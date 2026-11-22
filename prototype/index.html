@@ -102,6 +102,74 @@
     <path class="fang" d="M 404 232 L 408 242 L 412 231 Z"/>
     <path class="ink-thin" fill="none" d="M 400 219 L 400 228 M 383 227 Q 391 237 400 228 Q 410 237 420 224"/>
     <path class="pink ink-thin" d="M 389 206 Q 400 201 411 206 Q 409 216 400 220 Q 391 216 389 206 Z"/>
+
+    <!-- 以下由 sleep.js / fatigue.js 控制显示 -->
+    <!-- 口水：半透明浅蓝白，细描边 -->
+    <g id="drool" style="display:none">
+      <path id="drool-outline" class="drool-outline" d="M 419 227 L 419 231"/>
+      <path id="drool-strand" class="drool-strand" d="M 419 227 L 419 231"/>
+      <circle id="drool-bulb" class="drool-bulb" cx="419" cy="233" r="3"/>
+    </g>
+    <!-- 趴醒后脸颊上的键帽压痕 -->
+    <g id="imprint" style="display:none">
+      <rect class="imprint" x="290" y="226" width="12" height="10" rx="3"/>
+      <rect class="imprint" x="305" y="228" width="12" height="10" rx="3"/>
+      <rect class="imprint" x="320" y="231" width="12" height="10" rx="3"/>
+      <rect class="imprint" x="296" y="240" width="12" height="10" rx="3"/>
+      <rect class="imprint" x="311" y="243" width="12" height="10" rx="3"/>
+    </g>
+    <!-- 累了 / 生气：眉毛下压（黑斑上那条用浅色） -->
+    <g id="brows" style="display:none">
+      <path class="brow-light" d="M 321 138 L 363 151"/>
+      <path class="brow" d="M 479 138 L 437 151"/>
+    </g>
+    <path id="sweat" class="sweat" style="display:none" d="M 502 124 Q 494 138 495 143 A 7.5 7.5 0 0 0 510 143 Q 511 138 502 124 Z"/>
+    <g id="puffs" style="display:none">
+      <path class="puff-fill" d="M 281 210 Q 252 231 285 254 Z"/>
+      <path class="puff-line" d="M 281 210 Q 252 231 285 254"/>
+      <path class="puff-fill" d="M 519 206 Q 550 228 516 252 Z"/>
+      <path class="puff-line" d="M 519 206 Q 550 228 516 252"/>
+    </g>
+    <g id="sigh" style="display:none">
+      <circle class="sigh" cx="436" cy="240" r="7"/>
+      <circle class="sigh" cx="447" cy="236" r="5.5"/>
+      <circle class="sigh" cx="445" cy="246" r="4.5"/>
+    </g>
+    <!-- 漫画式怒气符号 -->
+    <g id="anger" style="display:none" transform="translate(478 96)">
+      <path class="anger-under" d="M -15 -4 Q -6 -6 -4 -15 M 4 -15 Q 6 -6 15 -4 M 15 4 Q 6 6 4 15 M -4 15 Q -6 6 -15 4"/>
+      <path class="anger" d="M -15 -4 Q -6 -6 -4 -15 M 4 -15 Q 6 -6 15 -4 M 15 4 Q 6 6 4 15 M -4 15 Q -6 6 -15 4"/>
+    </g>
+  </g>
+
+  <!-- 罢工：背对观众坐着，双臂抱胸（只看得到两侧手肘），尾巴拍地，旁边立牌子 -->
+  <g id="cat-strike" style="display:none">
+    <g id="strike-sign" transform="rotate(-5 205 300)">
+      <rect class="sign-post" x="199" y="246" width="12" height="130" rx="4"/>
+      <rect class="sign-board" x="138" y="196" width="134" height="58" rx="10"/>
+      <text class="sign-text" x="205" y="235">罢工中</text>
+    </g>
+    <g id="strike-tail">
+      <path class="tail-outline" d="M 482 370 C 520 372, 552 368, 566 350 C 576 336, 570 322, 558 320"/>
+      <path class="tail-fill" d="M 482 370 C 520 372, 552 368, 566 350 C 576 336, 570 322, 558 320"/>
+      <path class="tail-tip" pathLength="100" d="M 482 370 C 520 372, 552 368, 566 350 C 576 336, 570 322, 558 320"/>
+    </g>
+    <ellipse class="fur-white ink" cx="311" cy="318" rx="17" ry="24"/>
+    <ellipse class="fur-black ink" cx="489" cy="318" rx="17" ry="24"/>
+    <path class="fur-white" d="M 312 412 C 300 336, 322 262, 400 258 C 478 262, 500 336, 488 412 Z"/>
+    <g clip-path="url(#clip-body)">
+      <path class="fur-black" d="M 354 284 C 322 276, 294 300, 296 350 C 298 392, 330 404, 348 384 C 364 366, 350 346, 356 326 C 362 306, 374 290, 354 284 Z"/>
+    </g>
+    <path class="ink-line" fill="none" d="M 312 412 C 300 336, 322 262, 400 258 C 478 262, 500 336, 488 412"/>
+    <g id="strike-head" transform="rotate(5 400 262)">
+      <path id="strike-ear-l" class="fur-black ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z"/>
+      <path id="strike-ear-r" class="fur-black ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z"/>
+      <path class="fur-white" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
+      <g clip-path="url(#clip-head)">
+        <path class="fur-black" d="M 255 50 H 545 V 236 C 522 246, 496 238, 472 228 C 448 220, 426 228, 402 232 C 372 236, 336 224, 306 210 C 286 202, 266 196, 255 194 Z"/>
+      </g>
+      <path class="ink-line" fill="none" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
+    </g>
   </g>
 
   <g id="zzz">
@@ -115,13 +183,22 @@
   <!-- 鼠标：朝向猫（掌托靠猫，按键朝观众；猫视角的左键在观众右边） -->
   <g id="mouse" transform="translate(104 484)">
     <ellipse class="shadow" cx="2" cy="48" rx="36" ry="8"/>
-    <g transform="rotate(180)">
+    <g id="mouse-shell" transform="rotate(180)">
       <rect class="mouse-body" x="-28" y="-42" width="56" height="84" rx="28"/>
       <path id="mouse-btn-l" class="mouse-btn" d="M -28 -14 A 28 28 0 0 1 0 -42 L 0 -4 L -28 -4 Z"/>
       <path id="mouse-btn-r" class="mouse-btn" d="M 0 -42 A 28 28 0 0 1 28 -14 L 28 -4 L 0 -4 Z"/>
-      <rect class="mouse-wheel" x="-4" y="-32" width="8" height="15" rx="4"/>
+      <rect id="mouse-wheel" class="mouse-wheel" x="-4" y="-32" width="8" height="15" rx="4"/>
       <rect class="mouse-ring" x="-28" y="-42" width="56" height="84" rx="28"/>
     </g>
+  </g>
+
+  <!-- 口水滴和键盘上的水渍 -->
+  <g id="drool-layer" pointer-events="none">
+    <g id="puddle" style="display:none">
+      <ellipse id="puddle-pool" class="puddle" cx="400" cy="398" rx="10" ry="3"/>
+      <ellipse id="puddle-shine" class="puddle-shine" cx="398" cy="397" rx="3" ry="1"/>
+    </g>
+    <g id="drops"></g>
   </g>
 
   <!-- 手臂和爪子：按画面左右命名，观众左侧黑（猫的右爪），观众右侧白（猫的左爪） -->
@@ -141,6 +218,9 @@
     <ellipse class="fur-white ink" cx="0" cy="0" rx="21" ry="15"/>
     <path class="toe-dark" d="M -7 5 L -7 12 M 7 5 L 7 12"/>
   </g>
+  <!-- 发飙时飞散的键帽、罢工时的"哼" -->
+  <g id="debris-layer" pointer-events="none"></g>
+  <g id="bubble-layer" pointer-events="none"></g>
   <!-- 浮起的键名：在猫和键盘之上，正着显示给观众，不接收指针 -->
   <g id="fx-layer" pointer-events="none"></g>
 </svg>
@@ -152,23 +232,45 @@
     <span id="sleep-label">20 秒</span>
   </label>
   <label class="ctl"><input id="mouse-left" type="checkbox"> 鼠标换到猫的左手边</label>
+  <label class="ctl">连续打字多久会生气
+    <input id="work-range" type="range" min="15" max="3600" step="5" value="90">
+    <span id="work-label">90 秒</span>
+  </label>
+  <label class="ctl">休息多久消气
+    <input id="rest-range" type="range" min="5" max="600" step="1" value="20">
+    <span id="rest-label">20 秒</span>
+  </label>
+  <span class="ctl">疲劳 <span class="fatigue-track"><span id="fatigue-bar" data-mood="fine"></span></span></span>
   <span class="ctl status">状态：<b id="status">awake</b></span>
+  <span id="rest-hint" class="ctl rest-hint" style="display:none"></span>
 </footer>
 
 <script src="keyboard.js"></script>
 <script src="cat.js"></script>
+<script src="sleep.js"></script>
+<script src="fatigue.js"></script>
 <script src="input.js"></script>
 <script>
 (function () {
   'use strict';
   const params = new URLSearchParams(location.search);
-  const fromUrl = parseFloat(params.get('sleep'));
-  const sleep = Number.isFinite(fromUrl) ? Math.max(5, Math.min(120, fromUrl)) : 20;
+  const num = (k) => { const v = parseFloat(params.get(k)); return Number.isFinite(v) && v > 0 ? v : null; };
+  // URL 参数可以超出滑块范围（方便快速验收），滑块只显示夹到范围内的位置
+  const sleep = num('sleep') ?? 20;
+  const work = num('work') ?? 90;
+  const rest = num('rest') ?? 20;
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  const cat = SillyCat.createCat({ keyboard: kb, sleepSeconds: sleep });
+  let fatigue = null;
+  const cat = SillyCat.createCat({
+    keyboard: kb, sleepSeconds: sleep,
+    modules: [
+      (ctx) => SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN }),
+      (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest })),
+    ],
+  });
   SillyInput.createBrowserInput(cat, {
-    headEl: document.getElementById('cat-head'),
+    headEl: [document.getElementById('cat-head'), document.getElementById('strike-head')],
     ignoreEl: document.getElementById('controls'),
     stageEl: document.getElementById('stage'),
   });
@@ -184,6 +286,16 @@
   });
   range.addEventListener('change', () => range.blur());
 
+  function bindRange(id, labelId, value, apply) {
+    const r = document.getElementById(id), l = document.getElementById(labelId);
+    r.value = String(value);
+    l.textContent = value + ' 秒';
+    r.addEventListener('input', () => { apply(+r.value); l.textContent = r.value + ' 秒'; });
+    r.addEventListener('change', () => r.blur());
+  }
+  bindRange('work-range', 'work-label', work, (v) => fatigue.setWorkSeconds(v));
+  bindRange('rest-range', 'rest-label', rest, (v) => fatigue.setRestSeconds(v));
+
   const left = document.getElementById('mouse-left');
   left.addEventListener('change', () => {
     cat.setMouseSide(left.checked ? 'left' : 'right');
@@ -192,7 +304,10 @@
 
   const status = document.getElementById('status');
   setInterval(() => {
-    status.textContent = __cat.state + (__cat.excited ? ' + 兴奋' : '');
+    const c = __cat;
+    const stageName = { sitting: '坐着睡', drool: '流口水', slumped: '趴着睡' }[c.sleepStage];
+    const moodName = { fine: '', tired: '累了', angry: '生气' }[c.mood];
+    status.textContent = [c.state, stageName, moodName, c.excited ? '兴奋' : ''].filter(Boolean).join(' · ');
   }, 200);
 })();
 </script>

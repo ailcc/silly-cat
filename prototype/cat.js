@@ -2,7 +2,10 @@
 (function () {
   'use strict';
 
-  const STATES = Object.freeze({ AWAKE: 'awake', DROWSY: 'drowsy', ASLEEP: 'asleep', PETTED: 'petted' });
+  const STATES = Object.freeze({
+    AWAKE: 'awake', DROWSY: 'drowsy', ASLEEP: 'asleep', PETTED: 'petted',
+    RAGE: 'rage', STRIKE: 'strike', // 由 fatigue.js 覆盖
+  });
 
   // 爪子的左右一律按猫自己的视角：'L' = 猫的左爪 = 观众右侧（白爪），'R' = 猫的右爪 = 观众左侧（黑爪）。
   // 键盘和鼠标都朝向猫摆放。猫的左爪按标准指法负责左手键区；其余归右爪。
@@ -61,11 +64,13 @@
   const FX_MAX = 24, FX_LIFE = 700;
   function createKeycapFx(layer) {
     const live = []; // { g, text, start, x, y, dx, rot, rise }
-    function spawn(text, x, y, excited, now) {
+    // style: '' | 'hot'（兴奋）| 'angry'（生气）
+    function spawn(text, x, y, style, now) {
+      const excited = !!style;
       while (live.length >= FX_MAX) live.shift().g.remove();
       const w = Math.max(26, 12 + text.length * 9), h = 26;
       const g = document.createElementNS(SVG_NS, 'g');
-      g.setAttribute('class', 'keycap-fx' + (excited ? ' hot' : ''));
+      g.setAttribute('class', 'keycap-fx' + (style ? ' ' + style : ''));
       const r = document.createElementNS(SVG_NS, 'rect');
       r.setAttribute('x', -w / 2); r.setAttribute('y', -h / 2);
       r.setAttribute('width', w); r.setAttribute('height', h); r.setAttribute('rx', 7);
@@ -107,7 +112,8 @@
     return { spawn, tick, texts(now) { prune(now); return live.map((f) => f.text); } };
   }
 
-  function createCat({ keyboard: kb, sleepSeconds = 20, mouseSide = 'right' }) {
+  // modules：扩展行为（睡眠阶段、疲劳……）的工厂函数数组，每个接收 ctx 返回一个带可选钩子的对象。
+  function createCat({ keyboard: kb, sleepSeconds = 20, mouseSide = 'right', modules = [] }) {
     const $ = (id) => {
       const n = document.getElementById(id);
       if (!n) throw new Error('missing #' + id);
@@ -141,6 +147,15 @@
       twitch: { ear: null, start: -1e9 }, nextTwitch: t0 + 5000 + Math.random() * 5000,
       tailPhase: 0, tailAngle: 0, eyeMode: null,
       headBaseRot: -4, headBaseX: 0, headBaseY: 0,
+      headTf: { tx: 0, ty: 0, rot: -4 }, catHidden: false,
+    };
+
+    // ---------- 扩展钩子 ----------
+    const mods = [];
+    const call = (name, ...a) => { for (const m of mods) if (m[name]) m[name](...a); };
+    const ask = (name, ...a) => {
+      for (const m of mods) if (m[name]) { const r = m[name](...a); if (r) return r; }
+      return null;
     };
 
     function makePaw(side) {
@@ -164,7 +179,7 @@
 
     // ---------- 状态 ----------
     function noteInput(now) {
-      if (S.state === STATES.ASLEEP) S.shakeStart = now; // 被叫醒：甩头
+      if (S.state === STATES.ASLEEP) { S.shakeStart = now; call('onWake', now); } // 被叫醒：甩头
       S.lastInput = now;
       if (!S.pet) S.state = STATES.AWAKE;
     }
@@ -181,9 +196,13 @@
     }
 
     function targetOf(paw, now) {
+      const forced = ask('forcedPawTarget', paw, now); // 发飙、罢工等：压过一切
+      if (forced) return forced;
       if (paw.held.length) return { id: paw.held[paw.held.length - 1], pressing: true };
       if (now < paw.releaseAt && paw.lastCode) return { id: paw.lastCode, pressing: false };
       if (holdingMouse(paw, now)) return { id: 'mouse', pressing: S.mouseButtons.size > 0 };
+      const soft = ask('softPawTarget', paw, now); // 抹嘴、趴着摊开：只在没按键时
+      if (soft) return soft;
       return { id: 'rest', pressing: false };
     }
 
@@ -199,9 +218,17 @@
       return keyPoint(id, paw.side);
     }
 
+    // 每个输入先把状态推进到此刻，再问扩展模块要不要拦下（发飙、罢工时猫不理人）
+    function guard(kind, arg) {
+      const now = performance.now();
+      refreshState(now);
+      return !!ask('block', kind, arg, now);
+    }
+
     // ---------- 抽象输入事件 ----------
     const api = {
       keyDown(code) {
+        if (guard('keyDown', code)) return;
         const now = performance.now();
         noteInput(now);
         if (S.pressed.has(code)) return;
@@ -219,9 +246,12 @@
         if (S.keyTimes.length > EXCITE_COUNT) S.excited = true;
         if (S.excited) S.excitedUntil = now + 1000;
         const at = keyPoint(code, paw.side);
-        fx.spawn(keycapText(code, paw.side), at.x, at.y - PAW_ON_KEY_DY, S.excited, now);
+        const style = ask('keycapStyle', now) || (S.excited ? 'hot' : '');
+        fx.spawn(keycapText(code, paw.side), at.x, at.y - PAW_ON_KEY_DY, style, now);
+        call('afterKeyDown', code, now);
       },
       keyUp(code) {
+        if (guard('keyUp', code)) return;
         const now = performance.now();
         const side = S.pressed.get(code);
         if (!side) return;
@@ -234,6 +264,7 @@
         kb.setDown(code, false);
       },
       pointerMove(dx, dy) {
+        if (guard('pointerMove', null)) return;
         const now = performance.now();
         noteInput(now);
         S.mouseActiveUntil = now + MOUSE_HOLD_MS;
@@ -241,6 +272,7 @@
         S.mouseOff.y = clamp(S.mouseOff.y + dy * 0.25, -6, 6);
       },
       pointerDown(button) {
+        if (guard('pointerDown', button)) return;
         const now = performance.now();
         noteInput(now);
         S.mouseActiveUntil = now + MOUSE_HOLD_MS;
@@ -248,6 +280,7 @@
         if (el.mouseBtn[button]) el.mouseBtn[button].classList.add('down');
       },
       pointerUp(button) {
+        if (guard('pointerUp', button)) return;
         const now = performance.now();
         if (!S.mouseButtons.has(button)) return;
         noteInput(now);
@@ -256,17 +289,20 @@
         if (el.mouseBtn[button]) el.mouseBtn[button].classList.remove('down');
       },
       petStart(nx, ny) {
+        if (guard('petStart', null)) return;
         const now = performance.now();
         noteInput(now);
         S.pet = { nx: nx || 0, ny: ny || 0 };
         S.state = STATES.PETTED;
       },
       petMove(nx, ny) {
+        if (guard('petMove', null)) return;
         if (!S.pet) return;
         S.pet.nx = nx; S.pet.ny = ny;
         S.lastInput = performance.now();
       },
       petEnd() {
+        if (guard('petEnd', null)) return;
         if (!S.pet) return;
         S.pet = null;
         S.lastInput = performance.now();
@@ -291,8 +327,12 @@
         const idle = now - S.lastInput;
         S.state = idle >= S.sleepMs ? STATES.ASLEEP : idle >= S.sleepMs / 2 ? STATES.DROWSY : STATES.AWAKE;
       }
+      call('refresh', now);
+      const o = ask('overrideState', now);
+      if (o) S.state = o;
       if (S.state === STATES.ASLEEP && prev !== STATES.ASLEEP) S.sleepSince = now;
       if (S.excited && now > S.excitedUntil) S.excited = false;
+      call('afterState', now);
     }
 
     function update(now) {
@@ -308,24 +348,24 @@
       }
     }
 
-    function renderPaws(now, dt) {
+    function renderPaws(now, dt, P) {
       for (const paw of [paws.L, paws.R]) {
         const t = targetOf(paw, now);
-        const goal = pointFor(t.id, paw);
-        const tau = t.pressing && t.id !== 'mouse' ? 14 : t.id === 'rest' ? 45 : 25;
+        const goal = t.x !== undefined ? { x: t.x, y: t.y } : pointFor(t.id, paw);
+        const tau = (t.tau || (t.pressing && t.id !== 'mouse' ? 14 : t.id === 'rest' ? 45 : 25)) * P.pawTau;
         paw.x = approach(paw.x, goal.x, dt, tau);
         paw.y = approach(paw.y, goal.y, dt, tau);
         const dist = Math.hypot(goal.x - paw.x, goal.y - paw.y);
         paw.press = approach(paw.press, t.pressing && dist < 6 ? 1 : 0, dt, 16);
         paw.lift = approach(paw.lift, dist > 10 ? 1 : 0, dt, 30);
 
-        const sx = 1 + 0.13 * paw.press + 0.06 * paw.lift;
-        const sy = 1 - 0.17 * paw.press + 0.06 * paw.lift;
+        const sx = 1 + (0.13 + P.pressBoost) * paw.press + 0.06 * paw.lift;
+        const sy = 1 - (0.17 + P.pressBoost) * paw.press + 0.06 * paw.lift;
         const py = paw.y - 4 * paw.lift;
         paw.els.paw.setAttribute('transform', `translate(${f1(paw.x)} ${f1(py)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
 
         // 手臂：肩部锚点 -> 爪背的二次曲线，距离越近弯得越多
-        const sh = SHOULDER[paw.side];
+        const sh = { x: SHOULDER[paw.side].x + P.bodyX, y: SHOULDER[paw.side].y + P.lift + P.bodyY };
         const ex = paw.x, ey = py - 8;
         const vx = ex - sh.x, vy = ey - sh.y, len = Math.hypot(vx, vy) || 1;
         let nx = -vy / len, ny = vx / len;
@@ -333,13 +373,13 @@
         if (nx * outward < 0) { nx = -nx; ny = -ny; }
         const bend = clamp(70 - len * 0.25, 8, 45);
         const cx = sh.x + vx * 0.5 + nx * bend, cy = sh.y + vy * 0.5 + ny * bend;
-        const d = `M ${sh.x} ${sh.y} Q ${f1(cx)} ${f1(cy)} ${f1(ex)} ${f1(ey)}`;
+        const d = `M ${f1(sh.x)} ${f1(sh.y)} Q ${f1(cx)} ${f1(cy)} ${f1(ex)} ${f1(ey)}`;
         paw.els.armOutline.setAttribute('d', d);
         paw.els.armFill.setAttribute('d', d);
       }
     }
 
-    function renderHead(now, dt, rm) {
+    function renderHead(now, dt, rm, P) {
       const asleep = S.state === STATES.ASLEEP;
       let rotGoal = -4, xGoal = 0, yGoal = 0;
       if (asleep) { rotGoal -= 3; yGoal += 8; }
@@ -352,16 +392,17 @@
       S.headBaseX = approach(S.headBaseX, xGoal, dt, 70);
       S.headBaseY = approach(S.headBaseY, yGoal, dt, asleep ? 500 : 70);
 
-      let rot = S.headBaseRot, tx = S.headBaseX, ty = S.headBaseY;
+      let rot = S.headBaseRot + P.headRot, tx = S.headBaseX + P.headX, ty = S.headBaseY + P.headY + P.lift;
       const tn = now - S.nodStart;
       if (tn < 140) ty += 2 * Math.sin(Math.PI * tn / 140);
       const ts = now - S.shakeStart;
-      if (ts < 420) rot += 6 * Math.sin(4 * Math.PI * ts / 420); // 甩两下 ±6°
-      if (asleep && !rm) ty += 1.5 * Math.sin(now * 2 * Math.PI / 3200);
+      if (ts >= 0 && ts < 420) rot += 6 * Math.sin(4 * Math.PI * ts / 420); // 甩两下 ±6°
+      if (asleep && !rm) ty += 1.5 * P.breath * Math.sin(now * 2 * Math.PI / 3200);
+      S.headTf = { tx, ty, rot };
       el.head.setAttribute('transform', `translate(${f1(tx)} ${f1(ty)}) rotate(${rot.toFixed(2)} 400 262)`);
     }
 
-    function renderEyes(now, dt) {
+    function renderEyes(now, dt, P) {
       const mode = S.state === STATES.ASLEEP ? 'closed' : S.state === STATES.PETTED ? 'happy' : 'open';
       if (mode !== S.eyeMode) {
         S.eyeMode = mode;
@@ -375,6 +416,7 @@
       if (mode !== 'open') return;
 
       let lidGoal = S.state === STATES.DROWSY ? 0.55 : S.excited ? 0.04 : 0.18;
+      lidGoal = Math.max(lidGoal, P.lidMin);
       if (now < S.blinkUntil) lidGoal = 1;
       S.lid = approach(S.lid, lidGoal, dt, now < S.blinkUntil ? 18 : 60);
 
@@ -409,41 +451,40 @@
       }
     }
 
-    function renderEars(now) {
+    function renderEars(now, P) {
       for (const s of ['L', 'R']) {
         let a = 0;
         if (S.twitch.ear === s) {
           const t = now - S.twitch.start;
           if (t < 260) a = 14 * Math.sin(2 * Math.PI * t / 130) * (1 - t / 260);
         }
+        a += P.earDroop; // 耷拉：两只耳朵都往外侧倒
         if (s === 'L') a = -a;
         const pivot = s === 'L' ? '322 110' : '478 110';
         el.ear[s].setAttribute('transform', `rotate(${a.toFixed(2)} ${pivot})`);
       }
     }
 
-    function renderTail(dt, rm) {
+    function renderTail(dt, rm, P) {
       let amp = 9, speed = 0.003, base = 0, tau = 60;
       if (S.state === STATES.ASLEEP) { amp = 0; speed = 0; base = -22; tau = 500; }
       else if (S.excited) { amp = 16; speed = 0.014; }
       else if (rm) { amp = 0; speed = 0; }
       else if (S.state === STATES.DROWSY) { amp = 5; speed = 0.0015; }
+      if (P.tailAmp !== null && S.state !== STATES.ASLEEP) { amp = P.tailAmp; speed = P.tailSpeed; }
       S.tailPhase += dt * speed;
       S.tailAngle = approach(S.tailAngle, base + amp * Math.sin(S.tailPhase), dt, tau);
-      el.tail.setAttribute('transform', `rotate(${S.tailAngle.toFixed(2)} 322 372)`);
+      el.tail.setAttribute('transform', `translate(${f1(P.bodyX)} ${f1(P.lift + P.bodyY)}) rotate(${S.tailAngle.toFixed(2)} 322 372)`);
     }
 
-    function renderBody(now, rm) {
-      if (S.state === STATES.ASLEEP && !rm) {
-        const b = Math.sin(now * 2 * Math.PI / 3200);
-        el.body.setAttribute('transform',
-          `translate(400 410) scale(${(1 + 0.012 * b).toFixed(4)} ${(1 + 0.025 * b).toFixed(4)}) translate(-400 -410)`);
-      } else {
-        el.body.removeAttribute('transform');
-      }
+    function renderBody(now, rm, P) {
+      const b = S.state === STATES.ASLEEP && !rm ? Math.sin(now * 2 * Math.PI / 3200) * P.breath : 0;
+      el.body.setAttribute('transform',
+        `translate(${f1(P.bodyX)} ${f1(P.bodyY + P.lift)}) rotate(${P.bodyRot.toFixed(2)} 400 410) ` +
+        `translate(400 410) scale(${(1 + 0.012 * b).toFixed(4)} ${(1 + 0.025 * b).toFixed(4)}) translate(-400 -410)`);
     }
 
-    function renderZzz(now) {
+    function renderZzz(now, P) {
       const on = S.state === STATES.ASLEEP;
       el.zzz.forEach((z, i) => {
         if (!on) { z.style.display = 'none'; return; }
@@ -451,21 +492,36 @@
         const ph = ((t / 2600) + i / 3) % 1;
         const born = t > i * 860; // 依次出现
         z.style.display = born ? '' : 'none';
-        const x = 520 + ph * 40 + Math.sin(ph * 6) * 4;
-        const y = 92 - ph * 78;
+        const x = 520 + P.zzzDx + ph * 40 + Math.sin(ph * 6) * 4;
+        const y = 92 + P.zzzDy - ph * 78;
         const sc = 0.7 + ph * 0.8;
         z.setAttribute('transform', `translate(${f1(x)} ${f1(y)}) scale(${sc.toFixed(3)})`);
         z.setAttribute('opacity', Math.sin(Math.PI * ph).toFixed(3));
       });
     }
 
-    function renderMouse(dt) {
+    function renderMouse(dt, P) {
       if (S.mouseButtons.size === 0) {
         S.mouseOff.x = approach(S.mouseOff.x, 0, dt, 300);
         S.mouseOff.y = approach(S.mouseOff.y, 0, dt, 300);
       }
       const m = mousePoint();
-      el.mouse.setAttribute('transform', `translate(${f1(m.x)} ${f1(m.y)})`);
+      el.mouse.setAttribute('transform', `translate(${f1(m.x + P.mouseX)} ${f1(m.y + P.mouseY)}) rotate(${P.mouseRot.toFixed(2)})`);
+    }
+
+    // 每帧由扩展模块叠加的姿态（加法 / 乘法），默认值等于"什么都不改"
+    function defaultPose() {
+      return {
+        headX: 0, headY: 0, headRot: 0, bodyX: 0, bodyY: 0, bodyRot: 0, lift: 0,
+        earDroop: 0, breath: 1, lidMin: 0, tailAmp: null, tailSpeed: 0,
+        pawTau: 1, pressBoost: 0, zzzDx: 0, zzzDy: 0, mouseX: 0, mouseY: 0, mouseRot: 0, hideCat: false,
+      };
+    }
+    const catParts = ['cat-head', 'cat-body', 'tail', 'arm-l', 'arm-r', 'paw-l', 'paw-r'].map($);
+    function setCatHidden(h) {
+      if (h === S.catHidden) return;
+      S.catHidden = h;
+      for (const n of catParts) n.style.display = h ? 'none' : '';
     }
 
     let last = performance.now();
@@ -474,21 +530,46 @@
       last = now;
       const rm = reducedMotion();
       update(now);
-      renderMouse(dt);
-      renderPaws(now, dt);
-      renderHead(now, dt, rm);
-      renderEyes(now, dt);
-      renderEars(now);
-      renderTail(dt, rm);
-      renderBody(now, rm);
-      renderZzz(now);
+      const P = defaultPose();
+      call('pose', now, dt, rm, P);   // 扩展模块叠加姿态
+      setCatHidden(P.hideCat);
+      renderMouse(dt, P);
+      renderPaws(now, dt, P);
+      renderHead(now, dt, rm, P);
+      renderEyes(now, dt, P);
+      renderEars(now, P);
+      renderTail(dt, rm, P);
+      renderBody(now, rm, P);
+      renderZzz(now, P);
+      call('render', now, dt, rm, P);
       fx.tick(now, rm);
       requestAnimationFrame(frame);
     }
+    // ---------- 给扩展模块的上下文 ----------
+    function headToScene(x, y) { // 头部局部坐标 -> 画面坐标（按当前头部变换）
+      const { tx, ty, rot } = S.headTf;
+      const a = rot * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+      const vx = x - 400, vy = y - 262;
+      return { x: 400 + vx * c - vy * s + tx, y: 262 + vx * s + vy * c + ty };
+    }
+    function releaseAll() { // 发飙时松开所有键和鼠标（画面上）
+      for (const code of S.pressed.keys()) kb.setDown(code, false);
+      S.pressed.clear();
+      for (const p of [paws.L, paws.R]) { p.held.length = 0; p.releaseAt = 0; }
+      for (const b of S.mouseButtons) if (el.mouseBtn[b]) el.mouseBtn[b].classList.remove('down');
+      S.mouseButtons.clear();
+      S.mouseActiveUntil = 0;
+    }
+    const ctx = {
+      S, STATES, el, kb, fx, paws, keycapText, keyPoint, mousePoint, mousePaw, restPoint, headToScene,
+      releaseAll, reducedMotion, clamp, approach, f1,
+    };
+    for (const make of modules) mods.push(make(ctx) || {});
+
     requestAnimationFrame(frame);
 
     // ---------- 只读调试信息 ----------
-    const debug = Object.freeze({
+    const debugObj = {
       get state() { refreshState(performance.now()); return S.state; },
       get excited() { refreshState(performance.now()); return S.excited; },
       get paws() {
@@ -499,7 +580,14 @@
       get sleepSeconds() { return S.sleepMs / 1000; },
       get mouseSide() { return S.mouseSide; },
       get floaters() { return Object.freeze(fx.texts(performance.now())); },
-    });
+    };
+    // 扩展模块的调试字段：读取前同样先推进状态
+    for (const m of mods) {
+      for (const [k, fn] of Object.entries(m.debugProps || {})) {
+        Object.defineProperty(debugObj, k, { enumerable: true, get() { refreshState(performance.now()); return fn(); } });
+      }
+    }
+    const debug = Object.freeze(debugObj);
     api.debug = debug;
     return Object.freeze(api);
   }
