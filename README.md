@@ -16,3 +16,13 @@
   - 头压住的键会被按下；醒来都是 0.4 秒快速反向起身。`prefers-reduced-motion` 下直接切到趴好的姿势。
 - 睡着时（坐着睡、流口水、趴着）只移动鼠标不会叫醒猫，爪子也不去够鼠标，睡眠阶段照常往下走，只抖一下耳朵；按键、点鼠标、摸头照常叫醒。犯困还没睡着时移动鼠标照旧会伸手去握。
 - 只移动鼠标不重置入睡计时：光动鼠标不打字、不点击，猫照样会犯困、睡着；按键、点鼠标、摸头才算输入。
+
+## 桌面版（Tauri 2，目前只做 macOS）
+
+- 开发运行：`npm install` 后 `npm run desktop`。打包：`npm run desktop:build`，产物在 `src-tauri/target/release/bundle/macos/SillyCat.app`（约 4.6 MB，未签名）。
+- 外壳在 `src-tauri/`，页面直接用 `prototype/`，没有打包步骤。页面在 Tauri 里会给 `<html>` 加 `desktop` class：隐藏标题和滑块、背景透明，输入来源从 `input.js` 换成 `input-desktop.js`。网页版不受影响。
+- 窗口 420×345，透明、无边框、置顶、不进 Dock。透明的地方点击会穿透到后面的应用（每 33ms 取一次全局指针位置做命中判断）。
+- 全局键鼠：`src-tauri/src/tap.rs` 用只读的 CGEventTap 取虚拟键码，只用键位驱动动画，不记录、不落盘。需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 SillyCat；没授权时猫照常显示，只是不跟着打字。每次重新构建后可能要重新授权。
+- 按住头是摸头；按住身体、键盘、鼠标等其他地方拖动窗口，位置记在 `~/Library/Application Support/com.drew.sillycat/window-position.json`。
+- 菜单栏图标：显示/隐藏猫、重置位置、打开输入监控设置、退出。
+- 已知问题：其他应用全屏时猫可能不显示；在密码框里打字时系统不把按键交给监听，按住的键可能卡在按下状态。

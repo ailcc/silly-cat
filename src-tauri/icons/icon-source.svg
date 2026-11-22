@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- 占位应用图标：猫头（取自 prototype/index.html 的路径），重新生成：npx tauri icon src-tauri/icons/icon-source.png -->
+  <rect x="80" y="80" width="864" height="864" rx="200" fill="#dfe6f5"/>
+  <g transform="translate(512 560) scale(2.55) translate(-400 -170) rotate(-4 400 262)">
+    <defs>
+      <clipPath id="h"><path d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/></clipPath>
+    </defs>
+    <g stroke="#1d1b22" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+      <path fill="#26232b" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 L 380 150 L 300 160 Z"/>
+      <path fill="#26232b" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 L 420 150 L 500 160 Z"/>
+    </g>
+    <path fill="#ff9eb0" d="M 302 108 L 304 58 L 341 86 Z"/>
+    <path fill="#ff9eb0" d="M 498 108 L 496 58 L 459 86 Z"/>
+    <path fill="#fffdf8" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
+    <g clip-path="url(#h)">
+      <path fill="#26232b" d="M 255 50 H 545 V 112 C 520 104, 498 101, 470 110 C 452 116, 438 112, 424 122 C 408 134, 398 146, 392 166 C 385 190, 380 214, 346 222 C 316 228, 286 216, 255 202 Z"/>
+    </g>
+    <path fill="none" stroke="#1d1b22" stroke-width="5" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
+    <ellipse fill="#ff9eb0" opacity="0.45" cx="318" cy="232" rx="13" ry="7"/>
+    <ellipse fill="#ff9eb0" opacity="0.45" cx="484" cy="226" rx="13" ry="7"/>
+    <circle fill="#fffdf8" stroke="#1d1b22" stroke-width="5" cx="345" cy="178" r="29"/>
+    <circle fill="#b9e36b" cx="345" cy="181" r="21"/>
+    <circle fill="#1d1b22" cx="345" cy="182" r="13"/>
+    <circle fill="#fff" cx="339" cy="176" r="5"/>
+    <circle fill="#fffdf8" stroke="#1d1b22" stroke-width="5" cx="455" cy="178" r="29"/>
+    <circle fill="#b9e36b" cx="455" cy="181" r="21"/>
+    <circle fill="#1d1b22" cx="455" cy="182" r="13"/>
+    <circle fill="#fff" cx="449" cy="176" r="5"/>
+    <ellipse fill="#26232b" cx="421" cy="214" rx="11" ry="6.5" transform="rotate(-22 421 214)"/>
+    <path fill="none" stroke="#1d1b22" stroke-width="3" stroke-linecap="round" d="M 300 226 L 256 218 M 302 236 L 259 242 M 500 224 L 546 214 M 499 234 L 543 240"/>
+    <path fill="#fff" stroke="#1d1b22" stroke-width="2.5" stroke-linejoin="round" d="M 404 232 L 408 242 L 412 231 Z"/>
+    <path fill="none" stroke="#1d1b22" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" d="M 400 219 L 400 228 M 383 227 Q 391 237 400 228 Q 410 237 420 224"/>
+    <path fill="#ff9eb0" stroke="#1d1b22" stroke-width="3.5" stroke-linejoin="round" d="M 389 206 Q 400 201 411 206 Q 409 216 400 220 Q 391 216 389 206 Z"/>
+  </g>
+</svg>

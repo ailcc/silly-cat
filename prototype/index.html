@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>捣蛋奶牛猫</title>
 <link rel="stylesheet" href="style.css">
+<script>/* 桌面外壳（Tauri）里进入桌面模式：只留猫、键盘、鼠标和特效 */ if (window.__TAURI__) document.documentElement.classList.add('desktop');</script>
 </head>
 <body>
 <header class="hint">在这页上随便敲键盘</header>
@@ -264,6 +265,7 @@
 <script src="sleep.js"></script>
 <script src="fatigue.js"></script>
 <script src="input.js"></script>
+<script src="input-desktop.js"></script>
 <script>
 (function () {
   'use strict';
@@ -288,11 +290,18 @@
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
     ],
   });
-  SillyInput.createBrowserInput(cat, {
-    headEl: [document.getElementById('cat-head'), document.getElementById('strike-head')],
-    ignoreEl: document.getElementById('controls'),
-    stageEl: document.getElementById('stage'),
-  });
+  const headEl = [document.getElementById('cat-head'), document.getElementById('strike-head')];
+  if (SillyDesktopInput.isDesktop()) {
+    // 桌面外壳：全局键鼠代替页面内的键鼠事件（不同时挂两份，避免一次按键算两次）
+    const desktop = SillyDesktopInput.create(cat, { headEl, sceneEl: document.getElementById('scene') });
+    Object.defineProperty(window, '__desktop', { value: desktop.debug, writable: false, configurable: false });
+  } else {
+    SillyInput.createBrowserInput(cat, {
+      headEl,
+      ignoreEl: document.getElementById('controls'),
+      stageEl: document.getElementById('stage'),
+    });
+  }
   Object.defineProperty(window, '__cat', { value: cat.debug, writable: false, configurable: false });
 
   const range = document.getElementById('sleep-range');

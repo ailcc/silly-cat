@@ -1,0 +1,199 @@
+// 桌面输入来源（Tauri 外壳）：把 Rust 侧发来的全局键鼠事件翻译成和 input.js 相同的抽象事件，交给 sink（猫）。
+// 只在 Tauri 里用；浏览器里不会调用 create，加载本文件本身没有副作用。
+//
+// - 键盘：Rust 的只读 CGEventTap 发来 macOS 虚拟键码，这里映射成 KeyboardEvent.code（keyboard.js 用的键位标识）。
+//   不做字符转换，不记录任何输入。桌面模式下不挂 input.js 的 DOM 键盘监听，同一次按键只算一次。
+// - 鼠标移动：每 33ms 向 Rust 取一次全局指针位置（不需要输入监控权限），相邻两次的差值就是 pointerMove(dx, dy)。
+// - 鼠标按键：Rust 的鼠标 tap 发来；指针正在猫身上时这次点击交给页面（摸头 / 拖动），不算「点鼠标」。
+// - 点击穿透：用同一份指针位置做 document.elementFromPoint 命中判断，只有指在有画面的地方时窗口才接收鼠标。
+// - 摸头 vs 拖动：在头上按下 = 摸头（和网页版一样）；在身体、尾巴、键盘、鼠标等其他画面上按下 = 拖动窗口。
+(function () {
+  'use strict';
+
+  // macOS 虚拟键码 -> KeyboardEvent.code（按物理位置，不随输入法 / 键盘布局变）
+  const KEYCODES = {
+    0: 'KeyA', 1: 'KeyS', 2: 'KeyD', 3: 'KeyF', 4: 'KeyH', 5: 'KeyG', 6: 'KeyZ', 7: 'KeyX', 8: 'KeyC', 9: 'KeyV',
+    10: 'IntlBackslash', 11: 'KeyB', 12: 'KeyQ', 13: 'KeyW', 14: 'KeyE', 15: 'KeyR', 16: 'KeyY', 17: 'KeyT',
+    18: 'Digit1', 19: 'Digit2', 20: 'Digit3', 21: 'Digit4', 22: 'Digit6', 23: 'Digit5', 24: 'Equal', 25: 'Digit9',
+    26: 'Digit7', 27: 'Minus', 28: 'Digit8', 29: 'Digit0', 30: 'BracketRight', 31: 'KeyO', 32: 'KeyU',
+    33: 'BracketLeft', 34: 'KeyI', 35: 'KeyP', 36: 'Enter', 37: 'KeyL', 38: 'KeyJ', 39: 'Quote', 40: 'KeyK',
+    41: 'Semicolon', 42: 'Backslash', 43: 'Comma', 44: 'Slash', 45: 'KeyN', 46: 'KeyM', 47: 'Period', 48: 'Tab',
+    49: 'Space', 50: 'Backquote', 51: 'Backspace', 53: 'Escape', 54: 'MetaRight', 55: 'MetaLeft', 56: 'ShiftLeft',
+    57: 'CapsLock', 58: 'AltLeft', 59: 'ControlLeft', 60: 'ShiftRight', 61: 'AltRight', 62: 'ControlRight', 63: 'Fn',
+    64: 'F17', 65: 'NumpadDecimal', 67: 'NumpadMultiply', 69: 'NumpadAdd', 71: 'NumLock', 75: 'NumpadDivide',
+    76: 'NumpadEnter', 78: 'NumpadSubtract', 79: 'F18', 80: 'F19', 81: 'NumpadEqual', 82: 'Numpad0', 83: 'Numpad1',
+    84: 'Numpad2', 85: 'Numpad3', 86: 'Numpad4', 87: 'Numpad5', 88: 'Numpad6', 89: 'Numpad7', 90: 'F20',
+    91: 'Numpad8', 92: 'Numpad9', 93: 'IntlYen', 94: 'IntlRo', 95: 'NumpadComma', 96: 'F5', 97: 'F6', 98: 'F7',
+    99: 'F3', 100: 'F8', 101: 'F9', 102: 'Lang2', 103: 'F11', 104: 'Lang1', 105: 'F13', 106: 'F16', 107: 'F14',
+    109: 'F10', 110: 'ContextMenu', 111: 'F12', 113: 'F15', 114: 'Insert', 115: 'Home', 116: 'PageUp',
+    117: 'Delete', 118: 'F4', 119: 'End', 120: 'F2', 121: 'PageDown', 122: 'F1', 123: 'ArrowLeft',
+    124: 'ArrowRight', 125: 'ArrowDown', 126: 'ArrowUp',
+  };
+  const CAPS_LOCK_KC = 57;
+  const POLL_MS = 33;
+  // 桌面窗口里把画面四周放宽：发飙举鼠标过头顶、Zzz、浮起的键名、散落的键帽都不被窗口边缘裁掉
+  const DESKTOP_VIEWBOX = '-20 -50 840 690';
+
+  const isDesktop = () => !!(window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.window);
+
+  function create(sink, opts = {}) {
+    const T = window.__TAURI__;
+    const invoke = T.core.invoke;
+    const appWin = T.window.getCurrentWindow();
+    const sceneEl = opts.sceneEl;
+    const headEls = [].concat(opts.headEl || []).filter(Boolean);
+    let headEl = headEls[0] || null;
+
+    if (sceneEl) sceneEl.setAttribute('viewBox', DESKTOP_VIEWBOX);
+
+    const heldKeys = new Set();
+    const heldButtons = new Set();
+    let pet = null;           // { id }
+    let over = false;         // 指针此刻是否在有画面的地方
+    let ignoring = null;      // 窗口当前是否点击穿透
+    let lastG = null;         // 上一次的全局指针位置
+    const status = { granted: null, keys: false, mouse: false };
+
+    const isNode = (t) => typeof Node !== 'undefined' && t instanceof Node;
+    const inScene = (t) => isNode(t) && t !== sceneEl && !!sceneEl && sceneEl.contains(t);
+
+    function rel(e) {
+      const r = headEl.getBoundingClientRect();
+      const nx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2 || 1);
+      const ny = (e.clientY - (r.top + r.height / 2)) / (r.height / 2 || 1);
+      return [Math.max(-1, Math.min(1, nx)), Math.max(-1, Math.min(1, ny))];
+    }
+
+    // ---------- 键盘 ----------
+    function onKey({ kc, down }) {
+      const code = KEYCODES[kc];
+      if (!code) return;
+      if (kc === CAPS_LOCK_KC) { // 大写锁定只有切换时的一次事件：当作按一下
+        if (heldKeys.has(code)) return;
+        heldKeys.add(code); sink.keyDown(code);
+        setTimeout(() => { if (heldKeys.delete(code)) sink.keyUp(code); }, 120);
+        return;
+      }
+      if (down) {
+        if (heldKeys.has(code)) return;
+        heldKeys.add(code); sink.keyDown(code);
+      } else {
+        if (!heldKeys.has(code)) return;
+        heldKeys.delete(code); sink.keyUp(code);
+      }
+    }
+
+    // ---------- 鼠标按键（全局） ----------
+    function onButton({ button, down }) {
+      if (down) {
+        if (over || pet) return; // 点在猫身上：交给页面（摸头 / 拖动）
+        if (heldButtons.has(button)) return;
+        heldButtons.add(button); sink.pointerDown(button);
+      } else {
+        if (button === 0) endPet(); // 指针跑出窗口后松开也能结束摸头
+        if (!heldButtons.has(button)) return;
+        heldButtons.delete(button); sink.pointerUp(button);
+      }
+    }
+
+    // ---------- 指针位置轮询：pointerMove + 点击穿透 ----------
+    function hitAt(x, y) {
+      if (!(x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight)) return false;
+      return inScene(document.elementFromPoint(x, y));
+    }
+    function setIgnore(v) {
+      if (v === ignoring) return;
+      ignoring = v;
+      appWin.setIgnoreCursorEvents(v).catch(() => { ignoring = null; });
+    }
+    let polling = false;
+    async function poll() {
+      if (polling) return;
+      polling = true;
+      try {
+        const c = await invoke('cursor_local');
+        if (c) {
+          if (lastG && !pet) {
+            const dx = c.gx - lastG.x, dy = c.gy - lastG.y;
+            if (dx || dy) sink.pointerMove(dx, dy);
+          }
+          lastG = { x: c.gx, y: c.gy };
+          over = hitAt(c.x, c.y);
+          setIgnore(!(over || pet));
+        }
+      } catch (_) { /* 窗口关闭中等 */ } finally { polling = false; }
+    }
+
+    // ---------- 页面内：摸头、拖动 ----------
+    function endPet() {
+      if (!pet) return;
+      pet = null;
+      sink.petEnd();
+    }
+    function onPointerDown(e) {
+      if (e.button !== 0) return;
+      const h = headEls.find((n) => isNode(e.target) && n.contains(e.target));
+      if (h) {
+        headEl = h;
+        pet = { id: e.pointerId };
+        try { h.setPointerCapture(e.pointerId); } catch (_) { /* 某些环境不支持 */ }
+        sink.petStart(...rel(e));
+        return;
+      }
+      if (inScene(e.target)) {
+        e.preventDefault();
+        appWin.startDragging().catch(() => {});
+      }
+    }
+    function onPointerMove(e) { if (pet && e.pointerId === pet.id) sink.petMove(...rel(e)); }
+    function onPointerUp(e) { if (pet && e.pointerId === pet.id) endPet(); }
+    function onContextMenu(e) { e.preventDefault(); }
+
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+    window.addEventListener('contextmenu', onContextMenu);
+
+    const unlisten = [];
+    T.event.listen('silly:key', (ev) => onKey(ev.payload)).then((u) => unlisten.push(u));
+    T.event.listen('silly:button', (ev) => onButton(ev.payload)).then((u) => unlisten.push(u));
+    const timer = setInterval(poll, POLL_MS);
+
+    function refreshStatus() {
+      return invoke('input_status').then((s) => { Object.assign(status, s); return s; }).catch(() => status);
+    }
+    refreshStatus().then((s) => {
+      if (!s.granted) console.info('[silly-cat] 没有「输入监控」权限：猫看不到全局按键，托盘菜单里可以打开设置');
+    });
+    const statusTimer = setInterval(refreshStatus, 3000);
+
+    function releaseAll() {
+      for (const c of [...heldKeys]) { heldKeys.delete(c); sink.keyUp(c); }
+      for (const b of [...heldButtons]) { heldButtons.delete(b); sink.pointerUp(b); }
+      endPet();
+    }
+
+    return {
+      releaseAll,
+      debug: Object.freeze({
+        get over() { return over; },
+        get ignoring() { return ignoring; },
+        get input() { return { ...status }; },
+        get held() { return [...heldKeys]; },
+      }),
+      destroy() {
+        releaseAll();
+        clearInterval(timer); clearInterval(statusTimer);
+        for (const u of unlisten) u();
+        window.removeEventListener('pointerdown', onPointerDown);
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+        window.removeEventListener('pointercancel', onPointerUp);
+        window.removeEventListener('contextmenu', onContextMenu);
+      },
+    };
+  }
+
+  window.SillyDesktopInput = { isDesktop, create, KEYCODES };
+})();

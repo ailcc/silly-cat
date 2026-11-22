@@ -198,3 +198,15 @@ body {
 #scene .cloth .cloth-fold { fill: none; stroke-width: 1.8; }
 #scene .ghost-black { fill: var(--fur-black); }
 #scene .ghost-white { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; }
+
+/* ---------- 桌面模式（Tauri 外壳，html.desktop）：透明背景，只留猫、键盘、鼠标和特效 ---------- */
+html.desktop, html.desktop body { background: transparent; }
+html.desktop .hint, html.desktop #controls { display: none; }
+html.desktop body { display: block; }
+html.desktop #stage { width: 100vw; height: 100vh; padding: 0; }
+html.desktop #scene { max-width: none; }
+/* 影子很淡、面积大：不参与命中判断，不挡住后面的应用 */
+html.desktop #scene .shadow { pointer-events: none; }
+html.desktop #cat-body, html.desktop #tail, html.desktop #keyboard, html.desktop #mouse,
+html.desktop #arm-l, html.desktop #arm-r, html.desktop #paw-l, html.desktop #paw-r, html.desktop #cat-strike { cursor: move; }
+html.desktop #strike-head { cursor: grab; }
