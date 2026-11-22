@@ -25,7 +25,10 @@
 - 开发运行：`npm install` 后 `npm run desktop`。打包：`npm run desktop:build`。macOS 出 `src-tauri/target/release/bundle/macos/SillyCat.app` 和 `bundle/dmg/*.dmg`；Windows 出 `bundle/nsis/*-setup.exe`。都未签名：macOS 首次打开要在「隐私与安全性」里放行，Windows 会被 SmartScreen 提示「未知发布者」。
 - 外壳在 `src-tauri/`，页面直接用 `prototype/`，没有打包步骤。页面在 Tauri 里会给 `<html>` 加 `desktop` class：隐藏标题和滑块、背景透明，输入来源从 `input.js` 换成 `input-desktop.js`。网页版不受影响。
 - 窗口 420×345，透明、无边框、置顶、不进 Dock。透明的地方点击会穿透到后面的应用（每 33ms 取一次全局指针位置做命中判断）。
-- 全局键鼠：两边都只取键位驱动动画，不记录、不落盘。Windows 用低级键鼠钩子（`src-tauri/src/win_input.rs`），不需要授权，但收不到以管理员身份运行的窗口、UAC 和锁屏界面里的按键。macOS 用只读的 CGEventTap（`src-tauri/src/tap.rs`），需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 SillyCat；没授权时猫照常显示，只是不跟着打字。每次重新构建后可能要重新授权。
+- 全局键鼠：两边都只取键位驱动动画，不记录、不落盘。Windows 用低级键鼠钩子（`src-tauri/src/win_input.rs`），不需要授权，但收不到以管理员身份运行的窗口、UAC 和锁屏界面里的按键。macOS 用只读的 CGEventTap（`src-tauri/src/tap.rs`），需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 SillyCat（键盘和鼠标按键都要这一项）；没授权时猫照常显示，只是不跟着打字。
+- macOS 收不到键盘输入时的提示：猫左上方冒出气泡「我看不到你打字 / 点这里处理」，点它打开设置窗口，顶部多出一块处理区（「打开输入监控设置」「重置授权」「重新启动 SillyCat」），授权正常后气泡和处理区都会自己收起。Windows 和网页版没有这些。
+  - 判断方法：不看 `CGPreflightListenEventAccess`（结果在进程里有缓存），看 WindowServer 让不让键盘 tap 打开——没授权、或授权记录绑的是别的签名时，`CGEventTapCreate` 照样返回 tap，但 `CGEventTapIsEnabled` 为 false、开不起来。SillyCat 自己在前台（设置窗口在前面）时系统会放行它的 tap，这时不重新判断，沿用它上次在后台时的结论。
+  - 应用没有正式签名，每次构建签名都不同。授权绑在旧签名上时（例如先给本地构建授过权，再装了 CI 构建的版本），系统设置里的开关看起来是开的，但收不到按键，系统也不再弹授权窗口，系统日志里有 `Failed to match existing code requirement for subject com.drew.sillycat and service kTCCServiceListenEvent`。处理：设置窗口里点「重置授权」（应用自己执行 `/usr/bin/tccutil reset ListenEvent com.drew.sillycat`，只清本应用的这一条记录，再申请一次授权并打开输入监控设置），然后在列表里重新打开 SillyCat；打开后系统提示「退出并重新打开」就点它，没提示、或列表里没有 SillyCat，就点「重新启动 SillyCat」。
 - 按住头是摸头；按住身体、键盘、鼠标等其他地方拖动窗口，位置记在 `~/Library/Application Support/com.drew.sillycat/window-position.json`（Windows 在 `%APPDATA%\com.drew.sillycat\`，记的是物理像素）。
 - 菜单栏（托盘）图标：设置…、显示/隐藏猫、重置位置、打开输入监控设置（仅 macOS）、退出。
 - 右键猫、键盘、鼠标等有画面的地方，在指针位置弹出菜单：设置…、退出。

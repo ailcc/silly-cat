@@ -1,6 +1,7 @@
 // 捣蛋奶牛猫桌宠：透明置顶窗口 + 全局键鼠监听 + 托盘菜单。前端直接用 ../prototype。
 // 支持 macOS 和 Windows：全局输入和指针位置按平台拆开（macOS: tap.rs，Windows: win_input.rs），
 // 对下面暴露同一组接口：start / input_monitoring_granted / KEY_TAP_ACTIVE / MOUSE_TAP_ACTIVE。
+// 「键盘输入收不到、要提示授权」只有 macOS 有（tap::keyboard_state），见 input_status。
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 #[cfg(target_os = "macos")]
@@ -55,9 +56,14 @@ struct CursorInfo {
 
 #[derive(Serialize)]
 struct InputStatus {
+    /// 系统记录里的授权（macOS: CGPreflightListenEventAccess）。只作参考，签名对不上时不准
     granted: bool,
     keys: bool,
     mouse: bool,
+    /// 键盘输入状态："ok" / "blocked"（收不到，要提示授权）/ "pending"（刚启动还没试）/ "unsupported"（不需要授权的平台）
+    keyboard: &'static str,
+    /// 要不要在猫旁边和设置窗口里提示处理授权：只有 macOS 上 keyboard == "blocked" 时为 true
+    needs_permission: bool,
 }
 
 /// 前端每 ~33ms 调一次：取全局指针位置并换算到窗口内，用来做命中判断和「移动鼠标」。不需要输入监控权限。
@@ -104,11 +110,67 @@ fn cursor_local(window: WebviewWindow) -> Option<CursorInfo> {
 
 #[tauri::command]
 fn input_status() -> InputStatus {
+    #[cfg(target_os = "macos")]
+    let keyboard = match tap::keyboard_state() {
+        tap::KeyboardState::Ok => "ok",
+        tap::KeyboardState::Blocked => "blocked",
+        tap::KeyboardState::Pending => "pending",
+    };
+    #[cfg(not(target_os = "macos"))]
+    let keyboard = "unsupported";
     InputStatus {
         granted: input::input_monitoring_granted(),
         keys: input::KEY_TAP_ACTIVE.load(Ordering::SeqCst),
         mouse: input::MOUSE_TAP_ACTIVE.load(Ordering::SeqCst),
+        keyboard,
+        needs_permission: cfg!(target_os = "macos") && keyboard == "blocked",
     }
+}
+
+/// 设置窗口「打开输入监控设置」
+#[tauri::command]
+fn open_input_monitoring() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        open_input_monitoring_settings();
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    Err("只有 macOS 需要输入监控授权".into())
+}
+
+/// 设置窗口「重置授权」：只能由用户点按钮触发。
+/// 清掉本应用自己的输入监控记录（`tccutil reset ListenEvent <本应用标识>`，不碰别的应用和别的权限），
+/// 再申请一次授权，并打开输入监控设置页。适用于「列表里开着但收不到按键」——授权记录绑的是旧版本的签名。
+/// 进程里对授权结果有缓存，这次申请不一定能让系统重新弹窗 / 把应用加回列表，所以设置页同时给「重新启动」按钮。
+#[tauri::command]
+fn reset_input_monitoring(app: AppHandle) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        let id = app.config().identifier.clone();
+        let out = std::process::Command::new("/usr/bin/tccutil")
+            .args(["reset", "ListenEvent", id.as_str()])
+            .output()
+            .map_err(|e| format!("运行 tccutil 失败：{e}"))?;
+        if !out.status.success() {
+            let msg = String::from_utf8_lossy(&out.stderr).trim().to_string();
+            return Err(if msg.is_empty() { format!("tccutil 退出码 {:?}", out.status.code()) } else { msg });
+        }
+        tap::request_input_monitoring();
+        open_input_monitoring_settings();
+        Ok(())
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        Err("只有 macOS 需要输入监控授权".into())
+    }
+}
+
+/// 设置窗口「重新启动 SillyCat」：授权变了以后进程里的结果可能要重启才更新
+#[tauri::command]
+fn restart_app(app: AppHandle) {
+    app.restart();
 }
 
 fn settings_file(app: &AppHandle) -> Option<PathBuf> {
@@ -192,6 +254,9 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
     }
 }
 
+/// 设置窗口的默认高度：五个时间项刚好放下。授权提示那块显示时，页面自己把窗口加高（settings.html）
+const SETTINGS_HEIGHT: f64 = 620.0;
+
 fn show_settings(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {
         let _ = w.unminimize();
@@ -201,7 +266,7 @@ fn show_settings(app: &AppHandle) {
     }
     let built = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
         .title("捣蛋奶牛猫 · 设置")
-        .inner_size(400.0, 620.0)
+        .inner_size(400.0, SETTINGS_HEIGHT)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
@@ -352,6 +417,9 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             cursor_local,
             input_status,
+            open_input_monitoring,
+            reset_input_monitoring,
+            restart_app,
             load_settings,
             save_settings,
             open_settings,

@@ -214,3 +214,9 @@ html.desktop #scene .shadow { pointer-events: none; }
 html.desktop #cat-body, html.desktop #tail, html.desktop #tail-front, html.desktop #keyboard, html.desktop #mouse,
 html.desktop #arm-l, html.desktop #arm-r, html.desktop #paw-l, html.desktop #paw-r, html.desktop #cat-strike { cursor: move; }
 html.desktop #strike-head { cursor: grab; }
+/* 收不到键盘输入时猫旁边的提示气泡（只在桌面模式由 input-desktop.js 创建） */
+html.desktop #perm-bubble { cursor: pointer; }
+#scene .perm-bubble-shape { fill: var(--fur-white); stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+#scene .perm-bubble-text { fill: var(--ink); font-size: 26px; font-weight: 800; text-anchor: middle; font-family: inherit; }
+#scene .perm-bubble-sub { fill: var(--coral); font-size: 20px; font-weight: 700; text-anchor: middle; font-family: inherit; }
+#scene #perm-bubble:hover .perm-bubble-shape { fill: var(--cream); }

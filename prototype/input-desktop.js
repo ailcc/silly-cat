@@ -9,6 +9,9 @@
 // - 点击穿透：用同一份指针位置做 document.elementFromPoint 命中判断，只有指在有画面的地方时窗口才接收鼠标。
 // - 摸头 vs 拖动：在头上按下 = 摸头（和网页版一样）；在身体、尾巴、键盘、鼠标等其他画面上按下 = 拖动窗口。
 // - 右键有画面的地方 = 在指针位置弹出原生右键菜单「设置… / 退出」（Rust 的 show_context_menu）。
+// - 收不到键盘输入（只有 macOS：没授权「输入监控」，或授权记录和当前签名对不上）时，猫左上方冒一个小气泡，
+//   点它打开设置窗口（里面有处理办法）。状态每 2 秒向 Rust 问一次（input_status.needs_permission），
+//   连续两次「收不到」才显示，一旦正常就收起。Windows 上 Rust 永远报 false，不显示。
 (function () {
   'use strict';
 
@@ -35,6 +38,24 @@
   const POLL_MS = 33;
   // 桌面窗口里把画面四周放宽：发飙举鼠标过头顶、Zzz、浮起的键名、散落的键帽都不被窗口边缘裁掉
   const DESKTOP_VIEWBOX = '-20 -50 840 690';
+  const STATUS_MS = 2000;
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // 「我看不到你打字」气泡：画在猫的左上方（viewBox 坐标 x 6–278、y -34–66），尾巴指向左耳外侧，不挡脸
+  function buildPermBubble(sceneEl) {
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.setAttribute('id', 'perm-bubble');
+    g.setAttribute('class', 'perm-bubble');
+    g.setAttribute('role', 'button');
+    g.setAttribute('aria-label', '猫看不到你打字，点这里处理');
+    g.style.display = 'none';
+    g.innerHTML =
+      '<path class="perm-bubble-shape" d="M 24 -34 H 228 Q 246 -34 246 -16 V 28 Q 246 46 228 46 H 214 L 278 66 L 190 46 H 24 Q 6 46 6 28 V -16 Q 6 -34 24 -34 Z"/>' +
+      '<text class="perm-bubble-text" x="126" y="1">我看不到你打字</text>' +
+      '<text class="perm-bubble-sub" x="126" y="32">点这里处理 ›</text>';
+    sceneEl.appendChild(g);
+    return g;
+  }
 
   const isDesktop = () => !!(window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.window);
 
@@ -54,7 +75,14 @@
     let over = false;         // 指针此刻是否在有画面的地方
     let ignoring = null;      // 窗口当前是否点击穿透
     let lastG = null;         // 上一次的全局指针位置
-    const status = { granted: null, keys: false, mouse: false };
+    const status = { granted: null, keys: false, mouse: false, keyboard: null, needs_permission: false };
+    const permBubble = sceneEl ? buildPermBubble(sceneEl) : null;
+    let blockedStreak = 0;
+    function updatePermBubble(s) {
+      blockedStreak = s && s.needs_permission === true ? blockedStreak + 1 : 0;
+      if (permBubble) permBubble.style.display = blockedStreak >= 2 ? '' : 'none';
+    }
+    const inPermBubble = (t) => !!permBubble && isNode(t) && permBubble.contains(t);
 
     const isNode = (t) => typeof Node !== 'undefined' && t instanceof Node;
     const inScene = (t) => isNode(t) && t !== sceneEl && !!sceneEl && sceneEl.contains(t);
@@ -135,6 +163,11 @@
     function onPointerDown(e) {
       if (e.button === 2) { openMenu(e); return; }
       if (e.button !== 0) return;
+      if (inPermBubble(e.target)) {
+        e.preventDefault();
+        invoke('open_settings').catch(() => {});
+        return;
+      }
       const h = headEls.find((n) => isNode(e.target) && n.contains(e.target));
       if (h) {
         headEl = h;
@@ -177,12 +210,10 @@
     const timer = setInterval(poll, POLL_MS);
 
     function refreshStatus() {
-      return invoke('input_status').then((s) => { Object.assign(status, s); return s; }).catch(() => status);
+      return invoke('input_status').then((s) => { Object.assign(status, s); updatePermBubble(s); return s; }).catch(() => status);
     }
-    refreshStatus().then((s) => {
-      if (!s.granted) console.info('[silly-cat] 没有「输入监控」权限：猫看不到全局按键，托盘菜单里可以打开设置');
-    });
-    const statusTimer = setInterval(refreshStatus, 3000);
+    refreshStatus();
+    const statusTimer = setInterval(refreshStatus, STATUS_MS);
 
     function releaseAll() {
       for (const c of [...heldKeys]) { heldKeys.delete(c); sink.keyUp(c); }
@@ -196,11 +227,13 @@
         get over() { return over; },
         get ignoring() { return ignoring; },
         get input() { return { ...status }; },
+        get permBubble() { return !!permBubble && permBubble.style.display !== 'none'; },
         get held() { return [...heldKeys]; },
       }),
       destroy() {
         releaseAll();
         clearInterval(timer); clearInterval(statusTimer);
+        if (permBubble) permBubble.remove();
         for (const u of unlisten) u();
         window.removeEventListener('pointerdown', onPointerDown);
         window.removeEventListener('pointermove', onPointerMove);

@@ -62,9 +62,34 @@
   #status { color: var(--muted); font-size: 12px; }
   #status.ok { color: var(--ok); }
   #status.bad { color: var(--error); }
+  /* 收不到键盘输入时的处理区（只有 macOS 桌面版、且 Rust 报 needs_permission 时显示） */
+  #perm { margin: 0 0 12px; padding: 10px 12px; background: #fff3ec; border: 1px solid #f5c2ae; border-radius: 12px; }
+  #perm[hidden] { display: none; }
+  #perm h2 { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
+  #perm p { margin: 0 0 8px; }
+  #perm .sub { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #f0c9b8; }
+  #perm .sub p { margin: 0 0 6px; color: var(--muted); font-size: 12px; }
+  #perm .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  #perm button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  #perm-msg { margin: 6px 0 0; font-size: 12px; color: var(--ok); }
+  #perm-msg.bad { color: var(--error); }
+  #perm-msg:empty { display: none; }
 </style>
 </head>
 <body>
+<section id="perm" hidden aria-live="polite">
+  <h2>猫看不到你打字</h2>
+  <p>需要在「系统设置 → 隐私与安全性 → 输入监控」里打开 SillyCat，猫才能跟着打字。只读取按了哪个键位来做动画，不记录内容。</p>
+  <div class="actions"><button id="perm-open" type="button" class="primary">打开输入监控设置</button></div>
+  <div class="sub">
+    <p>列表里已经打开了但猫还是不动（常见于装了新版本之后）：点「重置授权」清掉 SillyCat 的旧授权记录，再到列表里重新打开它；打开后如果系统提示「退出并重新打开」就点它，没提示就点「重新启动 SillyCat」。</p>
+    <div class="actions">
+      <button id="perm-reset" type="button">重置授权</button>
+      <button id="perm-restart" type="button">重新启动 SillyCat</button>
+    </div>
+  </div>
+  <p id="perm-msg"></p>
+</section>
 <h1>猫的作息</h1>
 <form id="form" novalidate autocomplete="off">
   <div class="row" data-key="sleep">
@@ -181,6 +206,58 @@
     invoke('load_settings').then((raw) => { if (raw) fill(S.sanitize(raw)); }).catch(() => {});
   }
   setTimeout(() => rows.sleep.input.focus(), 50);
+
+  // ---------- 收不到键盘输入时的处理区 ----------
+  // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
+  // 显示时把窗口加高到放得下全部内容，收起时回到原来的 400×620（BASE_H，和 main.rs 的 SETTINGS_HEIGHT 一致）。
+  const BASE_W = 400, BASE_H = 620;
+  const perm = document.getElementById('perm');
+  const permMsg = document.getElementById('perm-msg');
+  let grown = false;
+  function setPermMsg(text, bad) { permMsg.textContent = text; permMsg.className = bad ? 'bad' : ''; }
+  function fitWindow() {
+    if (!T || !T.window) return;
+    const Size = (T.dpi && T.dpi.LogicalSize) || T.window.LogicalSize;
+    if (!Size) return;
+    const win = T.window.getCurrentWindow();
+    let h = BASE_H;
+    if (!perm.hidden) {
+      const cs = getComputedStyle(perm);
+      const extra = perm.getBoundingClientRect().height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+      const maxH = (window.screen && window.screen.availHeight) ? window.screen.availHeight - 40 : 2000;
+      h = Math.min(Math.ceil(BASE_H + extra), Math.max(BASE_H, maxH));
+    } else if (!grown) return;
+    grown = h !== BASE_H;
+    win.setSize(new Size(BASE_W, h)).catch(() => {});
+  }
+  function showPerm(show) {
+    if (perm.hidden === !show) return;
+    perm.hidden = !show;
+    if (!show) setPermMsg('');
+    fitWindow();
+  }
+  function refreshPerm() {
+    if (!invoke) return;
+    invoke('input_status').then((s) => showPerm(!!(s && s.needs_permission === true))).catch(() => {});
+  }
+  if (invoke) {
+    document.getElementById('perm-open').addEventListener('click', () => {
+      invoke('open_input_monitoring').catch((e) => setPermMsg('打不开系统设置：' + e, true));
+    });
+    document.getElementById('perm-reset').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      invoke('reset_input_monitoring')
+        .then(() => setPermMsg('已清掉旧记录。请在打开的「输入监控」列表里重新打开 SillyCat；列表里没有它，或打开后猫还是不动，就点「重新启动 SillyCat」。'))
+        .catch((err) => setPermMsg('重置失败：' + err, true))
+        .finally(() => { btn.disabled = false; fitWindow(); });
+    });
+    document.getElementById('perm-restart').addEventListener('click', () => {
+      invoke('restart_app').catch((err) => setPermMsg('重启失败：' + err, true));
+    });
+    refreshPerm();
+    setInterval(refreshPerm, 2000);
+  }
 })();
 </script>
 </body>
