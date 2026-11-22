@@ -23,7 +23,7 @@
   const MOUSE_HOME = { right: { x: 104, y: 484 }, left: { x: 696, y: 484 } };
   const REST_KEY = { L: 'KeyG', R: 'KeyK' };
   const PAW_ON_KEY_DY = -8;   // 爪心略高于键心，让高亮的下半个键露出来
-  const MOUSE_HOLD_MS = 1500;
+  const MOUSE_HOLD_MS = 1500;  // 鼠标停下这么久后尾巴收回身后
   const RELEASE_MS = 120;
   const EXCITE_COUNT = 6;     // 一秒内超过 6 次
 
@@ -40,6 +40,106 @@
       `C ${r(531 + b * 1.25)} ${r(236 + b * 0.5)}, ${r(478 + b * 0.5)} ${r(276 + b * 0.2)}, 400 276 ` +
       `C ${r(322 - b * 0.5)} ${r(276 + b * 0.2)}, ${r(269 - b * 1.25)} ${r(236 + b * 0.5)}, 270 176 Z`;
   }
+
+  // ---------- 尾巴几何 ----------
+  // 尾巴画成一条有粗细的实心带子：沿中线取点，按宽度往两侧偏移，尾尖封半圆；白尾尖是同一条中线最后一段、往里缩一圈描边宽度的带子。
+  // 平时的中线 = 原来那条贝塞尔（绕 322,372 摆动）；操作鼠标时的中线按鼠标位置现算，两者按伸出进度逐点插值。
+  const TAIL_PIVOT = { x: 322, y: 372 };
+  const TAIL_N = 34;                 // 中线取点数
+  const TAIL_EXTEND_MS = 380, TAIL_RETRACT_MS = 520;
+  const TAIL_TIP_LEN = 30;           // 白尾尖沿中线的长度（不含两端的半圆）
+  const TAIL_INSET = 2.3;            // 白尾尖往里缩的量（≈ 描边宽度的一半），让黑色描边整圈露出来
+  const tailWidth = (s, press) => (13.2 - 2.6 * s * s) * (1 + 0.14 * press * Math.max(0, (s - 0.7) / 0.3));
+  function cubicPts(c, n) {
+    const out = [];
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, u = 1 - t;
+      const a = u * u * u, b = 3 * u * u * t, d = 3 * u * t * t, e = t * t * t;
+      out.push({ x: a * c[0] + b * c[2] + d * c[4] + e * c[6], y: a * c[1] + b * c[3] + d * c[5] + e * c[7] });
+    }
+    return out;
+  }
+  function resample(pts, n) { // 按弧长等距重取 n 个点
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    const L = cum[cum.length - 1] || 1, out = [];
+    let j = 0;
+    for (let k = 0; k < n; k++) {
+      const s = L * k / (n - 1);
+      while (j < pts.length - 2 && cum[j + 1] < s) j++;
+      const seg = cum[j + 1] - cum[j] || 1, t = Math.min(1, Math.max(0, (s - cum[j]) / seg));
+      out.push({ x: pts[j].x + (pts[j + 1].x - pts[j].x) * t, y: pts[j].y + (pts[j + 1].y - pts[j].y) * t });
+    }
+    return out;
+  }
+  function catmull(ctrl, per) { // 均匀 Catmull-Rom：曲线经过每个控制点、切线连续
+    const out = [];
+    for (let i = 0; i < ctrl.length - 1; i++) {
+      const p0 = ctrl[i - 1] || ctrl[i], p1 = ctrl[i], p2 = ctrl[i + 1], p3 = ctrl[i + 2] || ctrl[i + 1];
+      for (let k = 0; k < per; k++) {
+        const t = k / per, t2 = t * t, t3 = t2 * t;
+        const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+        out.push({ x: f(p0.x, p1.x, p2.x, p3.x), y: f(p0.y, p1.y, p2.y, p3.y) });
+      }
+    }
+    out.push(ctrl[ctrl.length - 1]);
+    return out;
+  }
+  const TAIL_IDLE = resample([
+    ...cubicPts([322, 370, 272, 372, 222, 374, 198, 350], 30),
+    ...cubicPts([198, 350, 182, 334, 184, 314, 198, 306], 14).slice(1),
+  ], TAIL_N);
+  function pathLen(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); return L; }
+  // 中线 pts（s0..s1 是这段在整条尾巴上的位置，用来取宽度）-> 闭合轮廓路径；roundStart：起点也封半圆（白尾尖靠身体那头）
+  function ribbonD(pts, s0, s1, inset, press, roundStart) {
+    const n = pts.length, L = [], R = [], C = 7;
+    let n0 = null, t0 = null, nl = null, tl = null, h0 = 0, hl = 0;
+    for (let i = 0; i < n; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, tx = (b.x - a.x) / len, ty = (b.y - a.y) / len;
+      const h = tailWidth(s0 + (s1 - s0) * i / (n - 1), press) - inset;
+      L.push({ x: pts[i].x - ty * h, y: pts[i].y + tx * h });
+      R.push({ x: pts[i].x + ty * h, y: pts[i].y - tx * h });
+      if (i === 0) { n0 = { x: -ty, y: tx }; t0 = { x: tx, y: ty }; h0 = h; }
+      if (i === n - 1) { nl = { x: -ty, y: tx }; tl = { x: tx, y: ty }; hl = h; }
+    }
+    const P = L.slice();
+    const e = pts[n - 1];
+    for (let k = 1; k < C; k++) { // 尾尖半圆：左 -> 前 -> 右
+      const th = Math.PI * k / C, c = Math.cos(th), s = Math.sin(th);
+      P.push({ x: e.x + (nl.x * c + tl.x * s) * hl, y: e.y + (nl.y * c + tl.y * s) * hl });
+    }
+    for (let i = n - 1; i >= 0; i--) P.push(R[i]);
+    if (roundStart) {
+      const b = pts[0];
+      for (let k = 1; k < C; k++) {
+        const th = Math.PI * k / C, c = Math.cos(th), s = Math.sin(th);
+        P.push({ x: b.x - (n0.x * c + t0.x * s) * h0, y: b.y - (n0.y * c + t0.y * s) * h0 });
+      }
+    }
+    // 中点二次曲线平滑：轮廓没有折角
+    const m = (p, q) => `${f1((p.x + q.x) / 2)} ${f1((p.y + q.y) / 2)}`;
+    let d = `M ${m(P[P.length - 1], P[0])}`;
+    for (let i = 0; i < P.length; i++) { const p = P[i], q = P[(i + 1) % P.length]; d += ` Q ${f1(p.x)} ${f1(p.y)} ${m(p, q)}`; }
+    return d + ' Z';
+  }
+  function tipPts(pts, total) { // 中线最后 TAIL_TIP_LEN 的那一段
+    let acc = total;
+    for (let i = pts.length - 1; i > 0; i--) {
+      const sl = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+      if (total - (acc - sl) >= TAIL_TIP_LEN) {
+        const t = (TAIL_TIP_LEN - (total - acc)) / (sl || 1);
+        const first = { x: pts[i].x + (pts[i - 1].x - pts[i].x) * t, y: pts[i].y + (pts[i - 1].y - pts[i].y) * t };
+        return resample([first, ...pts.slice(i)], 8);
+      }
+      acc -= sl;
+    }
+    return resample(pts, 8);
+  }
+
+  // ?demo=tail-mouse 时间轴（毫秒）：静止 -> 鼠标开始动、尾巴伸出 -> 跟着动几下 -> 停 -> 点一下 -> 停够 1.5 秒收回 -> 静止
+  const TD = { move0: 300, move1: 2000, down: 2250, up: 2400, period: 5000 };
+  TD.off = TD.up + MOUSE_HOLD_MS;
 
   // ---------- 浮起键帽上显示的文字 ----------
   // 所有"显示什么"都集中在这里：以后做隐私模式（只显示左右手、不显示键名）只改这一个函数。
@@ -121,7 +221,7 @@
   }
 
   // modules：扩展行为（睡眠阶段、疲劳……）的工厂函数数组，每个接收 ctx 返回一个带可选钩子的对象。
-  function createCat({ keyboard: kb, sleepSeconds = 20, mouseSide = 'right', modules = [] }) {
+  function createCat({ keyboard: kb, sleepSeconds = 20, mouseSide = 'right', modules = [], demo = null }) {
     const $ = (id) => {
       const n = document.getElementById(id);
       if (!n) throw new Error('missing #' + id);
@@ -133,7 +233,9 @@
       lid: $('lid-' + s), lidLine: $('lidline-' + s),
     });
     const el = {
-      head: $('cat-head'), body: $('cat-body'), tail: $('tail'),
+      head: $('cat-head'), body: $('cat-body'),
+      // 尾巴画两份：#tail 在身体后面（整条），#tail-front 在鼠标上面（遮罩掉身体那一块，只露出绕到前面的部分）
+      tail: { back: $('tail'), front: $('tail-front'), body: [$('tail-body'), $('tail-front-body')], tip: [$('tail-tip'), $('tail-front-tip')], mask: $('mask-tail-body') },
       ear: { L: $('ear-l'), R: $('ear-r') },
       mouse: $('mouse'), mouseBtn: { 0: $('mouse-btn-l'), 2: $('mouse-btn-r') },
       zzz: [$('z1'), $('z2'), $('z3')],
@@ -156,6 +258,7 @@
       nextBlink: t0 + 3000 + Math.random() * 3000, blinkUntil: 0,
       twitch: { ear: null, start: -1e9 }, nextTwitch: t0 + 5000 + Math.random() * 5000,
       tailPhase: 0, tailAngle: 0, eyeMode: null,
+      tailReach: 0, tailWant: false, tailSide: mouseSide, tailLag: null, tailPress: 0, tailPressX: 0, tailTapAt: -1e9, tailFrontOn: null,
       headBaseRot: -4, headBaseX: 0, headBaseY: 0,
       headTf: { tx: 0, ty: 0, rot: -4, sx: 1, sy: 1 }, catHidden: false, cheek: 0, cheekDrawn: -1,
     };
@@ -182,10 +285,13 @@
       return { x: c.x, y: c.y - 14 };
     }
     const paws = { L: makePaw('L'), R: makePaw('R') };
+    // 鼠标那一侧的爪：只在发飙抓鼠标、修理时用；平时操作鼠标的是尾巴，两只爪都留在键盘上
     const mousePaw = () => (S.mouseSide === 'right' ? paws.R : paws.L);
     const mouseHome = () => MOUSE_HOME[S.mouseSide];
     const mousePoint = () => ({ x: mouseHome().x + S.mouseOff.x, y: mouseHome().y + S.mouseOff.y });
-    const holdingMouse = (paw, now) => paw === mousePaw() && paw.held.length === 0 && now < S.mouseActiveUntil;
+    // 尾巴要不要去操作鼠标：鼠标最近动过/点过，且醒着（睡着、发飙、罢工、修理时都不去）
+    const tailWanted = (now) => now < S.mouseActiveUntil &&
+      (S.state === STATES.AWAKE || S.state === STATES.DROWSY || S.state === STATES.PETTED);
 
     // ---------- 状态 ----------
     function noteInput(now) {
@@ -196,11 +302,10 @@
 
     function choosePaw(code, now) {
       if (code === 'Space') {
-        // 默认用握鼠标那一侧的爪（默认是猫的右爪）；它正忙就换另一只
+        // 默认用鼠标那一侧的爪（默认是猫的右爪）；它正按着别的键就换另一只
         const primary = mousePaw();
         const other = primary === paws.R ? paws.L : paws.R;
-        const busy = primary.held.length > 0 || holdingMouse(primary, now);
-        return busy ? other : primary;
+        return primary.held.length > 0 ? other : primary;
       }
       return LEFT_CODES.has(code) ? paws.L : paws.R;
     }
@@ -210,7 +315,6 @@
       if (forced) return forced;
       if (paw.held.length) return { id: paw.held[paw.held.length - 1], pressing: true };
       if (now < paw.releaseAt && paw.lastCode) return { id: paw.lastCode, pressing: false };
-      if (holdingMouse(paw, now)) return { id: 'mouse', pressing: S.mouseButtons.size > 0 };
       const soft = ask('softPawTarget', paw, now); // 抹嘴、趴着摊开：只在没按键时
       if (soft) return soft;
       return { id: 'rest', pressing: false };
@@ -224,7 +328,6 @@
 
     function pointFor(id, paw) {
       if (id === 'rest') return restPoint(paw.side);
-      if (id === 'mouse') { const m = mousePoint(); return { x: m.x, y: m.y - 16 }; } // 掌托在靠猫的一端
       return keyPoint(id, paw.side);
     }
 
@@ -243,7 +346,6 @@
         noteInput(now);
         if (S.pressed.has(code)) return;
         const paw = choosePaw(code, now);
-        if (paw === mousePaw()) S.mouseActiveUntil = 0; // 离开鼠标去打字
         S.pressed.set(code, paw.side);
         paw.held.push(code);
         kb.setDown(code, true);
@@ -296,6 +398,7 @@
         noteInput(now);
         S.mouseActiveUntil = now + MOUSE_HOLD_MS;
         S.mouseButtons.delete(button);
+        if (S.mouseButtons.size === 0) S.tailTapAt = now; // 尾尖松开时弹一下
         if (el.mouseBtn[button]) el.mouseBtn[button].classList.remove('down');
       },
       petStart(nx, ny) {
@@ -345,7 +448,40 @@
       call('afterState', now);
     }
 
+    // ?demo=tail-mouse：鼠标位置、按键、"最近动过鼠标"都由时间轴直接给出（&at= 冻结时画面完全确定）
+    const demoTail = demo && demo.name === 'tail-mouse' ? { t0: performance.now(), done: false } : null;
+    function demoTailTime(now) {
+      if (Number.isFinite(demo.at)) return demo.at;
+      const t = now - demoTail.t0;
+      return demo.loop ? t % TD.period : t;
+    }
+    function demoTailStep(now) {
+      if (!demoTail || demoTail.done) return;
+      const t = demoTailTime(now);
+      if (t >= TD.period) { demoTail.done = true; return; } // 不循环：放一遍后交还给真实输入
+      S.lastInput = now; // 演示期间一直醒着
+      S.mouseActiveUntil = t >= TD.move0 && t < TD.off ? now + (TD.off - t) : 0;
+      if (t >= TD.move0 && t < TD.move1) {
+        const u = (t - TD.move0) / (TD.move1 - TD.move0), env = Math.sin(Math.PI * Math.min(1, u * 1.15));
+        S.mouseOff.x = 6 * env * Math.sin(2 * Math.PI * (t - TD.move0) / 850);
+        S.mouseOff.y = 5 * env * Math.sin(2 * Math.PI * (t - TD.move0) / 560);
+      }
+      const down = t >= TD.down && t < TD.up;
+      if (down !== S.mouseButtons.has(0)) {
+        if (down) S.mouseButtons.add(0); else S.mouseButtons.delete(0);
+        el.mouseBtn[0].classList.toggle('down', down);
+      }
+      S.tailTapAt = t >= TD.up ? now - (t - TD.up) : -1e9;
+    }
+    // 伸出进度（0 = 收在身后，1 = 搭在鼠标上）：演示时直接由时间轴算出
+    function demoTailReach(t) {
+      if (t < TD.move0) return 0;
+      if (t < TD.off) return Math.min(1, (t - TD.move0) / TAIL_EXTEND_MS);
+      return Math.max(0, 1 - (t - TD.off) / TAIL_RETRACT_MS);
+    }
+
     function update(now) {
+      demoTailStep(now);
       refreshState(now);
       const rm = reducedMotion();
       if (!rm && (S.state === STATES.AWAKE || S.state === STATES.DROWSY) && now > S.nextBlink) {
@@ -362,7 +498,7 @@
       for (const paw of [paws.L, paws.R]) {
         const t = targetOf(paw, now);
         const goal = t.x !== undefined ? { x: t.x, y: t.y } : pointFor(t.id, paw);
-        const tau = (t.tau || (t.pressing && t.id !== 'mouse' ? 14 : t.id === 'rest' ? 45 : 25)) * P.pawTau;
+        const tau = (t.tau || (t.pressing ? 14 : t.id === 'rest' ? 45 : 25)) * P.pawTau;
         paw.x = approach(paw.x, goal.x, dt, tau);
         paw.y = approach(paw.y, goal.y, dt, tau);
         const dist = Math.hypot(goal.x - paw.x, goal.y - paw.y);
@@ -491,7 +627,8 @@
       }
     }
 
-    function renderTail(dt, rm, P) {
+    function renderTail(now, dt, rm, P) {
+      // 平时的摆动（和原来一样）
       let amp = 9, speed = 0.003, base = 0, tau = 60;
       if (S.state === STATES.ASLEEP) { amp = 0; speed = 0; base = -22; tau = 500; }
       else if (S.excited) { amp = 16; speed = 0.014; }
@@ -500,14 +637,94 @@
       if (P.tailAmp !== null && S.state !== STATES.ASLEEP) { amp = P.tailAmp; speed = P.tailSpeed; }
       S.tailPhase += dt * speed;
       S.tailAngle = approach(S.tailAngle, base + amp * Math.sin(S.tailPhase), dt, tau);
-      el.tail.setAttribute('transform', `${turnTf(P)}translate(${f1(P.bodyX)} ${f1(P.lift + P.bodyY)}) rotate(${S.tailAngle.toFixed(2)} 322 372)`);
+
+      // 伸出 / 收回：匀速推进进度，画的时候再缓入缓出
+      const want = tailWanted(now) && !P.mouseAbs && !P.mouseHidden && !P.hideCat;
+      S.tailWant = want;
+      if (S.tailReach === 0) S.tailSide = S.mouseSide; // 只在收好时换边，伸到一半换边不会跳
+      if (demoTail && !demoTail.done) S.tailReach = demoTailReach(demoTailTime(now));
+      else if (rm) S.tailReach = want ? 1 : 0;
+      else S.tailReach = want ? Math.min(1, S.tailReach + dt / TAIL_EXTEND_MS) : Math.max(0, S.tailReach - dt / TAIL_RETRACT_MS);
+      const r = S.tailReach;
+
+      // 平时的中线：绕尾根转 tailAngle，再跟着身体平移
+      const a = S.tailAngle * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+      const bx = P.bodyX, by = P.lift + P.bodyY;
+      const idle = TAIL_IDLE.map((p) => {
+        const vx = p.x - TAIL_PIVOT.x, vy = p.y - TAIL_PIVOT.y;
+        return { x: TAIL_PIVOT.x + vx * ca - vy * sa + bx, y: TAIL_PIVOT.y + vx * sa + vy * ca + by };
+      });
+
+      // 尾尖按键：按下时压下去、挪到按的那颗键上并略微压扁；松开时弹一下
+      const btn = S.mouseButtons.has(0) ? 0 : S.mouseButtons.has(2) ? 2 : null;
+      S.tailPress = rm ? (btn !== null ? 1 : 0) : approach(S.tailPress, btn !== null ? 1 : 0, dt, 22);
+      // 猫视角的左键在画面右边（鼠标朝向猫）
+      S.tailPressX = approach(S.tailPressX, btn === 0 ? 9 : btn === 2 ? -9 : S.tailPressX, dt, 22);
+      const tap = now - S.tailTapAt;
+      const bounce = !rm && tap >= 0 && tap < 240 ? 6 * Math.sin(Math.PI * tap / 240) : 0;
+
+      let pts = idle;
+      if (r > 0) {
+        const H = MOUSE_HOME[S.tailSide];
+        const m = { x: H.x + S.mouseOff.x + P.mouseX, y: H.y + S.mouseOff.y + P.mouseY };
+        // 尾巴中段比尾尖慢半拍跟上鼠标，曲线跟着鼠标的移动轻轻弯
+        if (!S.tailLag || rm) S.tailLag = { x: m.x, y: m.y };
+        else { S.tailLag.x = approach(S.tailLag.x, m.x, dt, 110); S.tailLag.y = approach(S.tailLag.y, m.y, dt, 110); }
+        const g = S.tailLag;
+        const d = H.x < 400 ? 1 : -1;             // 从鼠标指向身体的横向方向
+        const X = (x) => (d > 0 ? x : 800 - x);    // 固定点按鼠标所在侧镜像
+        const sway = rm ? 0 : 2.2 * Math.sin(now / 640);
+        const ctrl = [
+          { x: X(322) + bx, y: 370 + by },                                   // 尾根，藏在身体后面
+          { x: X(290) + bx, y: 366 + by },                                   // 从身体侧面绕出来
+          { x: X(240) + bx * 0.5, y: 352 + by * 0.5 + sway * 0.5 },          // 往外拱起一点
+          { x: g.x + d * 84, y: g.y - 128 + sway },                          // 越过键盘左上角
+          { x: g.x + d * 38, y: g.y - 94 + sway * 0.6 },
+          { x: g.x + d * 12, y: g.y - 46 },                                  // 从掌托那头搭上鼠标
+          { x: m.x + 2 + S.tailPressX * S.tailPress, y: m.y + 4 + 5 * S.tailPress - bounce }, // 尾尖落在两颗键中间
+        ];
+        const reach = resample(catmull(ctrl, 10), TAIL_N);
+        // 逐点插值：伸出时尾根先动、尾尖最后到；收回时尾尖先离开鼠标。中间整体往上抬一段，像把尾巴甩过来
+        pts = idle.map((p, i) => {
+          const s = i / (TAIL_N - 1);
+          const e0 = clamp(r * 1.35 - 0.35 * s, 0, 1), e = e0 < 0.5 ? 2 * e0 * e0 : 1 - 2 * (1 - e0) * (1 - e0);
+          const q = reach[i];
+          return { x: p.x + (q.x - p.x) * e, y: p.y + (q.y - p.y) * e - 42 * Math.sin(Math.PI * e) * s };
+        });
+        // 过渡中把中线抹顺几遍：平时的尾尖小弯钩和搭鼠标的走向插值时会挤出很急的弯，轮廓内侧会打结
+        const k = 0.5 * Math.sin(Math.PI * Math.min(1, r));
+        for (let it = 0; k > 0.01 && it < 4; it++) {
+          const prev = pts.map((p) => ({ x: p.x, y: p.y }));
+          for (let i = 1; i < TAIL_N - 1; i++) {
+            pts[i].x += k * ((prev[i - 1].x + prev[i + 1].x) / 2 - prev[i].x);
+            pts[i].y += k * ((prev[i - 1].y + prev[i + 1].y) / 2 - prev[i].y);
+          }
+          const n = TAIL_N - 1; // 尾尖顺着前两点的方向延伸
+          pts[n].x += k * (2 * prev[n - 1].x - prev[n - 2].x - prev[n].x);
+          pts[n].y += k * (2 * prev[n - 1].y - prev[n - 2].y - prev[n].y);
+        }
+      } else S.tailLag = null;
+
+      const L = pathLen(pts);
+      const bodyD = ribbonD(pts, 0, 1, 0, S.tailPress * r, false);
+      const tipD = ribbonD(tipPts(pts, L), 1 - TAIL_TIP_LEN / L, 1, TAIL_INSET, S.tailPress * r, true);
+      for (const n of el.tail.body) n.setAttribute('d', bodyD);
+      for (const n of el.tail.tip) n.setAttribute('d', tipD);
+      const tf = turnTf(P);
+      el.tail.back.setAttribute('transform', tf);
+      el.tail.front.setAttribute('transform', tf);
+      // 前面那一份只在伸出来时画（不用半透明淡入：叠在键盘上会显出一块灰）。平时尾巴根部被键盘上沿挡住的那一小截，
+      // 一开始甩就到了键盘上面，几帧之内整条就抬起来了
+      const frontOn = r > 0 && !P.hideCat;
+      if (frontOn !== S.tailFrontOn) { S.tailFrontOn = frontOn; el.tail.front.style.display = frontOn ? '' : 'none'; }
     }
 
     function renderBody(now, rm, P) {
       const b = S.state === STATES.ASLEEP && !rm ? Math.sin(now * 2 * Math.PI / 3200) * P.breath : 0;
-      el.body.setAttribute('transform',
-        `${turnTf(P)}translate(${f1(P.bodyX)} ${f1(P.bodyY + P.lift)}) rotate(${P.bodyRot.toFixed(2)} 400 410) ` +
-        `translate(400 410) scale(${(P.bodySX * (1 + 0.012 * b)).toFixed(4)} ${(P.bodySY * (1 + 0.025 * b)).toFixed(4)}) translate(-400 -410)`);
+      const tf = `translate(${f1(P.bodyX)} ${f1(P.bodyY + P.lift)}) rotate(${P.bodyRot.toFixed(2)} 400 410) ` +
+        `translate(400 410) scale(${(P.bodySX * (1 + 0.012 * b)).toFixed(4)} ${(P.bodySY * (1 + 0.025 * b)).toFixed(4)}) translate(-400 -410)`;
+      el.body.setAttribute('transform', turnTf(P) + tf);
+      el.tail.mask.setAttribute('transform', tf); // 前面那份尾巴的遮罩跟着身体走（#tail-front 自己已带转身变换）
     }
 
     function renderZzz(now, P) {
@@ -575,7 +792,7 @@
       renderHead(now, dt, rm, P);
       renderEyes(now, dt, P);
       renderEars(now, P);
-      renderTail(dt, rm, P);
+      renderTail(now, dt, rm, P);
       renderBody(now, rm, P);
       renderZzz(now, P);
       call('render', now, dt, rm, P);
@@ -620,6 +837,14 @@
       get pressed() { return Object.freeze([...S.pressed.keys()]); },
       get sleepSeconds() { return S.sleepMs / 1000; },
       get mouseSide() { return S.mouseSide; },
+      // 尾巴操作鼠标：'idle' 收在身后 | 'reaching' 伸出途中 | 'on-mouse' 搭在鼠标上 | 'retracting' 收回途中
+      get tail() {
+        const now = performance.now();
+        refreshState(now);
+        const r = S.tailReach; // 伸出进度按渲染帧推进；后台标签页 rAF 被节流时会落后
+        return tailWanted(now) ? (r >= 1 ? 'on-mouse' : 'reaching') : r > 0 ? 'retracting' : 'idle';
+      },
+      get tailReach() { return Math.round(S.tailReach * 1000) / 1000; },
       get floaters() { return Object.freeze(fx.texts(performance.now())); },
     };
     // 扩展模块的调试字段：读取前同样先推进状态

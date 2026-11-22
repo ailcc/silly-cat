@@ -94,6 +94,10 @@ body {
 #scene .whisker { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
 #scene .fang { fill: #fff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
 
+/* 正面尾巴：实心轮廓（cat.js 按中线算出粗细渐变、圆尾尖）；白尾尖往里缩半个描边宽度 */
+#scene .tail-body { fill: var(--fur-black); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
+#scene .tail-tip-white { fill: var(--fur-white); }
+/* 罢工背影的尾巴仍用描边画法 */
 #scene .tail-outline { fill: none; stroke: var(--ink); stroke-width: 31; stroke-linecap: round; }
 #scene .tail-fill { fill: none; stroke: var(--fur-black); stroke-width: 21; stroke-linecap: round; }
 #scene .tail-tip { fill: none; stroke: var(--fur-white); stroke-width: 21; stroke-linecap: round;
@@ -207,6 +211,6 @@ html.desktop #stage { width: 100vw; height: 100vh; padding: 0; }
 html.desktop #scene { max-width: none; }
 /* 影子很淡、面积大：不参与命中判断，不挡住后面的应用 */
 html.desktop #scene .shadow { pointer-events: none; }
-html.desktop #cat-body, html.desktop #tail, html.desktop #keyboard, html.desktop #mouse,
+html.desktop #cat-body, html.desktop #tail, html.desktop #tail-front, html.desktop #keyboard, html.desktop #mouse,
 html.desktop #arm-l, html.desktop #arm-r, html.desktop #paw-l, html.desktop #paw-r, html.desktop #cat-strike { cursor: move; }
 html.desktop #strike-head { cursor: grab; }

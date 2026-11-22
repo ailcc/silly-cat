@@ -23,15 +23,19 @@
     <clipPath id="clip-back-body"><path d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/></clipPath>
     <clipPath id="clip-eye-l"><circle cx="345" cy="178" r="29"/></clipPath>
     <clipPath id="clip-eye-r"><circle cx="455" cy="178" r="29"/></clipPath>
+    <!-- 前面那份尾巴的遮罩：盖掉身体（连同描边）那一块，尾巴从身后出来的部分仍被身体挡住。变换由 cat.js 跟着身体设置 -->
+    <mask id="mask-tail-front" maskUnits="userSpaceOnUse" x="-20" y="-50" width="840" height="690">
+      <rect x="-20" y="-50" width="840" height="690" fill="#fff"/>
+      <path id="mask-tail-body" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z" fill="#000" stroke="#000" stroke-width="5"/>
+    </mask>
   </defs>
 
   <ellipse class="shadow" cx="400" cy="594" rx="300" ry="20"/>
 
-  <!-- 尾巴：黑色带白尖 -->
+  <!-- 尾巴：黑色带白尖，轮廓由 cat.js 每帧按中线算（平时在身后摆，动鼠标时绕到前面搭在鼠标上） -->
   <g id="tail">
-    <path class="tail-outline" d="M 322 370 C 272 372, 222 374, 198 350 C 182 334, 184 314, 198 306"/>
-    <path class="tail-fill" d="M 322 370 C 272 372, 222 374, 198 350 C 182 334, 184 314, 198 306"/>
-    <path class="tail-tip" pathLength="100" d="M 322 370 C 272 372, 222 374, 198 350 C 182 334, 184 314, 198 306"/>
+    <path id="tail-body" class="tail-body" d="M 322 370 C 272 372, 222 374, 198 350 C 182 334, 184 314, 198 306"/>
+    <path id="tail-tip" class="tail-tip-white" d=""/>
   </g>
 
   <!-- 身体：白底梨形，观众右侧腰上一块鞍状黑斑 -->
@@ -207,6 +211,12 @@
     </g>
   </g>
 
+  <!-- 尾巴绕到前面的那一段：画在键盘和鼠标上面、手臂下面；和 #tail 是同一条轮廓，遮罩掉身体那块 -->
+  <g id="tail-front" style="display:none" mask="url(#mask-tail-front)">
+    <path id="tail-front-body" class="tail-body" d=""/>
+    <path id="tail-front-tip" class="tail-tip-white" d=""/>
+  </g>
+
   <!-- 口水滴和键盘上的水渍 -->
   <g id="drool-layer" pointer-events="none">
     <g id="puddle" style="display:none">
@@ -285,7 +295,7 @@
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
   let fatigue = null, sleepMod = null;
   const cat = SillyCat.createCat({
-    keyboard: kb, sleepSeconds: sleep,
+    keyboard: kb, sleepSeconds: sleep, demo,
     modules: [
       (ctx) => (sleepMod = SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo })),
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
