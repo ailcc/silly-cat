@@ -5,6 +5,7 @@
   "description": "可丢弃的网页原型：键盘后面的捣蛋奶牛猫，跟着你敲键盘",
   "scripts": {
     "start": "python3 -m http.server 4317 --bind 0.0.0.0 --directory prototype",
+    "tauri": "tauri",
     "desktop": "tauri dev",
     "desktop:build": "tauri build"
   },

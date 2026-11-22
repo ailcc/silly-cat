@@ -20,14 +20,16 @@
 - 睡着时（坐着睡、流口水、趴着）只移动鼠标不会叫醒猫，尾巴也不去够鼠标（正搭在鼠标上时入睡会收回去），睡眠阶段照常往下走，只抖一下耳朵；按键、点鼠标、摸头照常叫醒。犯困还没睡着时移动鼠标，尾巴照常去操作。
 - 只移动鼠标不重置入睡计时：光动鼠标不打字、不点击，猫照样会犯困、睡着；按键、点鼠标、摸头才算输入。
 
-## 桌面版（Tauri 2，目前只做 macOS）
+## 桌面版（Tauri 2，macOS / Windows；Windows 版只做过编译检查，没在 Windows 上运行过）
 
-- 开发运行：`npm install` 后 `npm run desktop`。打包：`npm run desktop:build`，产物在 `src-tauri/target/release/bundle/macos/SillyCat.app`（约 4.6 MB，未签名）。
+- 开发运行：`npm install` 后 `npm run desktop`。打包：`npm run desktop:build`。macOS 出 `src-tauri/target/release/bundle/macos/SillyCat.app` 和 `bundle/dmg/*.dmg`；Windows 出 `bundle/nsis/*-setup.exe`。都未签名：macOS 首次打开要在「隐私与安全性」里放行，Windows 会被 SmartScreen 提示「未知发布者」。
 - 外壳在 `src-tauri/`，页面直接用 `prototype/`，没有打包步骤。页面在 Tauri 里会给 `<html>` 加 `desktop` class：隐藏标题和滑块、背景透明，输入来源从 `input.js` 换成 `input-desktop.js`。网页版不受影响。
 - 窗口 420×345，透明、无边框、置顶、不进 Dock。透明的地方点击会穿透到后面的应用（每 33ms 取一次全局指针位置做命中判断）。
-- 全局键鼠：`src-tauri/src/tap.rs` 用只读的 CGEventTap 取虚拟键码，只用键位驱动动画，不记录、不落盘。需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 SillyCat；没授权时猫照常显示，只是不跟着打字。每次重新构建后可能要重新授权。
-- 按住头是摸头；按住身体、键盘、鼠标等其他地方拖动窗口，位置记在 `~/Library/Application Support/com.drew.sillycat/window-position.json`。
-- 菜单栏图标：设置…、显示/隐藏猫、重置位置、打开输入监控设置、退出。
-- 设置窗口：右键猫、键盘、鼠标等有画面的地方，或菜单栏图标里的「设置…」打开（已经开着就带到前面，Esc 关闭；关掉不会退出应用）。页面是 `prototype/settings.html`，字段表和校验在 `prototype/settings.js`。五项时间参数都按秒填：入睡时间（默认 20，5–3600）；开始流口水、趴到键盘上的时刻（从最后一次操作算起，6/7–10800，留空 = 自动，即入睡时间 × 2、× 3.5；必须入睡 < 流口水 < 趴下）；连续打字多久发飙（默认 90，15–36000）；罢工后歇多久消气（默认 20，5–3600）。改出合法值后立即生效并写入 `~/Library/Application Support/com.drew.sillycat/settings.json`，下次启动自动读取；「恢复默认」回到上面的默认值。
+- 全局键鼠：两边都只取键位驱动动画，不记录、不落盘。Windows 用低级键鼠钩子（`src-tauri/src/win_input.rs`），不需要授权，但收不到以管理员身份运行的窗口、UAC 和锁屏界面里的按键。macOS 用只读的 CGEventTap（`src-tauri/src/tap.rs`），需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 SillyCat；没授权时猫照常显示，只是不跟着打字。每次重新构建后可能要重新授权。
+- 按住头是摸头；按住身体、键盘、鼠标等其他地方拖动窗口，位置记在 `~/Library/Application Support/com.drew.sillycat/window-position.json`（Windows 在 `%APPDATA%\com.drew.sillycat\`，记的是物理像素）。
+- 菜单栏（托盘）图标：设置…、显示/隐藏猫、重置位置、打开输入监控设置（仅 macOS）、退出。
+- 右键猫、键盘、鼠标等有画面的地方，在指针位置弹出菜单：设置…、退出。
+- 设置窗口：从右键菜单或菜单栏图标里的「设置…」打开（已经开着就带到前面，Esc 关闭；关掉不会退出应用）。页面是 `prototype/settings.html`，字段表和校验在 `prototype/settings.js`。五项时间参数都按秒填：入睡时间（默认 20，5–3600）；开始流口水、趴到键盘上的时刻（从最后一次操作算起，6/7–10800，留空 = 自动，即入睡时间 × 2、× 3.5；必须入睡 < 流口水 < 趴下）；连续打字多久发飙（默认 90，15–36000）；罢工后歇多久消气（默认 20，5–3600）。改出合法值后立即生效并写入 `~/Library/Application Support/com.drew.sillycat/settings.json`，下次启动自动读取；「恢复默认」回到上面的默认值。
 - 优先级：启动时 URL 参数 > 已保存设置 > 默认值；之后在设置窗口里改的值总是立即生效（覆盖 URL 参数）。网页版不读也不写 settings.json，照旧用 URL 参数和滑块。
 - 已知问题：其他应用全屏时猫可能不显示；在密码框里打字时系统不把按键交给监听，按住的键可能卡在按下状态。
+- 发布：推送 `v*` 标签后，GitHub Actions（`.github/workflows/release.yml`）会构建 macOS 通用版 dmg 和 Windows NSIS 安装包，挂到草稿 Release 上。这个流程还没真跑过。

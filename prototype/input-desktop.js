@@ -1,13 +1,14 @@
 // 桌面输入来源（Tauri 外壳）：把 Rust 侧发来的全局键鼠事件翻译成和 input.js 相同的抽象事件，交给 sink（猫）。
 // 只在 Tauri 里用；浏览器里不会调用 create，加载本文件本身没有副作用。
 //
-// - 键盘：Rust 的只读 CGEventTap 发来 macOS 虚拟键码，这里映射成 KeyboardEvent.code（keyboard.js 用的键位标识）。
+// - 键盘：macOS 上 Rust 的只读 CGEventTap 发来虚拟键码 { kc, down }，这里映射成 KeyboardEvent.code（keyboard.js 用的键位标识）；
+//   Windows 上 Rust 的低级键盘钩子已经按扫描码换好了 code，发来 { code, down }，直接用。
 //   不做字符转换，不记录任何输入。桌面模式下不挂 input.js 的 DOM 键盘监听，同一次按键只算一次。
 // - 鼠标移动：每 33ms 向 Rust 取一次全局指针位置（不需要输入监控权限），相邻两次的差值就是 pointerMove(dx, dy)。
 // - 鼠标按键：Rust 的鼠标 tap 发来；指针正在猫身上时这次点击交给页面（摸头 / 拖动），不算「点鼠标」。
 // - 点击穿透：用同一份指针位置做 document.elementFromPoint 命中判断，只有指在有画面的地方时窗口才接收鼠标。
 // - 摸头 vs 拖动：在头上按下 = 摸头（和网页版一样）；在身体、尾巴、键盘、鼠标等其他画面上按下 = 拖动窗口。
-// - 右键有画面的地方 = 打开设置窗口（Rust 的 open_settings；已经开着就带到前面）。
+// - 右键有画面的地方 = 在指针位置弹出原生右键菜单「设置… / 退出」（Rust 的 show_context_menu）。
 (function () {
   'use strict';
 
@@ -66,10 +67,10 @@
     }
 
     // ---------- 键盘 ----------
-    function onKey({ kc, down }) {
-      const code = KEYCODES[kc];
+    function onKey({ kc, code: winCode, down }) {
+      const code = winCode || KEYCODES[kc];
       if (!code) return;
-      if (kc === CAPS_LOCK_KC) { // 大写锁定只有切换时的一次事件：当作按一下
+      if (!winCode && kc === CAPS_LOCK_KC) { // macOS 的大写锁定只有切换时的一次事件：当作按一下（Windows 有正常的按下 / 抬起）
         if (heldKeys.has(code)) return;
         heldKeys.add(code); sink.keyDown(code);
         setTimeout(() => { if (heldKeys.delete(code)) sink.keyUp(code); }, 120);
@@ -132,7 +133,7 @@
       sink.petEnd();
     }
     function onPointerDown(e) {
-      if (e.button === 2) { openSettings(e); return; }
+      if (e.button === 2) { openMenu(e); return; }
       if (e.button !== 0) return;
       const h = headEls.find((n) => isNode(e.target) && n.contains(e.target));
       if (h) {
@@ -149,16 +150,20 @@
     }
     function onPointerMove(e) { if (pet && e.pointerId === pet.id) sink.petMove(...rel(e)); }
     function onPointerUp(e) { if (pet && e.pointerId === pet.id) endPet(); }
-    // 右键有画面的地方：打开设置窗口（不摸头、不拖动；pointerdown 和 contextmenu 都可能来，只算一次）
-    let lastSettingsAt = -1e9;
-    function openSettings(e) {
+    // 右键有画面的地方：弹出原生右键菜单（不摸头、不拖动）。pointerdown 和 contextmenu 都可能来，只弹一次：
+    // 菜单开着时（invoke 要等菜单关掉才返回）和关掉后 500ms 内再来的右键事件都忽略
+    let menuOpen = false;
+    let lastMenuAt = -1e9;
+    function openMenu(e) {
       if (!inScene(e.target)) return;
-      const now = performance.now();
-      if (now - lastSettingsAt < 500) return;
-      lastSettingsAt = now;
-      invoke('open_settings').catch(() => {});
+      if (menuOpen || performance.now() - lastMenuAt < 500) return;
+      menuOpen = true;
+      lastMenuAt = performance.now();
+      invoke('show_context_menu')
+        .catch(() => invoke('open_settings').catch(() => {})) // 弹不出菜单时退回直接打开设置
+        .finally(() => { menuOpen = false; lastMenuAt = performance.now(); });
     }
-    function onContextMenu(e) { e.preventDefault(); openSettings(e); }
+    function onContextMenu(e) { e.preventDefault(); openMenu(e); }
 
     window.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);

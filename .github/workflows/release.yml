@@ -1,0 +1,79 @@
+# 打包发布：推送 v* 标签（例如 git tag v0.0.2 && git push origin v0.0.2）时，
+# 在 macOS（universal：Intel + Apple Silicon 一个包）和 Windows（NSIS 安装包）上各自构建，
+# 把安装包挂到同一个「草稿」Release 上，确认没问题后再到 GitHub 网页上手动发布。
+#
+# 写法参照 Tauri 2 官方文档 https://v2.tauri.app/distribute/pipelines/github/ 和
+# https://github.com/tauri-apps/tauri-action （2026-11 查阅：tauri-action@v1、checkout@v7、setup-node@v6）。
+# 目前没有签名 / 公证：macOS 包是 ad-hoc 签名（见下面 APPLE_SIGNING_IDENTITY），下载后要在
+# 「系统设置 → 隐私与安全性」里放行；Windows 安装包会被 SmartScreen 提示「未知发布者」。
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    permissions:
+      contents: write # 创建 Release、上传安装包
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: --target universal-apple-darwin
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: 安装 Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # universal 包要同时编两种 Apple 架构
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: 安装前端依赖（只有 @tauri-apps/cli）
+        run: npm ci
+
+      # ---- 以后加 Windows 签名：在这里加一步导入证书（仅 windows-latest），见
+      # https://v2.tauri.app/distribute/sign/windows/ ：
+      #   - 仓库 Secrets 加 WINDOWS_CERTIFICATE（base64 的 .pfx）和 WINDOWS_CERTIFICATE_PASSWORD；
+      #   - 用 certutil -decode 还原 .pfx，再 Import-PfxCertificate 导入 Cert:\CurrentUser\My；
+      #   - tauri.conf.json 的 bundle.windows 里填 certificateThumbprint / digestAlgorithm: "sha256" / timestampUrl，
+      #     或者改用 signCommand（Azure Artifact Signing、Key Vault 等）。
+
+      - name: 构建并上传到草稿 Release
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS 没有证书时用 ad-hoc 签名（"-"），否则 Apple Silicon 上从网上下载的包会被报「已损坏」。
+          # ---- 以后加 macOS 签名 / 公证：把下面这行换成真实的签名身份，并在仓库 Secrets 里加上这些变量
+          # （见 https://v2.tauri.app/distribute/sign/macos/ ）：
+          #   APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}                   # base64 的 .p12
+          #   APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          #   APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}         # Developer ID Application: ...
+          #   KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          #   公证（二选一）：APPLE_ID / APPLE_PASSWORD（App 专用密码）/ APPLE_TEAM_ID，
+          #   或 APPLE_API_ISSUER / APPLE_API_KEY / APPLE_API_KEY_PATH
+          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && '-' || '' }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'SillyCat ${{ github.ref_name }}'
+          releaseBody: '捣蛋奶牛猫桌宠。macOS 下载 .dmg（Intel 和 Apple Silicon 通用），Windows 下载 -setup.exe。未签名，首次打开需要手动放行。'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
