@@ -203,7 +203,7 @@ body {
 #scene .ghost-black { fill: var(--fur-black); }
 #scene .ghost-white { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; }
 
-/* ---------- 状态条（statusbar.js）：键盘下方，困了 / 烦躁 / 消气中 ---------- */
+/* ---------- 状态条（statusbar.js）：猫头顶上方，困了 / 烦躁 / 消气中 ---------- */
 #status-bar, #status-bar * { pointer-events: none; }
 #scene .sb-box { fill: var(--cream); stroke: var(--ink); stroke-width: 3; }
 #scene .sb-label { fill: var(--ink); font-size: 12px; font-weight: 800; font-family: inherit; letter-spacing: 0.5px; }

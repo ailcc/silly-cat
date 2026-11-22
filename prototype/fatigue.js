@@ -207,6 +207,7 @@
       if (F.rage || F.repair) return !(kind === 'petEnd' || kind === 'keyUp' || kind === 'pointerUp');
       if (F.strike) {
         if (kind === 'petStart' || kind === 'petMove' || kind === 'petEnd') return false; // 摸头不算输入
+        if (kind === 'pointerMove') return true; // 只移动鼠标不算干活：猫不理，但不打断消气
         F.strike.restMs = 0;
         if (kind === 'keyDown') {
           F.earFlick = now; F.earSide = Math.random() < 0.5 ? 'l' : 'r';

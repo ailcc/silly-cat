@@ -5,7 +5,7 @@
   'use strict';
 
   // drool / slump 为 null 表示「自动」：沿用 sleep.js 的原逻辑（入睡时间 × 2、× 3.5）
-  // statusBar：键盘下方的状态条（困了 / 烦躁 / 消气中）显示与否，开关项，不参与 KEYS 里的数字校验
+  // statusBar：猫头顶的状态条（困了 / 烦躁 / 消气中）显示与否，开关项，不参与 KEYS 里的数字校验
   const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true });
   const BOOLS = Object.freeze(['statusBar']);
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
