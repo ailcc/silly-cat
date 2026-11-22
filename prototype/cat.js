@@ -276,7 +276,7 @@
       pointerMove(dx, dy) {
         if (guard('pointerMove', null)) return;
         const now = performance.now();
-        noteInput(now);
+        // 只移动鼠标不算「在干活」：不重置入睡计时，猫照样会犯困、睡着
         S.mouseActiveUntil = now + MOUSE_HOLD_MS;
         S.mouseOff.x = clamp(S.mouseOff.x + dx * 0.25, -6, 6);
         S.mouseOff.y = clamp(S.mouseOff.y + dy * 0.25, -6, 6);
