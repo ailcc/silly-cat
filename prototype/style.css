@@ -69,6 +69,7 @@ body {
 .ctl { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .ctl input[type="range"] { width: 120px; accent-color: var(--coral); }
 .ctl input[type="checkbox"] { accent-color: var(--coral); }
+.ctl select { font: inherit; padding: 1px 4px; }
 .status b { font-weight: 600; min-width: 4em; display: inline-block; }
 
 /* ---------- SVG ---------- */
@@ -198,5 +199,3 @@ body {
 #scene .cloth .cloth-fold { fill: none; stroke-width: 1.8; }
 #scene .ghost-black { fill: var(--fur-black); }
 #scene .ghost-white { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; }
-#scene .ear-fold { fill: none; stroke: #5a5462; stroke-width: 3; stroke-linecap: round; }
-#scene .back-line { fill: none; stroke: #d8d2db; stroke-width: 3; stroke-linecap: round; }

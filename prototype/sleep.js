@@ -8,21 +8,69 @@
   const DRIP_PERIOD = 3200, DRIP_GROW = 2400;
   const ANCHOR = { x: 419, y: 227 };          // 嘴角（头部局部坐标）
   const LIFT_MS = 400, WIPE_MS = 650, IMPRINT_MS = 6000;
-  // 趴下时脸贴键盘的那条轮廓（头部局部坐标），用来算哪些键被压住
-  const CONTACT = [[300, 236], [325, 256], [355, 270], [385, 276], [415, 275]];
-  const SLUMP = { rot: -32, x: -4, y: 172 }; // 趴下时叠加到头上的姿态
-  const ARMS_FIRST_MS = 700; // 趴下：先摆好手臂，再压低头
-  // 趴下时的手臂：两只前爪向前平伸摊在键盘上（观众右侧白爪在右半边，观众左侧黑爪从脸下方伸出到左下角），
-  // 手臂都在头的下面一层，不会横跨脸。
-  const SPRAWL = { L: { x: 556, y: 486 }, R: { x: 262, y: 540 } };
-  // ?demo= 时间轴（毫秒）
-  const SLUMP_IN = { sit: 300, arms: 300 + ARMS_FIRST_MS, head: 2300, hold: 2900, lift: 3300, armsBack: 3900, period: 4300 };
+  const easeIn = (t) => t * t;
+  const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+
+  // ---------- 趴下方式（?slump-style=） ----------
+  // 每种方式是一个"从开始趴到趴好"的时间函数，返回叠加到猫身上的姿态；t >= 时长 时就是趴好的样子。
+  // 爪子都不动（留在睡着时的位置），头始终画在手臂上层。
+  const STYLES = ['nod', 'melt', 'flop'];
+  const STYLE_MS = { nod: 3300, melt: 2500, flop: 1750 };
+  const ZERO = Object.freeze({ hx: 0, hy: 0, hr: 0, hsx: 1, hsy: 1, by: 0, br: 0, bsx: 1, bsy: 1, ear: 0, cr: 0, cx: 0, cy: 0, tail: 0, amt: 0 });
+  const ADD = ['hx', 'hy', 'hr', 'by', 'br', 'ear', 'cr', 'cx', 'cy', 'tail', 'amt'], MUL = ['hsx', 'hsy', 'bsx', 'bsy'];
+  const mix = (Q, k) => { const o = {}; for (const f of ADD) o[f] = Q[f] * k; for (const f of MUL) o[f] = 1 + (Q[f] - 1) * k; return o; };
+
+  // nod 点头栽倒：点两次、一次比一次低、每次猛地抬回来一点，第三次直接栽到键盘上，落下小回弹
+  const NOD_Y = 160; // 头底边刚好压到爪子上半截，下半截爪尖露在下巴两侧
+  function nodPose(t) {
+    let hy;
+    if (t < 900) hy = 58 * easeIn(t / 900);
+    else if (t < 1100) hy = 58 - 46 * easeOut((t - 900) / 200);
+    else if (t < 1400) hy = 12;
+    else if (t < 2300) hy = 12 + 98 * easeIn((t - 1400) / 900);
+    else if (t < 2500) hy = 110 - 60 * easeOut((t - 2300) / 200);
+    else if (t < 2750) hy = 50 + 6 * (t - 2500) / 250;
+    else if (t < 3050) hy = 56 + (NOD_Y - 56) * easeIn((t - 2750) / 300);
+    else if (t < 3300) hy = NOD_Y - 9 * Math.sin(Math.PI * (t - 3050) / 250);
+    else hy = NOD_Y;
+    const k = hy / NOD_Y;
+    return { ...ZERO, hy, hx: -4 * k, hr: -3 * k, hsx: 1 + 0.03 * k, hsy: 1 - 0.04 * k, by: 18 * k, bsy: 1 - 0.06 * k, ear: 28 * k, amt: k };
+  }
+  // melt 融化摊平：身体先慢慢变宽变扁，头稍晚一点顺势滑到键盘上，缓入缓出
+  function meltPose(t) {
+    const pb = easeInOut(seg(t, 0, 2200)), ph = easeInOut(seg(t, 200, 2500));
+    // 身体要摊得比头还宽，两侧才看得见"化开"的一圈
+    return { ...ZERO, hy: 190 * ph, hx: -2 * ph, hr: -5 * ph, hsx: 1 + 0.2 * ph, hsy: 1 - 0.2 * ph,
+      by: 4 * pb, bsx: 1 + 0.9 * pb, bsy: 1 - 0.55 * pb, ear: 40 * ph, amt: ph };
+  }
+  // flop 侧倒：左右晃两下，整只猫绕身体底部往观众左侧倒下（脸颊贴键盘的那侧和压痕一致），落地小回弹
+  const FLOP = { rot: -76, x: 118, y: 40 }; // 旋转中心是 cat.js 默认的 (400, 412)
+  function flopPose(t) {
+    let cr, f = 0;
+    if (t < 1050) cr = 6 * Math.sin(2 * Math.PI * t / 600);
+    else if (t < 1450) { f = easeIn((t - 1050) / 400); cr = -6 + (FLOP.rot + 6) * f; }
+    else { f = 1; cr = FLOP.rot + (t < 1750 ? 7 * Math.sin(Math.PI * (t - 1450) / 300) : 0); }
+    // 尾巴跟着再转一点，倒下后贴着键盘伸向屁股那一侧，而不是垂到桌子外面
+    return { ...ZERO, cr, cx: FLOP.x * f, cy: FLOP.y * f, tail: -92 * f, ear: 22 * f, amt: f };
+  }
+  const POSES = { nod: nodPose, melt: meltPose, flop: flopPose };
+  const stylePose = (style, t) => POSES[style](Math.max(0, Math.min(t, STYLE_MS[style])));
+
+  // 头部轮廓近似成椭圆（头部局部坐标），用来算头压住了哪些键
+  const HEAD_E = { cx: 400, cy: 173, rx: 130, ry: 103 };
+  const ZZZ_ANCHOR = { x: 548, y: 84 }; // Zzz 跟着头上这个点走
+  // ?demo=slump-in 时间轴（毫秒）：坐着睡 -> 趴下过渡 -> 趴好停一会 -> 快速起身 -> 清醒
+  const slumpIn = (style) => {
+    const sit = 300, land = sit + STYLE_MS[style];
+    return { sit, land, hold: land + 900, lift: land + 900 + LIFT_MS, period: land + 900 + LIFT_MS + 500 };
+  };
 
   function create(ctx, opts = {}) {
-    const { S, STATES, kb, fx, paws, approach, clamp, f1 } = ctx;
+    const { S, STATES, kb, fx, paws, clamp, f1 } = ctx;
     const $ = (id) => document.getElementById(id);
     const E = {
-      head: $('cat-head'), zzz: $('zzz'), above: $('debris-layer'),
+      head: $('cat-head'), body: $('cat-body'), tail: $('tail'), strike: $('cat-strike'),
+      above: $('debris-layer'), droolLayer: $('drool-layer'),
       drool: $('drool'), strand: $('drool-strand'), outline: $('drool-outline'), bulb: $('drool-bulb'),
       imprint: $('imprint'), dents: $('imprint-dents'), tuft: $('imprint-tuft'), puddle: $('puddle'), pool: $('puddle-pool'), shine: $('puddle-shine'), drops: $('drops'),
     };
@@ -31,20 +79,21 @@
     const droolMs = () => (droolSec !== null ? droolSec * 1000 : 2 * S.sleepMs);
     const slumpMs = () => (slumpSec !== null ? slumpSec * 1000 : 3.5 * S.sleepMs);
 
+    let style = STYLES.includes(opts.slumpStyle) ? opts.slumpStyle : 'nod';
     const demo = opts.demo && ['drool', 'slumped', 'slump-in', 'wake-marks'].includes(opts.demo.name) ? opts.demo : null;
     const demoT0 = performance.now();
     const demoT = (now) => (demo && Number.isFinite(demo.at) ? demo.at
-      : demo && demo.loop ? (now - demoT0) % (demo.name === 'slump-in' ? SLUMP_IN.period : IMPRINT_MS + 800)
+      : demo && demo.loop ? (now - demoT0) % (demo.name === 'slump-in' ? slumpIn(style).period : IMPRINT_MS + 800)
         : demo && demo.name === 'wake-marks' ? Math.min(now - demoT0, 800) // 不循环时停在刚醒的样子
-          : demo && demo.name === 'slump-in' ? Math.min(now - demoT0, SLUMP_IN.hold - 1) // 停在趴好
+          : demo && demo.name === 'slump-in' ? Math.min(now - demoT0, slumpIn(style).hold - 1) // 停在趴好
             : now - demoT0);
 
     const M = {
-      stage: null, sp: 0, spAtWake: 0,
+      stage: null, cur: ZERO, wakePose: ZERO, landed: false, sunkOn: false,
       liftStart: -1e9, wipeStart: -1e9, imprintStart: -1e9,
       dripStart: 0, lastDrop: -1, drops: [], puddleN: 0, puddleX: 400, puddleY: 398, puddleFade: -1,
-      sunk: [], nextPressFx: 0, headOnTop: false, droolShown: false,
-      slumpStart: -1e9, armsUntil: -1e9,
+      sunk: [], nextPressFx: 0, headOnTop: false, bodyOnTop: false, droolShown: false,
+      slumpStart: -1e9,
     };
 
     // ---------- 状态 ----------
@@ -54,9 +103,10 @@
       if (demo.name === 'slumped') return 'slumped';
       if (demo.name === 'wake-marks') return null;
       const t = demoT(now);
-      if (t < SLUMP_IN.sit) return 'sitting';
-      if (t < SLUMP_IN.hold) return 'slumped';
-      return null; // 抬头、收手、清醒
+      const T = slumpIn(style);
+      if (t < T.sit) return 'sitting';
+      if (t < T.hold) return 'slumped';
+      return null; // 起身、清醒
     }
     function overrideState(now) {
       if (!demo) return null;
@@ -77,22 +127,13 @@
     }
 
     function contactKeys() {
-      // 按"完全趴下"时的头部姿态算脸压住的键
-      const rot = (S.headBaseRot + SLUMP.rot) * Math.PI / 180, c = Math.cos(rot), s = Math.sin(rot);
-      const tx = SLUMP.x, ty = 8 + SLUMP.y;
-      const pts = CONTACT.map(([x, y]) => {
-        const vx = x - 400, vy = y - 262;
-        return { x: 400 + vx * c - vy * s + tx, y: 262 + vx * s + vy * c + ty };
-      });
+      // 按头此刻的实际位置（含整只猫的旋转），落在头形里的键都算被压住
       const out = [];
       for (const code of kb.codes()) {
         const k = kb.center(code);
-        if (!k || k.y < 380) continue;
-        for (let i = 0; i < pts.length - 1; i++) {
-          const a = pts[i], b = pts[i + 1];
-          const t = clamp(((k.x - a.x) * (b.x - a.x) + (k.y - a.y) * (b.y - a.y)) / ((b.x - a.x) ** 2 + (b.y - a.y) ** 2), 0, 1);
-          if (Math.hypot(k.x - (a.x + t * (b.x - a.x)), k.y - (a.y + t * (b.y - a.y))) < 17) { out.push(code); break; }
-        }
+        if (!k) continue;
+        const h = ctx.sceneToHead(k.x, k.y);
+        if (((h.x - HEAD_E.cx) / HEAD_E.rx) ** 2 + ((h.y - HEAD_E.cy) / HEAD_E.ry) ** 2 <= 1) out.push(code);
       }
       return out;
     }
@@ -103,10 +144,10 @@
       const prev = M.stage;
       M.stage = stage;
       if (stage === 'slumped') {
-        setSunk(contactKeys()); M.nextPressFx = now + 4000 + Math.random() * 4000;
-        M.slumpStart = now;
+        M.nextPressFx = now + 4000 + Math.random() * 4000;
+        M.slumpStart = now; // 压键等落到键盘上（render 里）再算
       } else if (prev === 'slumped') {
-        setSunk([]);
+        setSunk([]); M.sunkOn = false;
         if (!demo) onWake(now); // 自然醒不会发生；这里兜底被直接切走的情况
       }
       if ((stage === 'drool' || stage === 'slumped') && !(prev === 'drool' || prev === 'slumped')) {
@@ -119,9 +160,8 @@
       const stage = M.stage || stageAt(now);
       if (stage === 'slumped') {
         if (M.liftStart > now - LIFT_MS) return; // 已经在抬头
-        M.liftStart = now; M.spAtWake = Math.max(M.sp, 0.01);
-        M.armsUntil = now + LIFT_MS;  // 抬头时手臂先不动，抬完再收
-        S.shakeStart = now + LIFT_MS; // 先抬头，再甩头
+        M.liftStart = now; M.wakePose = M.cur; // 从此刻的姿态快速反向起身
+        S.shakeStart = now + LIFT_MS; // 先起身，再甩头
         M.imprintStart = now;
         const letters = M.sunk.map((c) => ctx.keycapText(c, null)).filter((t) => /^[A-Z]$/.test(t));
         $('imprint-letter').textContent = letters.length ? letters[Math.floor(Math.random() * letters.length)] : 'K';
@@ -132,11 +172,6 @@
 
     // ---------- 爪子 ----------
     function softPawTarget(paw, now) {
-      const sprawl = (S.state === STATES.ASLEEP && M.stage === 'slumped') || now < M.armsUntil;
-      if (sprawl) {
-        const p = SPRAWL[paw.side];
-        return { id: 'sprawl', x: p.x, y: p.y, tau: 160 };
-      }
       const tw = now - M.wipeStart;
       if (tw >= 0 && tw < WIPE_MS && paw === paws.R) {
         const m = ctx.headToScene(410, 236);
@@ -146,30 +181,43 @@
     }
 
     // ---------- 姿态 ----------
+    // 头部局部点在给定姿态下的画面位置（不含呼吸等小动作），用来让 Zzz 跟着头
+    function mapHead(p, Q) {
+      const rot = (S.headBaseRot + Q.hr) * Math.PI / 180, c = Math.cos(rot), s = Math.sin(rot);
+      const vx = (p.x - 400) * Q.hsx, vy = (p.y - 262) * Q.hsy;
+      let x = 400 + vx * c - vy * s + S.headBaseX + Q.hx, y = 262 + vx * s + vy * c + S.headBaseY + Q.hy;
+      const a = Q.cr * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), ux = x - 400, uy = y - 412;
+      return { x: 400 + ux * ca - uy * sa + Q.cx, y: 412 + ux * sa + uy * ca + Q.cy };
+    }
+
     function pose(now, dt, rm, P) {
-      const tl = now - M.liftStart;
+      const D = STYLE_MS[style], full = () => stylePose(style, D);
+      let Q = ZERO, landed = false;
       if (demo && demo.name === 'slump-in') {
-        // 演示：头的高度直接由时间轴决定，方便逐帧检查
-        const t = demoT(now);
-        if (t < SLUMP_IN.arms) M.sp = 0;
-        else if (t < SLUMP_IN.head) M.sp = easeInOut((t - SLUMP_IN.arms) / (SLUMP_IN.head - SLUMP_IN.arms));
-        else if (t < SLUMP_IN.hold) M.sp = 1;
-        else if (t < SLUMP_IN.lift) M.sp = 1 - easeOut((t - SLUMP_IN.hold) / (SLUMP_IN.lift - SLUMP_IN.hold));
-        else M.sp = 0;
-        M.armsUntil = t >= SLUMP_IN.hold && t < SLUMP_IN.lift ? now + 50 : -1e9;
-      } else if (tl >= 0 && tl < LIFT_MS) M.sp = M.spAtWake * (1 - easeOut(tl / LIFT_MS));
-      else {
-        // 先摆手臂，再压低头
-        const armsReady = now - M.slumpStart > ARMS_FIRST_MS;
-        const goal = S.state === STATES.ASLEEP && M.stage === 'slumped' && armsReady ? 1 : 0;
-        M.sp = approach(M.sp, goal, dt, goal ? 900 : 90);
+        // 演示：姿态直接由时间轴决定，方便逐帧检查
+        const T = slumpIn(style), t = demoT(now);
+        if (t < T.sit) Q = ZERO;
+        else if (t < T.land) { Q = rm ? full() : stylePose(style, t - T.sit); landed = rm; }
+        else if (t < T.hold) { Q = full(); landed = true; }
+        else if (t < T.lift && !rm) Q = mix(full(), 1 - easeOut((t - T.hold) / LIFT_MS));
+      } else {
+        const tl = now - M.liftStart;
+        if (!rm && tl >= 0 && tl < LIFT_MS) Q = mix(M.wakePose, 1 - easeOut(tl / LIFT_MS));
+        else if (S.state === STATES.ASLEEP && M.stage === 'slumped') {
+          const t = rm || (demo && demo.name === 'slumped') ? D : now - M.slumpStart;
+          Q = stylePose(style, t); landed = t >= D;
+        }
       }
-      const sp = M.sp;
-      P.headRot += SLUMP.rot * sp; P.headX += SLUMP.x * sp; P.headY += SLUMP.y * sp;
-      P.bodyRot += -6 * sp; P.bodyY += 16 * sp;
-      P.earDroop += 28 * sp;
-      P.breath *= 1 + 1.4 * sp;
-      P.zzzDx += -50 * sp; P.zzzDy += 130 * sp;
+      M.cur = Q; M.landed = landed;
+      P.headRot += Q.hr; P.headX += Q.hx; P.headY += Q.hy; P.headSX *= Q.hsx; P.headSY *= Q.hsy;
+      P.bodyRot += Q.br; P.bodyY += Q.by; P.bodySX *= Q.bsx; P.bodySY *= Q.bsy;
+      P.catRot += Q.cr; P.catX += Q.cx; P.catY += Q.cy; P.tailRot += Q.tail;
+      P.earDroop += Q.ear;
+      P.breath *= 1 + 1.4 * Q.amt;
+      if (Q !== ZERO) {
+        const a = mapHead(ZZZ_ANCHOR, Q), b = mapHead(ZZZ_ANCHOR, ZERO);
+        P.zzzDx += a.x - b.x; P.zzzDy += a.y - b.y;
+      }
     }
 
     // ---------- 渲染 ----------
@@ -208,7 +256,7 @@
         E.bulb.setAttribute('cy', f1(ANCHOR.y + L + r * 0.5));
         E.bulb.setAttribute('r', f1(r));
         // 抵消头部旋转，让口水始终竖直往下垂
-        E.drool.setAttribute('transform', `rotate(${(-S.headTf.rot).toFixed(2)} ${ANCHOR.x} ${ANCHOR.y})`);
+        E.drool.setAttribute('transform', `rotate(${(-(S.headTf.rot + S.catTf.rot)).toFixed(2)} ${ANCHOR.x} ${ANCHOR.y})`);
       }
 
       // 下落的口水滴
@@ -248,14 +296,25 @@
     }
 
     function render(now, dt, rm) {
-      // 趴下时把头挪到键盘和手臂之上（只移动节点，不重建）
-      // 趴下、抬头的整个过程里头都在手臂之上，手臂不会横跨脸
-      const onTop = M.sp > 0.005 || (S.state === STATES.ASLEEP && M.stage === 'slumped') || now < M.armsUntil;
+      // 趴下时把头挪到键盘和手臂之上（只移动节点，不重建）；趴下、起身的整个过程里头都在手臂之上
+      const asleepSlumped = S.state === STATES.ASLEEP && M.stage === 'slumped';
+      const onTop = M.cur.amt > 0.005 || asleepSlumped;
       if (onTop !== M.headOnTop) {
         M.headOnTop = onTop;
         if (onTop) E.above.parentNode.insertBefore(E.head, E.above);
-        else E.zzz.parentNode.insertBefore(E.head, E.zzz);
+        else E.strike.parentNode.insertBefore(E.head, E.strike);
       }
+      // 侧倒：倒下去以后身体和尾巴也要在键盘上层（手臂、爪子、头仍在它们之上）
+      const bodyOnTop = Math.abs(M.cur.cr) > 12;
+      if (bodyOnTop !== M.bodyOnTop) {
+        M.bodyOnTop = bodyOnTop;
+        const ref = bodyOnTop ? E.droolLayer : E.strike;
+        ref.parentNode.insertBefore(E.tail, ref);
+        ref.parentNode.insertBefore(E.body, ref);
+      }
+      // 落到键盘上那一刻按头的实际位置压键
+      const wantSunk = asleepSlumped && M.landed;
+      if (wantSunk !== M.sunkOn) { M.sunkOn = wantSunk; setSunk(wantSunk ? contactKeys() : []); }
       renderDrool(now, dt, rm);
 
       // 脸颊上的键帽压痕
@@ -284,9 +343,16 @@
       afterState, onWake, softPawTarget, pose, render, overrideState,
       setDroolSeconds(v) { droolSec = Number.isFinite(v) ? v : null; },
       setSlumpSeconds(v) { slumpSec = Number.isFinite(v) ? v : null; },
+      setSlumpStyle(v) {
+        if (!STYLES.includes(v) || v === style) return;
+        style = v;
+        setSunk([]); M.sunkOn = false;
+        if (M.stage === 'slumped') M.slumpStart = performance.now(); // 正趴着：用新方式重新趴一次
+      },
       debugProps: {
         sleepStage: () => (S.state === STATES.ASLEEP ? M.stage : null),
         sunkKeys: () => Object.freeze(M.sunk.slice()),
+        slumpStyle: () => style,
       },
     };
   }

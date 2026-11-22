@@ -19,7 +19,7 @@
       <path d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/>
     </clipPath>
     <clipPath id="clip-back-head"><path d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/></clipPath>
-    <clipPath id="clip-back-body"><path d="M 300 412 C 290 382, 304 354, 314 338 C 300 308, 322 268, 400 262 C 478 268, 500 308, 486 338 C 496 354, 510 382, 500 412 Z"/></clipPath>
+    <clipPath id="clip-back-body"><path d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/></clipPath>
     <clipPath id="clip-eye-l"><circle cx="345" cy="178" r="29"/></clipPath>
     <clipPath id="clip-eye-r"><circle cx="455" cy="178" r="29"/></clipPath>
   </defs>
@@ -150,55 +150,34 @@
     </g>
   </g>
 
-  <!-- 罢工：同一只猫的背影，略带四分之三侧身（脸朝观众左侧偏一点）。
-       花色镜像：帽子的下延在观众右侧，鞍状斑在观众左侧；耳背全黑；双臂抱胸只露两侧手肘。 -->
+  <!-- 罢工：同一只猫转过去的正背面。轮廓、位置、大小和正面坐姿完全一样，只是没有脸：
+       头和身体复用正面的路径；花色左右镜像（头上的黑斑在观众右侧，身上的黑斑在观众左侧）；
+       耳朵纯黑、向两侧压低成飞机耳。 -->
   <g id="cat-strike" style="display:none">
     <g id="strike-sign" transform="rotate(-5 165 300)">
       <rect class="sign-post" x="159" y="246" width="12" height="130" rx="4"/>
       <rect class="sign-board" x="96" y="196" width="134" height="58" rx="10"/>
       <text class="sign-text" x="163" y="235">罢工中</text>
     </g>
-    <!-- 尾巴从臀部正中伸出，一下一下拍桌面 -->
-    <g id="strike-tail">
-      <path class="tail-outline" d="M 400 402 C 448 410, 506 404, 542 384 C 568 370, 584 350, 576 332"/>
-      <path class="tail-fill" d="M 400 402 C 448 410, 506 404, 542 384 C 568 370, 584 350, 576 332"/>
-      <path class="tail-tip" pathLength="100" d="M 400 402 C 448 410, 506 404, 542 384 C 568 370, 584 350, 576 332"/>
-    </g>
-    <!-- 抱胸露出的手肘：观众左侧白（猫的左臂），右侧黑（猫的右臂） -->
-    <ellipse class="fur-white ink" cx="301" cy="326" rx="16" ry="21"/>
-    <ellipse class="fur-black ink" cx="499" cy="326" rx="16" ry="21"/>
-    <path class="fur-white" d="M 300 412 C 290 382, 304 354, 314 338 C 300 308, 322 268, 400 262 C 478 268, 500 308, 486 338 C 496 354, 510 382, 500 412 Z"/>
+    <path class="fur-white" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/>
     <g clip-path="url(#clip-back-body)">
-      <path class="fur-black" d="M 330 288 C 306 290, 288 320, 288 352 C 288 378, 300 394, 314 390 C 326 386, 322 366, 326 350 C 330 332, 340 318, 338 302 C 337 292, 334 288, 330 288 Z"/>
+      <path class="fur-black" d="M 334 284 C 304 286, 284 318, 284 354 C 284 380, 298 396, 316 392 C 334 388, 330 364, 336 346 C 342 326, 352 310, 348 296 C 346 288, 340 284, 334 284 Z"/>
     </g>
-    <path class="ink-line" fill="none" d="M 300 412 C 290 382, 304 354, 314 338 C 300 308, 322 268, 400 262 C 478 268, 500 308, 486 338 C 496 354, 510 382, 500 412"/>
-    <!-- 肩胛、脊背和臀部的弧线 -->
-    <path class="back-line" d="M 400 292 Q 396 340 400 392"/>
-    <path class="ink-thin" fill="none" d="M 348 302 Q 358 290 374 288 M 452 302 Q 442 290 426 288 M 312 356 Q 324 392 362 402 M 488 356 Q 476 392 438 402"/>
-    <g class="hind-foot"><ellipse class="fur-white ink" cx="300" cy="374" rx="22" ry="11"/></g>
-    <g class="hind-foot"><ellipse class="fur-white ink" cx="500" cy="374" rx="22" ry="11"/></g>
-    <!-- 脖子 -->
-    <path class="fur-white" d="M 356 266 Q 400 286 444 266 L 444 300 Q 400 312 356 300 Z"/>
-    <g id="strike-head" transform="rotate(5 400 262)">
-      <path id="strike-ear-l" class="fur-black ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z"/>
-      <path id="strike-ear-r" class="fur-black ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z"/>
-      <path class="ear-fold" d="M 298 112 L 300 62 M 502 112 L 500 62"/>
-      <!-- 侧过来露出的一点脸颊和胡须（观众左侧） -->
-      <path class="fur-white" d="M 282 186 C 258 196, 254 238, 284 254 Z"/>
-      <path class="ink-line" fill="none" d="M 282 186 C 258 196, 254 238, 284 254"/>
-      <path class="whisker" d="M 266 220 L 236 212 M 268 232 L 238 236"/>
+    <path class="ink-line" fill="none" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412"/>
+    <!-- 尾巴从身体底部伸出，贴着桌面甩向观众右侧，一下一下拍桌面 -->
+    <g id="strike-tail">
+      <path class="tail-outline" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
+      <path class="tail-fill" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
+      <path class="tail-tip" pathLength="100" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
+    </g>
+    <g id="strike-head">
+      <path id="strike-ear-l" class="fur-black ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z" transform="rotate(-12 322 110)"/>
+      <path id="strike-ear-r" class="fur-black ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z" transform="rotate(12 478 110)"/>
       <path class="fur-white" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
       <g clip-path="url(#clip-back-head)">
-        <path class="fur-black" d="M 545 50 H 255 V 112 C 280 104, 302 101, 330 110 C 348 116, 362 112, 376 122 C 392 134, 402 146, 408 166 C 415 190, 420 214, 454 222 C 484 228, 514 216, 545 202 Z"/>
+        <path class="fur-black" d="M 250 40 H 550 V 236 C 516 240, 484 222, 466 192 C 448 160, 436 128, 396 116 C 352 104, 300 108, 250 122 Z"/>
       </g>
       <path class="ink-line" fill="none" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
-      <!-- 偷偷回头瞥一眼：一只斜着的眼睛 -->
-      <g id="peek-eye" style="display:none">
-        <path class="sclera ink-thin" d="M 280 176 Q 296 162 314 172 Q 300 190 280 176 Z"/>
-        <circle class="iris" cx="290" cy="175" r="6.5"/>
-        <circle class="pupil" cx="288" cy="175" r="3.6"/>
-        <path class="brow" d="M 280 160 L 312 166"/>
-      </g>
     </g>
   </g>
 
@@ -273,6 +252,13 @@
     <input id="work-range" type="range" min="15" max="3600" step="5" value="90">
     <span id="work-label">90 秒</span>
   </label>
+  <label class="ctl">趴下方式
+    <select id="slump-style">
+      <option value="nod">点头栽倒</option>
+      <option value="melt">融化摊平</option>
+      <option value="flop">侧倒</option>
+    </select>
+  </label>
   <label class="ctl">休息多久消气
     <input id="rest-range" type="range" min="5" max="600" step="1" value="20">
     <span id="rest-label">20 秒</span>
@@ -299,12 +285,16 @@
   // 调试入口：?demo=阶段 直接摆到并停在某个阶段；&loop=1 循环播放；&at=毫秒 冻结在时间轴上的某一刻
   const demo = params.get('demo') ? { name: params.get('demo'), loop: params.get('loop') === '1', at: num('at') ?? (params.get('at') === '0' ? 0 : NaN) } : null;
 
+  // 趴下方式：?slump-style=nod|melt|flop，和下拉框同步
+  const SLUMP_STYLES = ['nod', 'melt', 'flop'];
+  const slumpStyle = SLUMP_STYLES.includes(params.get('slump-style')) ? params.get('slump-style') : 'nod';
+
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  let fatigue = null;
+  let fatigue = null, sleepMod = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep,
     modules: [
-      (ctx) => SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, demo }),
+      (ctx) => (sleepMod = SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo })),
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
     ],
   });
@@ -334,6 +324,16 @@
   }
   bindRange('work-range', 'work-label', work, (v) => fatigue.setWorkSeconds(v));
   bindRange('rest-range', 'rest-label', rest, (v) => fatigue.setRestSeconds(v));
+
+  const styleSel = document.getElementById('slump-style');
+  styleSel.value = slumpStyle;
+  styleSel.addEventListener('change', () => {
+    sleepMod.setSlumpStyle(styleSel.value);
+    const u = new URL(location.href);
+    u.searchParams.set('slump-style', styleSel.value);
+    history.replaceState(null, '', u);
+    styleSel.blur();
+  });
 
   const left = document.getElementById('mouse-left');
   left.addEventListener('change', () => {

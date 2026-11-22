@@ -157,7 +157,8 @@
       twitch: { ear: null, start: -1e9 }, nextTwitch: t0 + 5000 + Math.random() * 5000,
       tailPhase: 0, tailAngle: 0, eyeMode: null,
       headBaseRot: -4, headBaseX: 0, headBaseY: 0,
-      headTf: { tx: 0, ty: 0, rot: -4 }, catHidden: false, cheek: 0, cheekDrawn: -1,
+      headTf: { tx: 0, ty: 0, rot: -4, sx: 1, sy: 1 }, catHidden: false, cheek: 0, cheekDrawn: -1,
+      catTf: { rot: 0, px: 400, py: 412, tx: 0, ty: 0 }, // 整只猫的旋转平移（趴下方式 flop 用）
     };
 
     // ---------- 扩展钩子 ----------
@@ -375,7 +376,11 @@
         paw.els.paw.setAttribute('transform', `${turnTf(P)}translate(${f1(paw.x)} ${f1(py)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
 
         // 手臂：肩部锚点 -> 爪背的二次曲线，距离越近弯得越多
-        const sh = { x: SHOULDER[paw.side].x + P.bodyX, y: SHOULDER[paw.side].y + P.lift + P.bodyY };
+        // 肩部锚点跟着身体的缩放走（身体以底部 400,410 为基准缩放）
+        const sh = {
+          x: 400 + (SHOULDER[paw.side].x - 400) * P.bodySX + P.bodyX,
+          y: 410 + (SHOULDER[paw.side].y - 410) * P.bodySY + P.lift + P.bodyY,
+        };
         const ex = paw.x, ey = py - 8;
         const vx = ex - sh.x, vy = ey - sh.y, len = Math.hypot(vx, vy) || 1;
         let nx = -vy / len, ny = vx / len;
@@ -411,7 +416,8 @@
       const ts = now - S.shakeStart;
       if (ts >= 0 && ts < 420) rot += 6 * Math.sin(4 * Math.PI * ts / 420); // 甩两下 ±6°
       if (asleep && !rm) ty += 1.5 * P.breath * Math.sin(now * 2 * Math.PI / 3200);
-      S.headTf = { tx, ty, rot };
+      const hsx = P.headSX, hsy = P.headSY;
+      S.headTf = { tx, ty, rot, sx: hsx, sy: hsy };
       // 鼓腮帮：改头部轮廓本身
       S.cheek = approach(S.cheek, P.cheek, dt, 90);
       if (Math.abs(S.cheek - S.cheekDrawn) > 0.05) {
@@ -419,7 +425,8 @@
         const d = headPathD(S.cheek);
         for (const n of el.headShape) n.setAttribute('d', d);
       }
-      el.head.setAttribute('transform', `${turnTf(P)}translate(${f1(tx)} ${f1(ty)}) rotate(${rot.toFixed(2)} 400 262)`);
+      const hs = hsx !== 1 || hsy !== 1 ? ` translate(400 262) scale(${hsx.toFixed(4)} ${hsy.toFixed(4)}) translate(-400 -262)` : '';
+      el.head.setAttribute('transform', `${turnTf(P)}translate(${f1(tx)} ${f1(ty)}) rotate(${rot.toFixed(2)} 400 262)${hs}`);
     }
 
     function renderEyes(now, dt, P) {
@@ -494,14 +501,14 @@
       if (P.tailAmp !== null && S.state !== STATES.ASLEEP) { amp = P.tailAmp; speed = P.tailSpeed; }
       S.tailPhase += dt * speed;
       S.tailAngle = approach(S.tailAngle, base + amp * Math.sin(S.tailPhase), dt, tau);
-      el.tail.setAttribute('transform', `${turnTf(P)}translate(${f1(P.bodyX)} ${f1(P.lift + P.bodyY)}) rotate(${S.tailAngle.toFixed(2)} 322 372)`);
+      el.tail.setAttribute('transform', `${turnTf(P)}translate(${f1(P.bodyX)} ${f1(P.lift + P.bodyY)}) rotate(${(S.tailAngle + P.tailRot).toFixed(2)} 322 372)`);
     }
 
     function renderBody(now, rm, P) {
       const b = S.state === STATES.ASLEEP && !rm ? Math.sin(now * 2 * Math.PI / 3200) * P.breath : 0;
       el.body.setAttribute('transform',
         `${turnTf(P)}translate(${f1(P.bodyX)} ${f1(P.bodyY + P.lift)}) rotate(${P.bodyRot.toFixed(2)} 400 410) ` +
-        `translate(400 410) scale(${(1 + 0.012 * b).toFixed(4)} ${(1 + 0.025 * b).toFixed(4)}) translate(-400 -410)`);
+        `translate(400 410) scale(${(P.bodySX * (1 + 0.012 * b)).toFixed(4)} ${(P.bodySY * (1 + 0.025 * b)).toFixed(4)}) translate(-400 -410)`);
     }
 
     function renderZzz(now, P) {
@@ -535,8 +542,9 @@
       el.mouse.setAttribute('transform', `translate(${f1(m.x + P.mouseX)} ${f1(m.y + P.mouseY)}) rotate(${P.mouseRot.toFixed(2)})`);
     }
 
-    // 转身过渡：整只猫绕画面中线横向挤压
-    const turnTf = (P) => (P.turnSX !== 1 ? `translate(400 0) scale(${Math.max(0.02, P.turnSX).toFixed(3)} 1) translate(-400 0) ` : '');
+    // 转身过渡：整只猫绕画面中线横向挤压；整只猫的旋转平移（侧倒）也在这里叠加
+    const turnTf = (P) => (P.turnSX !== 1 ? `translate(400 0) scale(${Math.max(0.02, P.turnSX).toFixed(3)} 1) translate(-400 0) ` : '') +
+      (P.catRot || P.catX || P.catY ? `translate(${f1(P.catX)} ${f1(P.catY)}) rotate(${P.catRot.toFixed(2)} ${P.catPX} ${P.catPY}) ` : '');
 
     // 每帧由扩展模块叠加的姿态（加法 / 乘法），默认值等于"什么都不改"
     function defaultPose() {
@@ -545,6 +553,9 @@
         earDroop: 0, breath: 1, lidMin: 0, tailAmp: null, tailSpeed: 0,
         pawTau: 1, pressBoost: 0, zzzDx: 0, zzzDy: 0, mouseX: 0, mouseY: 0, mouseRot: 0, hideCat: false,
         turnSX: 1, eyesClosed: false, cheek: 0, mouseAbs: null, mouseHidden: false,
+        headSX: 1, headSY: 1, bodySX: 1, bodySY: 1, // 乘法：头以 400,262、身体以 400,410 为基准缩放
+        catRot: 0, catX: 0, catY: 0, catPX: 400, catPY: 412, // 整只猫绕 (catPX, catPY) 旋转再平移
+        tailRot: 0, // 叠加到尾巴摆角上
       };
     }
     const catParts = ['cat-head', 'cat-body', 'tail', 'arm-l', 'arm-r', 'paw-l', 'paw-r'].map($);
@@ -563,6 +574,7 @@
       const P = defaultPose();
       call('pose', now, dt, rm, P);   // 扩展模块叠加姿态
       setCatHidden(P.hideCat);
+      S.catTf = { rot: P.catRot, px: P.catPX, py: P.catPY, tx: P.catX, ty: P.catY };
       renderMouse(dt, P);
       renderPaws(now, dt, P);
       renderHead(now, dt, rm, P);
@@ -576,11 +588,24 @@
       requestAnimationFrame(frame);
     }
     // ---------- 给扩展模块的上下文 ----------
-    function headToScene(x, y) { // 头部局部坐标 -> 画面坐标（按当前头部变换）
-      const { tx, ty, rot } = S.headTf;
+    function headToScene(x, y) { // 头部局部坐标 -> 画面坐标（按当前头部变换和整只猫的变换）
+      const { tx, ty, rot, sx, sy } = S.headTf;
       const a = rot * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
-      const vx = x - 400, vy = y - 262;
-      return { x: 400 + vx * c - vy * s + tx, y: 262 + vx * s + vy * c + ty };
+      const vx = (x - 400) * sx, vy = (y - 262) * sy;
+      return catToScene(400 + vx * c - vy * s + tx, 262 + vx * s + vy * c + ty);
+    }
+    function catToScene(x, y) {
+      const { rot, px, py, tx, ty } = S.catTf;
+      const a = rot * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+      const vx = x - px, vy = y - py;
+      return { x: px + vx * c - vy * s + tx, y: py + vx * s + vy * c + ty };
+    }
+    function sceneToHead(x, y) { // headToScene 的逆变换
+      const C = S.catTf, H = S.headTf;
+      let a = -C.rot * Math.PI / 180, vx = x - C.tx - C.px, vy = y - C.ty - C.py;
+      const cx = C.px + vx * Math.cos(a) - vy * Math.sin(a), cy = C.py + vx * Math.sin(a) + vy * Math.cos(a);
+      a = -H.rot * Math.PI / 180; vx = cx - H.tx - 400; vy = cy - H.ty - 262;
+      return { x: 400 + (vx * Math.cos(a) - vy * Math.sin(a)) / H.sx, y: 262 + (vx * Math.sin(a) + vy * Math.cos(a)) / H.sy };
     }
     function releaseAll() { // 发飙时松开所有键和鼠标（画面上）
       for (const code of S.pressed.keys()) kb.setDown(code, false);
@@ -591,7 +616,7 @@
       S.mouseActiveUntil = 0;
     }
     const ctx = {
-      S, STATES, el, kb, fx, paws, keycapText, keyPoint, mousePoint, mousePaw, mouseHome, restPoint, headToScene,
+      S, STATES, el, kb, fx, paws, keycapText, keyPoint, mousePoint, mousePaw, mouseHome, restPoint, headToScene, sceneToHead,
       releaseAll, reducedMotion, clamp, approach, f1,
     };
     for (const make of modules) mods.push(make(ctx) || {});

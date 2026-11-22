@@ -54,7 +54,7 @@
       mouseBandage: $('mouse-bandage'),
       brows: $('brows'), sweat: $('sweat'), anger: $('anger'),
       sigh: $('sigh'), sighC: [$('sigh-a'), $('sigh-b'), $('sigh-c')],
-      strike: $('cat-strike'), strikeHead: $('strike-head'), strikeTail: $('strike-tail'), peekEye: $('peek-eye'),
+      strike: $('cat-strike'), strikeHead: $('strike-head'), strikeTail: $('strike-tail'),
       strikeEar: { l: $('strike-ear-l'), r: $('strike-ear-r') },
       debris: $('debris-layer'), bubbles: $('bubble-layer'),
       hint: $('rest-hint'), bar: $('fatigue-bar'),
@@ -122,7 +122,7 @@
     function enterStrike(t) {
       F.rage = null;
       F.broken = true;
-      F.strike = { start: t, restMs: 0, count: 0, hmphAt: 5 + Math.floor(Math.random() * 5), nextPeek: t + rand(2500, 4500), peek: -1e9 };
+      F.strike = { start: t, restMs: 0, count: 0, hmphAt: 5 + Math.floor(Math.random() * 5), nextPeek: t + rand(2500, 4500), peek: -1e9, peekSide: 'l' };
     }
     function endStrike(now) {
       F.strike = null;
@@ -212,7 +212,7 @@
           F.earFlick = now; F.earSide = Math.random() < 0.5 ? 'l' : 'r';
           if (++F.strike.count >= F.strike.hmphAt) {
             F.strike.count = 0; F.strike.hmphAt = 5 + Math.floor(Math.random() * 5);
-            spawnHmph(now);
+            spawnHmph(now, F.earSide);
           }
         }
         return true;
@@ -383,9 +383,9 @@
       g.setAttribute('opacity', '0');
       F.effects.push({ g, start: now + delay, life: 420, x, y, kind: 'sparkle' });
     }
-    function spawnHmph(now) {
+    function spawnHmph(now, side) {
       const g = addSvg(E.bubbles, '<g class="hmph"><path class="hmph-bubble" d="M -26 -14 Q -26 -30 0 -30 Q 26 -30 26 -14 Q 26 2 4 2 L -6 12 L -4 2 Q -26 2 -26 -14 Z"/><text x="0" y="-8">哼</text></g>');
-      F.bubbles.push({ g, start: now, x: 286 + rand(-10, 10), y: 104 });
+      F.bubbles.push({ g, start: now, x: (side === 'r' ? 514 : 286) + rand(-10, 10), y: 104 });
     }
 
     // ---------- 姿态 ----------
@@ -605,25 +605,33 @@
       }
       if (F.strike) {
         const t = now - F.strike.start;
+        // 尾巴：绕离开身体的那一点往上翘，再拍回桌面
         let a = 0;
-        if (!rm) { const p = (t % 1100) / 1100; a = p < 0.75 ? -16 * easeOut(p / 0.75) : -16 * (1 - (p - 0.75) / 0.25); }
-        E.strikeTail.setAttribute('transform', `rotate(${a.toFixed(2)} 400 402)`);
-        const te = now - F.earFlick;
-        for (const s of ['l', 'r']) {
-          let ea = 0;
-          if (s === F.earSide && te >= 0 && te < 240) ea = 16 * Math.sin(2 * Math.PI * te / 120) * (1 - te / 240);
-          E.strikeEar[s].setAttribute('transform', `rotate(${(s === 'l' ? -ea : ea).toFixed(2)} ${s === 'l' ? '322 110' : '478 110'})`);
+        if (!rm) { const p = (t % 1100) / 1100; a = p < 0.75 ? -14 * easeOut(p / 0.75) : -14 * (1 - (p - 0.75) / 0.25); }
+        E.strikeTail.setAttribute('transform', `rotate(${a.toFixed(2)} 500 378)`);
+        // 偷听：隔几秒一只耳朵朝观众转过来、头往那边歪一点，再转回去"哼"一声
+        if (!rm && now >= F.strike.nextPeek && now - F.strike.peek > 1200) {
+          F.strike.peek = now; F.strike.nextPeek = now + rand(3000, 6000);
+          F.strike.peekSide = Math.random() < 0.5 ? 'l' : 'r';
         }
-        // 每隔几秒偷偷回头瞥一眼，被看见就"哼"地转回去
-        if (!rm && now >= F.strike.nextPeek && now - F.strike.peek > 1200) { F.strike.peek = now; F.strike.nextPeek = now + rand(3000, 6000); }
         const tp = now - F.strike.peek;
         let turn = 0;
         if (tp >= 0 && tp < 1000) {
-          turn = tp < 150 ? tp / 150 : tp < 850 ? 1 : 1 - (tp - 850) / 100;
-          if (tp >= 850 && !F.strike.hmphed) { F.strike.hmphed = true; spawnHmph(now); }
+          turn = tp < 180 ? easeOut(tp / 180) : tp < 820 ? 1 : 1 - (tp - 820) / 180;
+          if (tp >= 820 && !F.strike.hmphed) { F.strike.hmphed = true; spawnHmph(now, F.strike.peekSide); }
         } else F.strike.hmphed = false;
-        show(E.peekEye, 'peek', turn > 0.6);
-        E.strikeHead.setAttribute('transform', `translate(${f1(-8 * turn)} 0) rotate(${(5 - 9 * turn).toFixed(2)} 400 262)`);
+        const ps = F.strike.peekSide, sg = (s) => (s === 'l' ? -1 : 1);
+        // 耳朵：平时向两侧各压低 12°（飞机耳）；偷听的那只立起来、横向收窄像转了过来；按键时抖一下
+        const te = now - F.earFlick;
+        for (const s of ['l', 'r']) {
+          const px = s === 'l' ? 322 : 478, py = 110;
+          let ea = 12 - (s === ps ? 18 * turn : 0);
+          if (s === F.earSide && te >= 0 && te < 240) ea += 16 * Math.sin(2 * Math.PI * te / 120) * (1 - te / 240);
+          const k = s === ps ? 1 - 0.4 * turn : 1;
+          E.strikeEar[s].setAttribute('transform', `rotate(${(sg(s) * ea).toFixed(2)} ${px} ${py})` +
+            (k !== 1 ? ` translate(${px} ${py}) scale(${k.toFixed(3)} 1) translate(${-px} ${-py})` : ''));
+        }
+        E.strikeHead.setAttribute('transform', `rotate(${(sg(ps) * 7 * turn).toFixed(2)} 400 262)`);
       }
 
       if (F.repair) renderRepair(now, dt, now - F.repair.start);
