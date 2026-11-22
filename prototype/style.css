@@ -140,14 +140,17 @@ body {
 #scene .drool-bulb { fill: #e4f2ff; fill-opacity: 0.88; stroke: var(--ink); stroke-width: 1.3; stroke-opacity: 0.6; }
 #scene .puddle { fill: #d6ebff; fill-opacity: 0.75; stroke: var(--ink); stroke-width: 1.3; stroke-opacity: 0.5; }
 #scene .puddle-shine { fill: #fff; opacity: 0.9; }
-#scene .imprint { fill: #ffd3dc; fill-opacity: 0.5; stroke: #e98a9e; stroke-width: 2; }
+/* 压痕：比毛色略深的粉色凹痕 + 很淡的内阴影，不用深色线框 */
+#scene .imprint-flush { fill: #ff9eb0; opacity: 0.55; }
+#scene .dent { fill: #e9849a; }
+#scene .dent-in { fill: #fbc3ce; }
+#scene .dent-letter { fill: #d56f86; font-size: 8px; font-weight: 700; text-anchor: middle; font-family: inherit; opacity: 0.6; }
+#scene .tuft { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
 
 /* ---------- 疲劳与情绪（fatigue.js） ---------- */
 #scene .brow { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
 #scene .brow-light { fill: none; stroke: #8f8898; stroke-width: 5; stroke-linecap: round; }
 #scene .sweat { fill: #cfe8ff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
-#scene .puff-fill { fill: var(--fur-white); }
-#scene .puff-line { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
 #scene .sigh { fill: #f3f1ee; stroke: var(--ink); stroke-width: 2; }
 #scene .anger { fill: none; stroke: #e5484d; stroke-width: 5; stroke-linecap: round; }
 #scene .anger-under { fill: none; stroke: var(--fur-white); stroke-width: 9; stroke-linecap: round; }
@@ -168,7 +171,6 @@ body {
 #scene .sign-post { fill: #d9bd93; stroke: var(--ink); stroke-width: 4; }
 #scene .sign-board { fill: var(--cream); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
 #scene .sign-text { fill: var(--ink); font-size: 26px; font-weight: 800; text-anchor: middle; font-family: inherit; letter-spacing: 2px; }
-#scene .back-tuft { fill: none; stroke: #c9c3cc; stroke-width: 3; stroke-linecap: round; }
 #scene .hmph-bubble { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
 #scene .hmph text { fill: var(--ink); font-size: 17px; font-weight: 800; text-anchor: middle; font-family: inherit; }
 #strike-head { cursor: grab; }
@@ -181,3 +183,20 @@ body {
 .rest-hint { color: #b2353a; font-weight: 600; }
 .ctl input[type="range"] { width: 100px; }
 #scene { transition: none; }
+
+/* ---------- 第三轮：砸鼠标、修理、背影 ---------- */
+#scene .key.pop { animation: keypop 240ms ease-out; }
+@keyframes keypop { 0% { transform: translateY(4px); } 55% { transform: translateY(-1.5px); } 100% { transform: translateY(0); } }
+#scene .debris-half path { fill: var(--cream); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
+#scene .debris-half .half-btn { fill: none; stroke-width: 3; }
+#scene .debris-wheel path { stroke: var(--ink); stroke-width: 2; }
+#scene .debris-part circle { fill: #8e8796; stroke: var(--ink); stroke-width: 2; }
+#scene .debris-part path { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; }
+#scene .impact path { fill: none; stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; }
+#scene .sparkle path { fill: #fff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+#scene .cloth path { fill: #bfe0f5; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+#scene .cloth .cloth-fold { fill: none; stroke-width: 1.8; }
+#scene .ghost-black { fill: var(--fur-black); }
+#scene .ghost-white { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; }
+#scene .ear-fold { fill: none; stroke: #5a5462; stroke-width: 3; stroke-linecap: round; }
+#scene .back-line { fill: none; stroke: #d8d2db; stroke-width: 3; stroke-linecap: round; }

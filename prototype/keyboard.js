@@ -99,6 +99,15 @@
         const k = keys.get(code);
         if (k) k.el.classList.toggle('gone', !!on);
       },
+      // 键帽被按回去时弹一下
+      pop(code) {
+        const k = keys.get(code);
+        if (!k) return;
+        k.el.classList.remove('pop');
+        void k.el.getBoundingClientRect();
+        k.el.classList.add('pop');
+        setTimeout(() => k.el.classList.remove('pop'), 260);
+      },
       isGone: (code) => { const k = keys.get(code); return !!(k && k.el.classList.contains('gone')); },
       codes: () => [...keys.keys()],
       bounds: { ...CASE },

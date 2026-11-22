@@ -11,6 +11,12 @@
   // 趴下时脸贴键盘的那条轮廓（头部局部坐标），用来算哪些键被压住
   const CONTACT = [[300, 236], [325, 256], [355, 270], [385, 276], [415, 275]];
   const SLUMP = { rot: -32, x: -4, y: 172 }; // 趴下时叠加到头上的姿态
+  const ARMS_FIRST_MS = 700; // 趴下：先摆好手臂，再压低头
+  // 趴下时的手臂：两只前爪向前平伸摊在键盘上（观众右侧白爪在右半边，观众左侧黑爪从脸下方伸出到左下角），
+  // 手臂都在头的下面一层，不会横跨脸。
+  const SPRAWL = { L: { x: 556, y: 486 }, R: { x: 262, y: 540 } };
+  // ?demo= 时间轴（毫秒）
+  const SLUMP_IN = { sit: 300, arms: 300 + ARMS_FIRST_MS, head: 2300, hold: 2900, lift: 3300, armsBack: 3900, period: 4300 };
 
   function create(ctx, opts = {}) {
     const { S, STATES, kb, fx, paws, approach, clamp, f1 } = ctx;
@@ -18,22 +24,47 @@
     const E = {
       head: $('cat-head'), zzz: $('zzz'), above: $('debris-layer'),
       drool: $('drool'), strand: $('drool-strand'), outline: $('drool-outline'), bulb: $('drool-bulb'),
-      imprint: $('imprint'), puddle: $('puddle'), pool: $('puddle-pool'), shine: $('puddle-shine'), drops: $('drops'),
+      imprint: $('imprint'), dents: $('imprint-dents'), tuft: $('imprint-tuft'), puddle: $('puddle'), pool: $('puddle-pool'), shine: $('puddle-shine'), drops: $('drops'),
     };
     let droolSec = Number.isFinite(opts.droolSeconds) ? opts.droolSeconds : null;
     let slumpSec = Number.isFinite(opts.slumpSeconds) ? opts.slumpSeconds : null;
     const droolMs = () => (droolSec !== null ? droolSec * 1000 : 2 * S.sleepMs);
     const slumpMs = () => (slumpSec !== null ? slumpSec * 1000 : 3.5 * S.sleepMs);
 
+    const demo = opts.demo && ['drool', 'slumped', 'slump-in', 'wake-marks'].includes(opts.demo.name) ? opts.demo : null;
+    const demoT0 = performance.now();
+    const demoT = (now) => (demo && Number.isFinite(demo.at) ? demo.at
+      : demo && demo.loop ? (now - demoT0) % (demo.name === 'slump-in' ? SLUMP_IN.period : IMPRINT_MS + 800)
+        : demo && demo.name === 'wake-marks' ? Math.min(now - demoT0, 800) // 不循环时停在刚醒的样子
+          : demo && demo.name === 'slump-in' ? Math.min(now - demoT0, SLUMP_IN.hold - 1) // 停在趴好
+            : now - demoT0);
+
     const M = {
       stage: null, sp: 0, spAtWake: 0,
       liftStart: -1e9, wipeStart: -1e9, imprintStart: -1e9,
       dripStart: 0, lastDrop: -1, drops: [], puddleN: 0, puddleX: 400, puddleY: 398, puddleFade: -1,
       sunk: [], nextPressFx: 0, headOnTop: false, droolShown: false,
+      slumpStart: -1e9, armsUntil: -1e9,
     };
 
     // ---------- 状态 ----------
+    // demo：直接给出这一刻应处的阶段（不受计时影响）
+    function demoStage(now) {
+      if (demo.name === 'drool') return 'drool';
+      if (demo.name === 'slumped') return 'slumped';
+      if (demo.name === 'wake-marks') return null;
+      const t = demoT(now);
+      if (t < SLUMP_IN.sit) return 'sitting';
+      if (t < SLUMP_IN.hold) return 'slumped';
+      return null; // 抬头、收手、清醒
+    }
+    function overrideState(now) {
+      if (!demo) return null;
+      return demoStage(now) ? STATES.ASLEEP : STATES.AWAKE;
+    }
+
     function stageAt(now) {
+      if (demo) return demoStage(now);
       if (S.state !== STATES.ASLEEP) return null;
       const idle = now - S.lastInput;
       return idle >= slumpMs() ? 'slumped' : idle >= droolMs() ? 'drool' : 'sitting';
@@ -71,8 +102,13 @@
       if (stage === M.stage) return;
       const prev = M.stage;
       M.stage = stage;
-      if (stage === 'slumped') { setSunk(contactKeys()); M.nextPressFx = now + 4000 + Math.random() * 4000; }
-      else if (prev === 'slumped') setSunk([]);
+      if (stage === 'slumped') {
+        setSunk(contactKeys()); M.nextPressFx = now + 4000 + Math.random() * 4000;
+        M.slumpStart = now;
+      } else if (prev === 'slumped') {
+        setSunk([]);
+        if (!demo) onWake(now); // 自然醒不会发生；这里兜底被直接切走的情况
+      }
       if ((stage === 'drool' || stage === 'slumped') && !(prev === 'drool' || prev === 'slumped')) {
         M.dripStart = now; M.lastDrop = -1; M.puddleFade = -1;
       }
@@ -82,9 +118,13 @@
     function onWake(now) {
       const stage = M.stage || stageAt(now);
       if (stage === 'slumped') {
+        if (M.liftStart > now - LIFT_MS) return; // 已经在抬头
         M.liftStart = now; M.spAtWake = Math.max(M.sp, 0.01);
+        M.armsUntil = now + LIFT_MS;  // 抬头时手臂先不动，抬完再收
         S.shakeStart = now + LIFT_MS; // 先抬头，再甩头
         M.imprintStart = now;
+        const letters = M.sunk.map((c) => ctx.keycapText(c, null)).filter((t) => /^[A-Z]$/.test(t));
+        $('imprint-letter').textContent = letters.length ? letters[Math.floor(Math.random() * letters.length)] : 'K';
       } else if (stage === 'drool') {
         M.wipeStart = now;
       }
@@ -92,8 +132,10 @@
 
     // ---------- 爪子 ----------
     function softPawTarget(paw, now) {
-      if (S.state === STATES.ASLEEP && M.stage === 'slumped') {
-        return { id: 'sprawl', x: paw.side === 'L' ? 590 : 212, y: 456, tau: 500 };
+      const sprawl = (S.state === STATES.ASLEEP && M.stage === 'slumped') || now < M.armsUntil;
+      if (sprawl) {
+        const p = SPRAWL[paw.side];
+        return { id: 'sprawl', x: p.x, y: p.y, tau: 160 };
       }
       const tw = now - M.wipeStart;
       if (tw >= 0 && tw < WIPE_MS && paw === paws.R) {
@@ -106,10 +148,21 @@
     // ---------- 姿态 ----------
     function pose(now, dt, rm, P) {
       const tl = now - M.liftStart;
-      if (tl >= 0 && tl < LIFT_MS) M.sp = M.spAtWake * (1 - easeOut(tl / LIFT_MS));
+      if (demo && demo.name === 'slump-in') {
+        // 演示：头的高度直接由时间轴决定，方便逐帧检查
+        const t = demoT(now);
+        if (t < SLUMP_IN.arms) M.sp = 0;
+        else if (t < SLUMP_IN.head) M.sp = easeInOut((t - SLUMP_IN.arms) / (SLUMP_IN.head - SLUMP_IN.arms));
+        else if (t < SLUMP_IN.hold) M.sp = 1;
+        else if (t < SLUMP_IN.lift) M.sp = 1 - easeOut((t - SLUMP_IN.hold) / (SLUMP_IN.lift - SLUMP_IN.hold));
+        else M.sp = 0;
+        M.armsUntil = t >= SLUMP_IN.hold && t < SLUMP_IN.lift ? now + 50 : -1e9;
+      } else if (tl >= 0 && tl < LIFT_MS) M.sp = M.spAtWake * (1 - easeOut(tl / LIFT_MS));
       else {
-        const goal = S.state === STATES.ASLEEP && M.stage === 'slumped' ? 1 : 0;
-        M.sp = approach(M.sp, goal, dt, goal ? 1400 : 90);
+        // 先摆手臂，再压低头
+        const armsReady = now - M.slumpStart > ARMS_FIRST_MS;
+        const goal = S.state === STATES.ASLEEP && M.stage === 'slumped' && armsReady ? 1 : 0;
+        M.sp = approach(M.sp, goal, dt, goal ? 900 : 90);
       }
       const sp = M.sp;
       P.headRot += SLUMP.rot * sp; P.headX += SLUMP.x * sp; P.headY += SLUMP.y * sp;
@@ -196,7 +249,8 @@
 
     function render(now, dt, rm) {
       // 趴下时把头挪到键盘和手臂之上（只移动节点，不重建）
-      const onTop = M.sp > 0.3;
+      // 趴下、抬头的整个过程里头都在手臂之上，手臂不会横跨脸
+      const onTop = M.sp > 0.005 || (S.state === STATES.ASLEEP && M.stage === 'slumped') || now < M.armsUntil;
       if (onTop !== M.headOnTop) {
         M.headOnTop = onTop;
         if (onTop) E.above.parentNode.insertBefore(E.head, E.above);
@@ -205,11 +259,17 @@
       renderDrool(now, dt, rm);
 
       // 脸颊上的键帽压痕
+      if (demo && demo.name === 'wake-marks') M.imprintStart = now - demoT(now);
       const ti = now - M.imprintStart;
       if (ti >= 0 && ti < IMPRINT_MS) {
+        // 先保持，再变浅（凹痕缩小、颜色淡），最后消失
         E.imprint.style.display = '';
-        E.imprint.setAttribute('opacity', (ti < 4000 ? 0.9 : 0.9 * (1 - (ti - 4000) / 2000)).toFixed(3));
-      } else E.imprint.style.display = 'none';
+        E.tuft.style.display = ti < 3500 ? '' : 'none';
+        const fade = ti < 2200 ? 0 : (ti - 2200) / (IMPRINT_MS - 2200);
+        E.imprint.setAttribute('opacity', (0.42 * (1 - fade * fade)).toFixed(3));
+        const k = 1 - 0.18 * fade;
+        E.dents.setAttribute('transform', `translate(310 240) scale(${k.toFixed(3)}) translate(-310 -240)`);
+      } else { E.imprint.style.display = 'none'; E.tuft.style.display = 'none'; }
 
       // 脸压出来的字
       if (S.state === STATES.ASLEEP && M.stage === 'slumped' && M.sunk.length && now >= M.nextPressFx) {
@@ -221,7 +281,7 @@
     }
 
     return {
-      afterState, onWake, softPawTarget, pose, render,
+      afterState, onWake, softPawTarget, pose, render, overrideState,
       setDroolSeconds(v) { droolSec = Number.isFinite(v) ? v : null; },
       setSlumpSeconds(v) { slumpSec = Number.isFinite(v) ? v : null; },
       debugProps: {

@@ -4,7 +4,7 @@
 
   const STATES = Object.freeze({
     AWAKE: 'awake', DROWSY: 'drowsy', ASLEEP: 'asleep', PETTED: 'petted',
-    RAGE: 'rage', STRIKE: 'strike', // 由 fatigue.js 覆盖
+    RAGE: 'rage', STRIKE: 'strike', REPAIR: 'repair', // 由 fatigue.js 覆盖
   });
 
   // 爪子的左右一律按猫自己的视角：'L' = 猫的左爪 = 观众右侧（白爪），'R' = 猫的右爪 = 观众左侧（黑爪）。
@@ -17,10 +17,11 @@
   ]);
 
   const EYE = { L: { cx: 345, cy: 178, r: 29 }, R: { cx: 455, cy: 178, r: 29 } };
-  const SHOULDER = { L: { x: 462, y: 318 }, R: { x: 338, y: 318 } }; // 画面坐标
+  // 肩部锚点贴在身体轮廓内侧，手臂基本竖直往下，让观众右侧的鞍状黑斑露出来
+  const SHOULDER = { L: { x: 446, y: 304 }, R: { x: 354, y: 304 } }; // 画面坐标
   // mouseSide 也按猫的视角：'right' = 猫的右手边 = 画面里键盘左侧
   const MOUSE_HOME = { right: { x: 104, y: 484 }, left: { x: 696, y: 484 } };
-  const REST_KEY = { L: 'KeyF', R: 'KeyK' };
+  const REST_KEY = { L: 'KeyG', R: 'KeyK' };
   const PAW_ON_KEY_DY = -8;   // 爪心略高于键心，让高亮的下半个键露出来
   const MOUSE_HOLD_MS = 1500;
   const RELEASE_MS = 120;
@@ -32,6 +33,13 @@
   const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   const reducedMotion = () => !!(mq && mq.matches);
   const SVG_NS = 'http://www.w3.org/2000/svg';
+  // 头部轮廓；b > 0 时两颊向外鼓（生气鼓腮帮），填色、裁切和描边用同一条路径
+  function headPathD(b) {
+    const r = (v) => Math.round(v * 10) / 10;
+    return `M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 ` +
+      `C ${r(531 + b * 1.25)} ${r(236 + b * 0.5)}, ${r(478 + b * 0.5)} ${r(276 + b * 0.2)}, 400 276 ` +
+      `C ${r(322 - b * 0.5)} ${r(276 + b * 0.2)}, ${r(269 - b * 1.25)} ${r(236 + b * 0.5)}, 270 176 Z`;
+  }
 
   // ---------- 浮起键帽上显示的文字 ----------
   // 所有"显示什么"都集中在这里：以后做隐私模式（只显示左右手、不显示键名）只改这一个函数。
@@ -130,6 +138,8 @@
       mouse: $('mouse'), mouseBtn: { 0: $('mouse-btn-l'), 2: $('mouse-btn-r') },
       zzz: [$('z1'), $('z2'), $('z3')],
       eye: { L: eyeEls('l'), R: eyeEls('r') },
+      headShape: [$('head-fill'), $('head-line'), $('clip-head-path')],
+      armG: { l: $('arm-l'), r: $('arm-r') },
     };
     const fx = createKeycapFx($('fx-layer'));
 
@@ -147,7 +157,7 @@
       twitch: { ear: null, start: -1e9 }, nextTwitch: t0 + 5000 + Math.random() * 5000,
       tailPhase: 0, tailAngle: 0, eyeMode: null,
       headBaseRot: -4, headBaseX: 0, headBaseY: 0,
-      headTf: { tx: 0, ty: 0, rot: -4 }, catHidden: false,
+      headTf: { tx: 0, ty: 0, rot: -4 }, catHidden: false, cheek: 0, cheekDrawn: -1,
     };
 
     // ---------- 扩展钩子 ----------
@@ -362,7 +372,7 @@
         const sx = 1 + (0.13 + P.pressBoost) * paw.press + 0.06 * paw.lift;
         const sy = 1 - (0.17 + P.pressBoost) * paw.press + 0.06 * paw.lift;
         const py = paw.y - 4 * paw.lift;
-        paw.els.paw.setAttribute('transform', `translate(${f1(paw.x)} ${f1(py)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
+        paw.els.paw.setAttribute('transform', `${turnTf(P)}translate(${f1(paw.x)} ${f1(py)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
 
         // 手臂：肩部锚点 -> 爪背的二次曲线，距离越近弯得越多
         const sh = { x: SHOULDER[paw.side].x + P.bodyX, y: SHOULDER[paw.side].y + P.lift + P.bodyY };
@@ -377,6 +387,9 @@
         paw.els.armOutline.setAttribute('d', d);
         paw.els.armFill.setAttribute('d', d);
       }
+      const at = turnTf(P);
+      el.armG.l.setAttribute('transform', at);
+      el.armG.r.setAttribute('transform', at);
     }
 
     function renderHead(now, dt, rm, P) {
@@ -399,11 +412,18 @@
       if (ts >= 0 && ts < 420) rot += 6 * Math.sin(4 * Math.PI * ts / 420); // 甩两下 ±6°
       if (asleep && !rm) ty += 1.5 * P.breath * Math.sin(now * 2 * Math.PI / 3200);
       S.headTf = { tx, ty, rot };
-      el.head.setAttribute('transform', `translate(${f1(tx)} ${f1(ty)}) rotate(${rot.toFixed(2)} 400 262)`);
+      // 鼓腮帮：改头部轮廓本身
+      S.cheek = approach(S.cheek, P.cheek, dt, 90);
+      if (Math.abs(S.cheek - S.cheekDrawn) > 0.05) {
+        S.cheekDrawn = S.cheek;
+        const d = headPathD(S.cheek);
+        for (const n of el.headShape) n.setAttribute('d', d);
+      }
+      el.head.setAttribute('transform', `${turnTf(P)}translate(${f1(tx)} ${f1(ty)}) rotate(${rot.toFixed(2)} 400 262)`);
     }
 
     function renderEyes(now, dt, P) {
-      const mode = S.state === STATES.ASLEEP ? 'closed' : S.state === STATES.PETTED ? 'happy' : 'open';
+      const mode = S.state === STATES.ASLEEP || P.eyesClosed ? 'closed' : S.state === STATES.PETTED ? 'happy' : 'open';
       if (mode !== S.eyeMode) {
         S.eyeMode = mode;
         for (const s of ['L', 'R']) {
@@ -474,13 +494,13 @@
       if (P.tailAmp !== null && S.state !== STATES.ASLEEP) { amp = P.tailAmp; speed = P.tailSpeed; }
       S.tailPhase += dt * speed;
       S.tailAngle = approach(S.tailAngle, base + amp * Math.sin(S.tailPhase), dt, tau);
-      el.tail.setAttribute('transform', `translate(${f1(P.bodyX)} ${f1(P.lift + P.bodyY)}) rotate(${S.tailAngle.toFixed(2)} 322 372)`);
+      el.tail.setAttribute('transform', `${turnTf(P)}translate(${f1(P.bodyX)} ${f1(P.lift + P.bodyY)}) rotate(${S.tailAngle.toFixed(2)} 322 372)`);
     }
 
     function renderBody(now, rm, P) {
       const b = S.state === STATES.ASLEEP && !rm ? Math.sin(now * 2 * Math.PI / 3200) * P.breath : 0;
       el.body.setAttribute('transform',
-        `translate(${f1(P.bodyX)} ${f1(P.bodyY + P.lift)}) rotate(${P.bodyRot.toFixed(2)} 400 410) ` +
+        `${turnTf(P)}translate(${f1(P.bodyX)} ${f1(P.bodyY + P.lift)}) rotate(${P.bodyRot.toFixed(2)} 400 410) ` +
         `translate(400 410) scale(${(1 + 0.012 * b).toFixed(4)} ${(1 + 0.025 * b).toFixed(4)}) translate(-400 -410)`);
     }
 
@@ -505,9 +525,18 @@
         S.mouseOff.x = approach(S.mouseOff.x, 0, dt, 300);
         S.mouseOff.y = approach(S.mouseOff.y, 0, dt, 300);
       }
+      el.mouse.style.display = P.mouseHidden ? 'none' : '';
+      if (P.mouseAbs) { // 发飙、修理时由扩展模块直接摆鼠标
+        const a = P.mouseAbs;
+        el.mouse.setAttribute('transform', `translate(${f1(a.x)} ${f1(a.y)}) rotate(${(a.rot || 0).toFixed(1)}) scale(${(a.sx || 1).toFixed(3)} ${(a.sy || 1).toFixed(3)})`);
+        return;
+      }
       const m = mousePoint();
       el.mouse.setAttribute('transform', `translate(${f1(m.x + P.mouseX)} ${f1(m.y + P.mouseY)}) rotate(${P.mouseRot.toFixed(2)})`);
     }
+
+    // 转身过渡：整只猫绕画面中线横向挤压
+    const turnTf = (P) => (P.turnSX !== 1 ? `translate(400 0) scale(${Math.max(0.02, P.turnSX).toFixed(3)} 1) translate(-400 0) ` : '');
 
     // 每帧由扩展模块叠加的姿态（加法 / 乘法），默认值等于"什么都不改"
     function defaultPose() {
@@ -515,6 +544,7 @@
         headX: 0, headY: 0, headRot: 0, bodyX: 0, bodyY: 0, bodyRot: 0, lift: 0,
         earDroop: 0, breath: 1, lidMin: 0, tailAmp: null, tailSpeed: 0,
         pawTau: 1, pressBoost: 0, zzzDx: 0, zzzDy: 0, mouseX: 0, mouseY: 0, mouseRot: 0, hideCat: false,
+        turnSX: 1, eyesClosed: false, cheek: 0, mouseAbs: null, mouseHidden: false,
       };
     }
     const catParts = ['cat-head', 'cat-body', 'tail', 'arm-l', 'arm-r', 'paw-l', 'paw-r'].map($);
@@ -561,7 +591,7 @@
       S.mouseActiveUntil = 0;
     }
     const ctx = {
-      S, STATES, el, kb, fx, paws, keycapText, keyPoint, mousePoint, mousePaw, restPoint, headToScene,
+      S, STATES, el, kb, fx, paws, keycapText, keyPoint, mousePoint, mousePaw, mouseHome, restPoint, headToScene,
       releaseAll, reducedMotion, clamp, approach, f1,
     };
     for (const make of modules) mods.push(make(ctx) || {});
