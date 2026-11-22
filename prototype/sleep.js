@@ -11,13 +11,16 @@
   const easeIn = (t) => t * t;
   const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
 
-  // ---------- 趴下方式（?slump-style=） ----------
+  // ---------- 趴下方式 ----------
+  // 每次进入趴下阶段随机选一种（?slump-style= 可强制指定，调试用）。
   // 每种方式是一个"从开始趴到趴好"的时间函数，返回叠加到猫身上的姿态；t >= 时长 时就是趴好的样子。
   // 爪子都不动（留在睡着时的位置），头始终画在手臂上层。
-  const STYLES = ['nod', 'melt', 'flop'];
-  const STYLE_MS = { nod: 3300, melt: 2500, flop: 1750 };
-  const ZERO = Object.freeze({ hx: 0, hy: 0, hr: 0, hsx: 1, hsy: 1, by: 0, br: 0, bsx: 1, bsy: 1, ear: 0, cr: 0, cx: 0, cy: 0, tail: 0, amt: 0 });
-  const ADD = ['hx', 'hy', 'hr', 'by', 'br', 'ear', 'cr', 'cx', 'cy', 'tail', 'amt'], MUL = ['hsx', 'hsy', 'bsx', 'bsy'];
+  const STYLES = ['nod', 'melt'];
+  const STYLE_MS = { nod: 3300, melt: 2500 };
+  const randomStyle = () => STYLES[Math.random() < 0.5 ? 0 : 1];
+  const EAR_FLICK_GAP = 700; // 睡着时移动鼠标：最多这么久抖一次耳朵
+  const ZERO = Object.freeze({ hx: 0, hy: 0, hr: 0, hsx: 1, hsy: 1, by: 0, br: 0, bsx: 1, bsy: 1, ear: 0, amt: 0 });
+  const ADD = ['hx', 'hy', 'hr', 'by', 'br', 'ear', 'amt'], MUL = ['hsx', 'hsy', 'bsx', 'bsy'];
   const mix = (Q, k) => { const o = {}; for (const f of ADD) o[f] = Q[f] * k; for (const f of MUL) o[f] = 1 + (Q[f] - 1) * k; return o; };
 
   // nod 点头栽倒：点两次、一次比一次低、每次猛地抬回来一点，第三次直接栽到键盘上，落下小回弹
@@ -43,17 +46,7 @@
     return { ...ZERO, hy: 190 * ph, hx: -2 * ph, hr: -5 * ph, hsx: 1 + 0.2 * ph, hsy: 1 - 0.2 * ph,
       by: 4 * pb, bsx: 1 + 0.9 * pb, bsy: 1 - 0.55 * pb, ear: 40 * ph, amt: ph };
   }
-  // flop 侧倒：左右晃两下，整只猫绕身体底部往观众左侧倒下（脸颊贴键盘的那侧和压痕一致），落地小回弹
-  const FLOP = { rot: -76, x: 118, y: 40 }; // 旋转中心是 cat.js 默认的 (400, 412)
-  function flopPose(t) {
-    let cr, f = 0;
-    if (t < 1050) cr = 6 * Math.sin(2 * Math.PI * t / 600);
-    else if (t < 1450) { f = easeIn((t - 1050) / 400); cr = -6 + (FLOP.rot + 6) * f; }
-    else { f = 1; cr = FLOP.rot + (t < 1750 ? 7 * Math.sin(Math.PI * (t - 1450) / 300) : 0); }
-    // 尾巴跟着再转一点，倒下后贴着键盘伸向屁股那一侧，而不是垂到桌子外面
-    return { ...ZERO, cr, cx: FLOP.x * f, cy: FLOP.y * f, tail: -92 * f, ear: 22 * f, amt: f };
-  }
-  const POSES = { nod: nodPose, melt: meltPose, flop: flopPose };
+  const POSES = { nod: nodPose, melt: meltPose };
   const stylePose = (style, t) => POSES[style](Math.max(0, Math.min(t, STYLE_MS[style])));
 
   // 头部轮廓近似成椭圆（头部局部坐标），用来算头压住了哪些键
@@ -69,8 +62,7 @@
     const { S, STATES, kb, fx, paws, clamp, f1 } = ctx;
     const $ = (id) => document.getElementById(id);
     const E = {
-      head: $('cat-head'), body: $('cat-body'), tail: $('tail'), strike: $('cat-strike'),
-      above: $('debris-layer'), droolLayer: $('drool-layer'),
+      head: $('cat-head'), strike: $('cat-strike'), above: $('debris-layer'),
       drool: $('drool'), strand: $('drool-strand'), outline: $('drool-outline'), bulb: $('drool-bulb'),
       imprint: $('imprint'), dents: $('imprint-dents'), tuft: $('imprint-tuft'), puddle: $('puddle'), pool: $('puddle-pool'), shine: $('puddle-shine'), drops: $('drops'),
     };
@@ -79,7 +71,9 @@
     const droolMs = () => (droolSec !== null ? droolSec * 1000 : 2 * S.sleepMs);
     const slumpMs = () => (slumpSec !== null ? slumpSec * 1000 : 3.5 * S.sleepMs);
 
-    let style = STYLES.includes(opts.slumpStyle) ? opts.slumpStyle : 'nod';
+    const forcedStyle = STYLES.includes(opts.slumpStyle) ? opts.slumpStyle : null;
+    // 当次用的方式：真实流程每次进入趴下时重选；demo 在页面加载时选一次（循环时间轴的长度跟着方式走，不能中途换）
+    let style = forcedStyle || randomStyle();
     const demo = opts.demo && ['drool', 'slumped', 'slump-in', 'wake-marks'].includes(opts.demo.name) ? opts.demo : null;
     const demoT0 = performance.now();
     const demoT = (now) => (demo && Number.isFinite(demo.at) ? demo.at
@@ -92,7 +86,7 @@
       stage: null, cur: ZERO, wakePose: ZERO, landed: false, sunkOn: false,
       liftStart: -1e9, wipeStart: -1e9, imprintStart: -1e9,
       dripStart: 0, lastDrop: -1, drops: [], puddleN: 0, puddleX: 400, puddleY: 398, puddleFade: -1,
-      sunk: [], nextPressFx: 0, headOnTop: false, bodyOnTop: false, droolShown: false,
+      sunk: [], nextPressFx: 0, headOnTop: false, droolShown: false,
       slumpStart: -1e9,
     };
 
@@ -127,7 +121,7 @@
     }
 
     function contactKeys() {
-      // 按头此刻的实际位置（含整只猫的旋转），落在头形里的键都算被压住
+      // 按头此刻的实际位置，落在头形里的键都算被压住
       const out = [];
       for (const code of kb.codes()) {
         const k = kb.center(code);
@@ -146,6 +140,7 @@
       if (stage === 'slumped') {
         M.nextPressFx = now + 4000 + Math.random() * 4000;
         M.slumpStart = now; // 压键等落到键盘上（render 里）再算
+        if (!demo) style = forcedStyle || randomStyle();
       } else if (prev === 'slumped') {
         setSunk([]); M.sunkOn = false;
         if (!demo) onWake(now); // 自然醒不会发生；这里兜底被直接切走的情况
@@ -170,6 +165,15 @@
       }
     }
 
+    // ---------- 输入 ----------
+    // 睡着时（坐着睡、流口水、趴着，含趴下过渡）单纯移动鼠标：不醒、爪子不去够鼠标、睡眠计时照走，只抖一下耳朵。
+    // 按键、鼠标点击、摸头照常叫醒；犯困（drowsy）时不拦。
+    function block(kind, arg, now) {
+      if (kind !== 'pointerMove' || S.state !== STATES.ASLEEP) return false;
+      if (!ctx.reducedMotion() && now - S.twitch.start > EAR_FLICK_GAP) S.twitch = { ear: Math.random() < 0.5 ? 'L' : 'R', start: now };
+      return true;
+    }
+
     // ---------- 爪子 ----------
     function softPawTarget(paw, now) {
       const tw = now - M.wipeStart;
@@ -185,9 +189,7 @@
     function mapHead(p, Q) {
       const rot = (S.headBaseRot + Q.hr) * Math.PI / 180, c = Math.cos(rot), s = Math.sin(rot);
       const vx = (p.x - 400) * Q.hsx, vy = (p.y - 262) * Q.hsy;
-      let x = 400 + vx * c - vy * s + S.headBaseX + Q.hx, y = 262 + vx * s + vy * c + S.headBaseY + Q.hy;
-      const a = Q.cr * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), ux = x - 400, uy = y - 412;
-      return { x: 400 + ux * ca - uy * sa + Q.cx, y: 412 + ux * sa + uy * ca + Q.cy };
+      return { x: 400 + vx * c - vy * s + S.headBaseX + Q.hx, y: 262 + vx * s + vy * c + S.headBaseY + Q.hy };
     }
 
     function pose(now, dt, rm, P) {
@@ -211,7 +213,6 @@
       M.cur = Q; M.landed = landed;
       P.headRot += Q.hr; P.headX += Q.hx; P.headY += Q.hy; P.headSX *= Q.hsx; P.headSY *= Q.hsy;
       P.bodyRot += Q.br; P.bodyY += Q.by; P.bodySX *= Q.bsx; P.bodySY *= Q.bsy;
-      P.catRot += Q.cr; P.catX += Q.cx; P.catY += Q.cy; P.tailRot += Q.tail;
       P.earDroop += Q.ear;
       P.breath *= 1 + 1.4 * Q.amt;
       if (Q !== ZERO) {
@@ -256,7 +257,7 @@
         E.bulb.setAttribute('cy', f1(ANCHOR.y + L + r * 0.5));
         E.bulb.setAttribute('r', f1(r));
         // 抵消头部旋转，让口水始终竖直往下垂
-        E.drool.setAttribute('transform', `rotate(${(-(S.headTf.rot + S.catTf.rot)).toFixed(2)} ${ANCHOR.x} ${ANCHOR.y})`);
+        E.drool.setAttribute('transform', `rotate(${(-S.headTf.rot).toFixed(2)} ${ANCHOR.x} ${ANCHOR.y})`);
       }
 
       // 下落的口水滴
@@ -304,14 +305,6 @@
         if (onTop) E.above.parentNode.insertBefore(E.head, E.above);
         else E.strike.parentNode.insertBefore(E.head, E.strike);
       }
-      // 侧倒：倒下去以后身体和尾巴也要在键盘上层（手臂、爪子、头仍在它们之上）
-      const bodyOnTop = Math.abs(M.cur.cr) > 12;
-      if (bodyOnTop !== M.bodyOnTop) {
-        M.bodyOnTop = bodyOnTop;
-        const ref = bodyOnTop ? E.droolLayer : E.strike;
-        ref.parentNode.insertBefore(E.tail, ref);
-        ref.parentNode.insertBefore(E.body, ref);
-      }
       // 落到键盘上那一刻按头的实际位置压键
       const wantSunk = asleepSlumped && M.landed;
       if (wantSunk !== M.sunkOn) { M.sunkOn = wantSunk; setSunk(wantSunk ? contactKeys() : []); }
@@ -340,15 +333,9 @@
     }
 
     return {
-      afterState, onWake, softPawTarget, pose, render, overrideState,
+      afterState, onWake, softPawTarget, pose, render, overrideState, block,
       setDroolSeconds(v) { droolSec = Number.isFinite(v) ? v : null; },
       setSlumpSeconds(v) { slumpSec = Number.isFinite(v) ? v : null; },
-      setSlumpStyle(v) {
-        if (!STYLES.includes(v) || v === style) return;
-        style = v;
-        setSunk([]); M.sunkOn = false;
-        if (M.stage === 'slumped') M.slumpStart = performance.now(); // 正趴着：用新方式重新趴一次
-      },
       debugProps: {
         sleepStage: () => (S.state === STATES.ASLEEP ? M.stage : null),
         sunkKeys: () => Object.freeze(M.sunk.slice()),
