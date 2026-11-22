@@ -203,6 +203,19 @@ body {
 #scene .ghost-black { fill: var(--fur-black); }
 #scene .ghost-white { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; }
 
+/* ---------- 状态条（statusbar.js）：键盘下方，困了 / 烦躁 / 消气中 ---------- */
+#status-bar, #status-bar * { pointer-events: none; }
+#scene .sb-box { fill: var(--cream); stroke: var(--ink); stroke-width: 3; }
+#scene .sb-label { fill: var(--ink); font-size: 12px; font-weight: 800; font-family: inherit; letter-spacing: 0.5px; }
+#scene .sb-track { fill: var(--cream-dark); stroke: var(--ink); stroke-width: 1.5; }
+#scene .sb-fill { stroke: var(--ink); stroke-width: 1.5; }
+#scene .sb-sleepy .sb-fill { fill: #8ea3c2; }
+#scene .sb-sleepy .sb-label { fill: #4f607a; }
+#scene .sb-annoyed .sb-fill { fill: #e5484d; }
+#scene .sb-annoyed .sb-label { fill: #b2353a; }
+#scene .sb-calming .sb-fill { fill: #7fb069; }
+#scene .sb-calming .sb-label { fill: #4f7a3d; }
+
 /* ---------- 桌面模式（Tauri 外壳，html.desktop）：透明背景，只留猫、键盘、鼠标和特效 ---------- */
 html.desktop, html.desktop body { background: transparent; }
 html.desktop .hint, html.desktop #controls { display: none; }

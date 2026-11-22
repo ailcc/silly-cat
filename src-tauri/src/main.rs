@@ -254,8 +254,8 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
     }
 }
 
-/// 设置窗口的默认高度：五个时间项刚好放下。授权提示那块显示时，页面自己把窗口加高（settings.html）
-const SETTINGS_HEIGHT: f64 = 620.0;
+/// 设置窗口的默认高度：五个时间项加「显示状态条」开关放得下，留出一点余量（不同系统字体换行不同）。授权提示那块显示时，页面自己把窗口加高（settings.html）
+const SETTINGS_HEIGHT: f64 = 660.0;
 
 fn show_settings(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {

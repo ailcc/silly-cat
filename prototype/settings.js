@@ -5,7 +5,9 @@
   'use strict';
 
   // drool / slump 为 null 表示「自动」：沿用 sleep.js 的原逻辑（入睡时间 × 2、× 3.5）
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20 });
+  // statusBar：键盘下方的状态条（困了 / 烦躁 / 消气中）显示与否，开关项，不参与 KEYS 里的数字校验
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true });
+  const BOOLS = Object.freeze(['statusBar']);
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
 
   // min / max 都是秒
@@ -50,6 +52,7 @@
         if (v === null && FIELDS[k].optional) s[k] = null;
         else if (typeof v === 'number' && Number.isFinite(v) && v >= FIELDS[k].min && v <= FIELDS[k].max) s[k] = v;
       }
+      for (const k of BOOLS) if (typeof raw[k] === 'boolean') s[k] = raw[k]; // 旧的 settings.json 没有这项：用默认值
     }
     const err = validate(s);
     if (err.drool) s.drool = null;
@@ -58,5 +61,5 @@
     return s;
   }
 
-  window.SillySettings = { DEFAULTS, AUTO, FIELDS, KEYS, validate, sanitize, effDrool, effSlump };
+  window.SillySettings = { DEFAULTS, AUTO, FIELDS, KEYS, BOOLS, validate, sanitize, effDrool, effSlump };
 })();

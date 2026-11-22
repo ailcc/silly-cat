@@ -700,6 +700,15 @@
       refresh, overrideState, block, keycapStyle, afterKeyDown, forcedPawTarget, pose, render,
       setWorkSeconds(v) { workSec = clamp(+v || 90, 1, 36000); },
       setRestSeconds(v) { restSec = clamp(+v || 20, 1, 36000); },
+      // 只读：给状态条用。fatigue = 疲劳值 0–1；phase = 'rage' | 'strike' | 'repair' | null；
+      // rest = 罢工时已累计休息 / 需要休息的时长（0–1），不在罢工时为 null
+      statusInfo() {
+        return {
+          fatigue: F.v,
+          phase: F.rage ? 'rage' : F.strike ? 'strike' : F.repair ? 'repair' : null,
+          rest: F.strike ? clamp(F.strike.restMs / (restSec * 1000), 0, 1) : null,
+        };
+      },
       debugProps: {
         mood: () => mood(),
         fatigue: () => F.v,

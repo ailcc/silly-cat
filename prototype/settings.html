@@ -44,6 +44,7 @@
   }
   input:focus { outline: 2px solid rgba(255, 122, 89, 0.45); outline-offset: 0; border-color: var(--accent); }
   input[aria-invalid="true"] { border-color: var(--error); }
+  input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
   .unit { color: var(--muted); }
   .hint { margin-top: 2px; color: var(--muted); font-size: 12px; }
   .err { margin-top: 2px; color: var(--error); font-size: 12px; }
@@ -122,6 +123,11 @@
     <div class="hint">罢工期间累计休息这么久就消气、自己修好键盘（摸头时休息算双倍）。</div>
     <div class="err"></div>
   </div>
+  <div class="row" data-bool="statusBar">
+    <div class="head"><label for="f-statusBar">显示状态条</label>
+      <span class="field"><input id="f-statusBar" type="checkbox"></span></div>
+    <div class="hint">快睡着、快发飙、正在消气时，键盘下方出现一条进度条。</div>
+  </div>
 </form>
 <footer>
   <button id="reset" type="button">恢复默认</button>
@@ -147,6 +153,8 @@
     if (f.optional) input.placeholder = '自动';
     rows[k] = { row, input, err: row.querySelector('.err'), f };
   }
+  const bools = {};
+  for (const k of S.BOOLS) bools[k] = document.querySelector(`.row[data-bool="${k}"] input`);
 
   const fmt = (v) => String(Math.round(v * 100) / 100);
   function fill(s) {
@@ -154,6 +162,7 @@
       const { input, f } = rows[k];
       input.value = s[k] === null ? '' : fmt(s[k]);
     }
+    for (const k of S.BOOLS) bools[k].checked = s[k] !== false;
     refreshHints(s);
   }
   // 都是秒；可选项留空 = null（自动），其他留空 = NaN（校验报错）
@@ -165,6 +174,7 @@
       if (t === '') s[k] = f.optional ? null : NaN;
       else s[k] = Number(t);
     }
+    for (const k of S.BOOLS) s[k] = bools[k].checked;
     return s;
   }
   function refreshHints(s) {
@@ -209,8 +219,8 @@
 
   // ---------- 收不到键盘输入时的处理区 ----------
   // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
-  // 显示时把窗口加高到放得下全部内容，收起时回到原来的 400×620（BASE_H，和 main.rs 的 SETTINGS_HEIGHT 一致）。
-  const BASE_W = 400, BASE_H = 620;
+  // 显示时把窗口加高到放得下全部内容，收起时回到原来的 400×660（BASE_H，和 main.rs 的 SETTINGS_HEIGHT 一致）。
+  const BASE_W = 400, BASE_H = 660;
   const perm = document.getElementById('perm');
   const permMsg = document.getElementById('perm-msg');
   let grown = false;
