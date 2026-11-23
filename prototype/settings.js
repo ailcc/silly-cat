@@ -6,9 +6,10 @@
   'use strict';
 
   // drool / slump 为 null 表示「自动」：沿用 sleep.js 的原逻辑（入睡时间 × 2、× 3.5）
-  // statusBar：猫头顶的状态条（困了 / 烦躁 / 消气中）显示与否，开关项，不参与 KEYS 里的数字校验
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, size: 1 });
-  const BOOLS = Object.freeze(['statusBar']);
+  // statusBar：猫头顶的状态条（困了 / 烦躁 / 消气中）显示与否；push：推杯子开关。两个都是开关项，不参与 KEYS 里的数字校验
+  // pushEvery：大约多久推一次杯子（秒），push.js 在它的 0.5–1.5 倍之间随机
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, push: true, pushEvery: 600, size: 1 });
+  const BOOLS = Object.freeze(['statusBar', 'push']);
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
   const SIZE = Object.freeze({ min: 0.5, max: 2, step: 0.05 });
 
@@ -19,6 +20,7 @@
     slump: { min: 7, max: 10800, optional: true },
     work: { min: 15, max: 36000 }, // fatigue.js setWorkSeconds 上限 36000
     rest: { min: 5, max: 3600 },
+    pushEvery: { min: 60, max: 36000 },
   });
   const KEYS = Object.keys(FIELDS);
 

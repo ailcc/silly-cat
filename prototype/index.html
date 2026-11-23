@@ -274,6 +274,7 @@
 <script src="cat.js"></script>
 <script src="sleep.js"></script>
 <script src="fatigue.js"></script>
+<script src="push.js"></script>
 <script src="statusbar.js"></script>
 <script src="input.js"></script>
 <script src="input-desktop.js"></script>
@@ -295,14 +296,17 @@
 
   // 状态条：默认显示；?statusbar=0 关掉（网页版没有设置窗口）
   const statusBarParam = params.has('statusbar') ? !/^(0|false|off|no)$/i.test(params.get('statusbar')) : null;
+  const pushParam = params.has('push') ? !/^(0|false|off|no)$/i.test(params.get('push')) : null;
+  const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  let fatigue = null, sleepMod = null, statusBar = null;
+  let fatigue = null, sleepMod = null, push = null, statusBar = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep, demo,
     modules: [
       (ctx) => (sleepMod = SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo })),
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
+      (ctx) => (push = SillyPush.create(ctx, { enabled: pushParam ?? true, everySeconds: pushEveryParam, demo })),
       (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, enabled: statusBarParam ?? true })),
     ],
   });
@@ -323,6 +327,8 @@
       if (use('work')) fatigue.setWorkSeconds(s.work);
       if (use('rest')) fatigue.setRestSeconds(s.rest);
       if (!(skipUrl && statusBarParam !== null)) statusBar.setEnabled(s.statusBar);
+      if (!(skipUrl && pushParam !== null)) push.setEnabled(s.push);
+      if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
     const T = window.__TAURI__;
     T.core.invoke('load_settings').then((raw) => { if (raw) applySettings(raw, true); }).catch(() => {});

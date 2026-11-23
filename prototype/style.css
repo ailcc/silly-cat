@@ -126,6 +126,26 @@ body {
 #scene .mouse-btn { fill: var(--cream); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
 #scene .mouse-btn.down { fill: var(--coral); }
 #scene .mouse-wheel { fill: var(--cream-dark); stroke: var(--ink); stroke-width: 3; }
+
+#scene .mug-body, #scene .mug-handle, #scene .mug-rim {
+  stroke: var(--ink);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#scene .mug-body { fill: var(--cream); }
+#scene .mug-handle { fill: var(--cream); fill-rule: evenodd; }
+#scene .mug-rim { fill: var(--cream-dark); }
+#scene .mug-band { fill: var(--coral); }
+#scene .mug-coffee { fill: #6b4a3a; }
+#scene .mug-steam {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  opacity: 0.35;
+  pointer-events: none;
+}
 #scene .mouse-ring { fill: none; stroke: var(--ink); stroke-width: 5; }
 
 /* 浮起的键名 */

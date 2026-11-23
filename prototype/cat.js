@@ -565,7 +565,7 @@
     }
 
     function renderEyes(now, dt, P) {
-      const mode = S.state === STATES.ASLEEP || P.eyesClosed ? 'closed' : S.state === STATES.PETTED ? 'happy' : 'open';
+      const mode = S.state === STATES.ASLEEP || P.eyesClosed ? 'closed' : (S.state === STATES.PETTED || P.eyesHappy) ? 'happy' : 'open';
       if (mode !== S.eyeMode) {
         S.eyeMode = mode;
         for (const s of ['L', 'R']) {
@@ -593,6 +593,11 @@
       S.pupilX = approach(S.pupilX, lx, dt, 60);
       S.pupilY = approach(S.pupilY, ly, dt, 60);
       S.pupilR = approach(S.pupilR, S.excited ? 18 : 13, dt, 80);
+      if (P.look) {
+        // 扩展模块按时间轴给出视线目标，转眼的过渡也由模块控制。
+        S.pupilX = clamp((P.look.x - 400) / 300, -1, 1) * 8;
+        S.pupilY = 1 + clamp((P.look.y - 178) / 520, -1, 1) * 8;
+      }
 
       for (const s of ['L', 'R']) {
         const g = EYE[s], e = el.eye[s];
@@ -767,7 +772,7 @@
         headX: 0, headY: 0, headRot: 0, bodyX: 0, bodyY: 0, bodyRot: 0, lift: 0,
         earDroop: 0, breath: 1, lidMin: 0, tailAmp: null, tailSpeed: 0,
         pawTau: 1, pressBoost: 0, zzzDx: 0, zzzDy: 0, mouseX: 0, mouseY: 0, mouseRot: 0, hideCat: false,
-        turnSX: 1, eyesClosed: false, cheek: 0, mouseAbs: null, mouseHidden: false,
+        turnSX: 1, eyesClosed: false, eyesHappy: false, look: null, cheek: 0, mouseAbs: null, mouseHidden: false,
         headSX: 1, headSY: 1, bodySX: 1, bodySY: 1, // 乘法：头以 400,262、身体以 400,410 为基准缩放
       };
     }

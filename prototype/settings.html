@@ -46,6 +46,7 @@
   input[aria-invalid="true"] { border-color: var(--error); }
   input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
   input[type="range"] { width: 150px; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--accent); }
+  .push-interval { justify-content: flex-start; margin-top: 6px; }
   .unit { color: var(--muted); }
   #size-percent { width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
   .hint { margin-top: 2px; color: var(--muted); font-size: 12px; }
@@ -130,10 +131,18 @@
       <span class="field"><input id="f-statusBar" type="checkbox"></span></div>
     <div class="hint">快睡着、快发飙、正在消气时，猫头顶出现一条进度条。</div>
   </div>
+  <div class="row" data-key="pushEvery">
+    <div class="head"><label for="f-push">推东西</label>
+      <span class="field"><input id="f-push" type="checkbox"></span></div>
+    <label for="f-pushEvery" class="field push-interval">大约每
+      <input id="f-pushEvery" type="number" inputmode="decimal" aria-describedby="push-hint">秒推一次</label>
+    <div id="push-hint" class="hint">醒着、你刚停手时，猫会把杯子推下去，60 秒后杯子回来。</div>
+    <div class="err"></div>
+  </div>
   <div class="row" data-size>
     <div class="head"><label for="f-size">猫的大小</label>
       <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
-    <div id="size-hint" class="hint">100% 是原来的大小，可调 50%–200%。改大小时猫的右下角位置不动。</div>
+    <div id="size-hint" class="hint">可调 50%–200%，改大小时猫的右下角不动。</div>
   </div>
 </form>
 <footer>
@@ -153,7 +162,7 @@
   for (const k of S.KEYS) {
     const row = document.querySelector(`.row[data-key="${k}"]`);
     const f = S.FIELDS[k];
-    const input = row.querySelector('input');
+    const input = document.getElementById(`f-${k}`);
     input.min = String(f.min);
     input.max = String(f.max);
     input.step = '1';
@@ -161,7 +170,7 @@
     rows[k] = { row, input, err: row.querySelector('.err'), f };
   }
   const bools = {};
-  for (const k of S.BOOLS) bools[k] = document.querySelector(`.row[data-bool="${k}"] input`);
+  for (const k of S.BOOLS) bools[k] = document.getElementById(`f-${k}`);
   const sizeInput = document.getElementById('f-size');
   const sizePercent = document.getElementById('size-percent');
   sizeInput.min = String(Math.round(S.SIZE.min * 100));
@@ -194,6 +203,7 @@
   function refreshHints(s) {
     const sleep = Number.isFinite(s.sleep) && s.sleep > 0 ? s.sleep : S.DEFAULTS.sleep;
     for (const b of document.querySelectorAll('[data-auto]')) b.textContent = fmt(S.AUTO[b.dataset.auto] * sleep);
+    rows.pushEvery.input.disabled = !s.push;
     sizePercent.textContent = `${sizeInput.value}%`;
   }
   function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = cls || ''; }
@@ -234,8 +244,8 @@
 
   // ---------- 收不到键盘输入时的处理区 ----------
   // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
-  // 显示时把窗口加高到放得下全部内容，收起时回到默认的 400×724（BASE_H，和 main.rs 的 SETTINGS_HEIGHT 一致）。
-  const BASE_W = 400, BASE_H = 724;
+  // 显示时把窗口加高到放得下全部内容，收起时回到默认的 400×814（BASE_H，和 main.rs 的 SETTINGS_HEIGHT 一致）。
+  const BASE_W = 400, BASE_H = 814;
   const perm = document.getElementById('perm');
   const permMsg = document.getElementById('perm-msg');
   let grown = false;
