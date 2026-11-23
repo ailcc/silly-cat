@@ -35,6 +35,7 @@
         ${bib}
         ${mirrorStripe('M 312 298 Q 328 317 347 320 M 300 337 Q 317 353 339 357 M 290 374 Q 310 389 334 393', 9)}`,
       tail: { rings: [[0.30, 0.38], [0.50, 0.58], [0.70, 0.78]], tip: [0.88, 1] },
+      shape: { bodySX: 1.24, bodySY: 0.95, headSX: 1.08 }, // 十个橘猫九个胖：身体宽一圈、稍矮，脸也圆一点
     },
     {
       id: 'lihua', name: '狸花猫',
@@ -79,6 +80,7 @@
         <stop offset="100%" class="coat-stop-base" stop-opacity="0"/>
       </radialGradient>`,
       head: '<ellipse fill="url(#coat-siamese-mask)" cx="400" cy="200" rx="96" ry="84"/>',
+      shape: { bodySX: 0.9, headSX: 0.95, ear: 1.2 }, // 身材细长、脸窄一点、耳朵大
     },
   ];
 
@@ -110,12 +112,46 @@
       root.dataset.cat = next.id;
     }
     selected = next;
+    applyShape(next.shape || {});
     return selected;
   }
+
+  // 体型：身体宽高、头宽由 shapeModule 每帧乘进姿态（肩膀、手臂、尾巴遮罩跟着身体走）；
+  // 耳朵和罢工背影的身体、头是静态缩放，切换猫时设一次
+  const EAR_PIVOT = { l: '322 110', r: '478 110' };
+  function applyShape(shape) {
+    const ear = shape.ear || 1;
+    for (const side of ['l', 'r']) {
+      const [px, py] = EAR_PIVOT[side].split(' ');
+      const tf = ear === 1 ? '' : `translate(${px} ${py}) scale(${ear}) translate(${-px} ${-py})`;
+      for (const g of document.querySelectorAll('#scene .ear-shape-' + side)) {
+        if (tf) g.setAttribute('transform', tf); else g.removeAttribute('transform');
+      }
+    }
+    const sx = shape.bodySX || 1, sy = shape.bodySY || 1;
+    const body = document.getElementById('strike-body');
+    if (sx === 1 && sy === 1) body.removeAttribute('transform');
+    else body.setAttribute('transform', `translate(400 410) scale(${sx} ${sy}) translate(-400 -410)`);
+    const hx = shape.headSX || 1, head = document.getElementById('strike-head-shape');
+    if (hx === 1) head.removeAttribute('transform');
+    else head.setAttribute('transform', `translate(400 0) scale(${hx} 1) translate(-400 0)`);
+  }
+
+  // createCat 的扩展模块：把当前这只猫的体型乘进每帧姿态
+  const shapeModule = () => ({
+    pose(now, dt, rm, P) {
+      const shape = selected.shape;
+      if (!shape) return;
+      P.bodySX *= shape.bodySX || 1;
+      P.bodySY *= shape.bodySY || 1;
+      P.headSX *= shape.headSX || 1;
+    },
+  });
 
   window.SillyCoats = {
     list: () => coats.map(({ id, name }) => ({ id, name })),
     apply,
     current: () => selected,
+    shapeModule,
   };
 })();

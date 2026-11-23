@@ -52,14 +52,15 @@
 
   <!-- 头：大、歪 4 度 -->
   <g id="cat-head">
-    <g id="ear-l">
+    <!-- ear-shape-*：每只猫的耳朵大小（coats.js 设静态缩放）；外层 ear-* 的旋转由 cat.js 每帧设 -->
+    <g id="ear-l"><g class="ear-shape-l">
       <path class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 L 380 150 L 300 160 Z"/>
       <path class="coat-inner-ear" d="M 302 108 L 304 58 L 341 86 Z"/>
-    </g>
-    <g id="ear-r">
+    </g></g>
+    <g id="ear-r"><g class="ear-shape-r">
       <path class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 L 420 150 L 500 160 Z"/>
       <path class="coat-inner-ear" d="M 498 108 L 496 58 L 459 86 Z"/>
-    </g>
+    </g></g>
 
     <path id="head-fill" class="coat-base" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
     <g id="coat-head-patterns" clip-path="url(#clip-head)">
@@ -163,26 +164,29 @@
       <rect class="sign-board" x="96" y="196" width="134" height="58" rx="10"/>
       <text class="sign-text" x="163" y="235">罢工中</text>
     </g>
-    <path class="coat-base" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/>
-    <g clip-path="url(#clip-back-body)">
-      <path class="coat-cow-marking" d="M 334 284 C 304 286, 284 318, 284 354 C 284 380, 298 396, 316 392 C 334 388, 330 364, 336 346 C 342 326, 352 310, 348 296 C 346 288, 340 284, 334 284 Z"/>
+    <!-- strike-body：背影的身体，按每只猫的体型静态缩放（coats.js），和正面身体一致 -->
+    <g id="strike-body">
+      <path class="coat-base" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/>
+      <g clip-path="url(#clip-back-body)">
+        <path class="coat-cow-marking" d="M 334 284 C 304 286, 284 318, 284 354 C 284 380, 298 396, 316 392 C 334 388, 330 364, 336 346 C 342 326, 352 310, 348 296 C 346 288, 340 284, 334 284 Z"/>
+      </g>
+      <path class="ink-line" fill="none" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412"/>
     </g>
-    <path class="ink-line" fill="none" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412"/>
     <!-- 尾巴从身体底部伸出，贴着桌面甩向观众右侧，一下一下拍桌面 -->
     <g id="strike-tail">
       <path class="tail-outline" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
       <path class="tail-fill" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
       <path class="tail-tip" pathLength="100" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
     </g>
-    <g id="strike-head">
-      <path id="strike-ear-l" class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z" transform="rotate(-12 322 110)"/>
-      <path id="strike-ear-r" class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z" transform="rotate(12 478 110)"/>
+    <g id="strike-head"><g id="strike-head-shape">
+      <g class="ear-shape-l"><path id="strike-ear-l" class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z" transform="rotate(-12 322 110)"/></g>
+      <g class="ear-shape-r"><path id="strike-ear-r" class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z" transform="rotate(12 478 110)"/></g>
       <path class="coat-base" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
       <g clip-path="url(#clip-back-head)">
         <path class="coat-cow-marking" d="M 250 40 H 550 V 236 C 516 240, 484 222, 466 192 C 448 160, 436 128, 396 116 C 352 104, 300 108, 250 122 Z"/>
       </g>
       <path class="ink-line" fill="none" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
-    </g>
+    </g></g>
   </g>
 
   <g id="zzz">
@@ -324,6 +328,7 @@
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
       (ctx) => (push = SillyPush.create(ctx, { enabled: pushParam ?? true, everySeconds: pushEveryParam, demo })),
       (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, enabled: statusBarParam ?? true })),
+      SillyCoats.shapeModule,
     ],
   });
   const headEl = [document.getElementById('cat-head'), document.getElementById('strike-head')];
