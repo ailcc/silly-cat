@@ -4,6 +4,7 @@ version = "0.0.2"
 description = "捣蛋奶牛猫桌宠（Tauri 桌面外壳）"
 edition = "2021"
 publish = false
+license = "MIT"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
