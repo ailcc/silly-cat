@@ -59,13 +59,13 @@
     }
     return out;
   }
-  function resample(pts, n) { // 按弧长等距重取 n 个点
+  function resample(pts, n, s0 = 0, s1 = 1) { // 按弧长等距重取整条中线或其中一段
     const cum = [0];
     for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
     const L = cum[cum.length - 1] || 1, out = [];
     let j = 0;
     for (let k = 0; k < n; k++) {
-      const s = L * k / (n - 1);
+      const s = L * s0 + L * (s1 - s0) * k / (n - 1);
       while (j < pts.length - 2 && cum[j + 1] < s) j++;
       const seg = cum[j + 1] - cum[j] || 1, t = Math.min(1, Math.max(0, (s - cum[j]) / seg));
       out.push({ x: pts[j].x + (pts[j + 1].x - pts[j].x) * t, y: pts[j].y + (pts[j + 1].y - pts[j].y) * t });
@@ -91,7 +91,7 @@
   ], TAIL_N);
   function pathLen(pts) { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y); return L; }
   // 中线 pts（s0..s1 是这段在整条尾巴上的位置，用来取宽度）-> 闭合轮廓路径；roundStart：起点也封半圆（白尾尖靠身体那头）
-  function ribbonD(pts, s0, s1, inset, press, roundStart) {
+  function ribbonD(pts, s0, s1, inset, press, roundStart, roundEnd = true) {
     const n = pts.length, L = [], R = [], C = 7;
     let n0 = null, t0 = null, nl = null, tl = null, h0 = 0, hl = 0;
     for (let i = 0; i < n; i++) {
@@ -105,7 +105,7 @@
     }
     const P = L.slice();
     const e = pts[n - 1];
-    for (let k = 1; k < C; k++) { // 尾尖半圆：左 -> 前 -> 右
+    for (let k = 1; roundEnd && k < C; k++) { // 尾尖半圆：左 -> 前 -> 右
       const th = Math.PI * k / C, c = Math.cos(th), s = Math.sin(th);
       P.push({ x: e.x + (nl.x * c + tl.x * s) * hl, y: e.y + (nl.y * c + tl.y * s) * hl });
     }
@@ -235,7 +235,12 @@
     const el = {
       head: $('cat-head'), body: $('cat-body'),
       // 尾巴画两份：#tail 在身体后面（整条），#tail-front 在鼠标上面（遮罩掉身体那一块，只露出绕到前面的部分）
-      tail: { back: $('tail'), front: $('tail-front'), body: [$('tail-body'), $('tail-front-body')], tip: [$('tail-tip'), $('tail-front-tip')], mask: $('mask-tail-body') },
+      tail: {
+        back: $('tail'), front: $('tail-front'), mask: $('mask-tail-body'),
+        body: [$('tail-body'), $('tail-front-body')],
+        tip: [$('tail-tip'), $('tail-front-tip')],
+        rings: [$('tail-rings'), $('tail-front-rings')],
+      },
       ear: { L: $('ear-l'), R: $('ear-r') },
       mouse: $('mouse'), mouseBtn: { 0: $('mouse-btn-l'), 2: $('mouse-btn-r') },
       zzz: [$('z1'), $('z2'), $('z3')],
@@ -710,10 +715,21 @@
         }
       } else S.tailLag = null;
 
-      const L = pathLen(pts);
-      const bodyD = ribbonD(pts, 0, 1, 0, S.tailPress * r, false);
-      const tipD = ribbonD(tipPts(pts, L), 1 - TAIL_TIP_LEN / L, 1, TAIL_INSET, S.tailPress * r, true);
+      const press = S.tailPress * r;
+      const bodyD = ribbonD(pts, 0, 1, 0, press, false);
       for (const n of el.tail.body) n.setAttribute('d', bodyD);
+      const markings = window.SillyCoats?.current()?.tail;
+      let tipD;
+      if (markings) {
+        const section = ([s0, s1], roundEnd) =>
+          ribbonD(resample(pts, 8, s0, s1), s0, s1, TAIL_INSET, press, false, roundEnd);
+        const ringsD = markings.rings.map((range) => section(range, false)).join(' ');
+        for (const n of el.tail.rings) n.setAttribute('d', ringsD);
+        tipD = section(markings.tip, true);
+      } else {
+        const L = pathLen(pts);
+        tipD = ribbonD(tipPts(pts, L), 1 - TAIL_TIP_LEN / L, 1, TAIL_INSET, press, true);
+      }
       for (const n of el.tail.tip) n.setAttribute('d', tipD);
       const tf = turnTf(P);
       el.tail.back.setAttribute('transform', tf);

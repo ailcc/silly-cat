@@ -8,6 +8,83 @@
   --cream: #fbf6ea;
   --cream-dark: #e8dfca;
   --coral: #ff7a59;
+  --coat-base: var(--fur-white);
+  --coat-ear: var(--fur-black);
+  --coat-inner-ear: var(--pink);
+  --coat-lid-l: var(--fur-black);
+  --coat-lid-r: var(--fur-white);
+  --coat-eye-arc-l: var(--fur-white);
+  --coat-eye-arc-r: var(--ink);
+  --coat-arm-l: var(--fur-black);
+  --coat-arm-r: var(--fur-white);
+  --coat-paw-l: var(--fur-black);
+  --coat-paw-r: var(--fur-white);
+  --coat-toe-l: #77707f;
+  --coat-toe-r: var(--ink);
+  --coat-toe-opacity: 1;
+  --coat-tail: var(--fur-black);
+  --coat-tail-tip: var(--fur-white);
+  --coat-iris: var(--iris);
+  --coat-nose: var(--pink);
+  --coat-mouth-line: var(--ink);
+  --coat-blush-opacity: 0.45;
+  --coat-brow-l: #8f8898;
+}
+
+html:is([data-cat="orange"], [data-cat="lihua"], [data-cat="siamese"]) {
+  --coat-lid-l: var(--coat-base);
+  --coat-lid-r: var(--coat-base);
+  --coat-eye-arc-l: var(--ink);
+  --coat-arm-l: var(--coat-base);
+  --coat-arm-r: var(--coat-base);
+  --coat-toe-l: var(--ink);
+  --coat-brow-l: var(--ink);
+}
+
+html:is([data-cat="orange"], [data-cat="lihua"]) {
+  --coat-paw-l: var(--coat-light);
+  --coat-paw-r: var(--coat-light);
+  --coat-tail: var(--coat-base);
+  --coat-tail-tip: var(--coat-stripe);
+}
+
+html[data-cat="orange"] {
+  --coat-base: #f4a957;
+  --coat-stripe: #d97a2b;
+  --coat-light: #fff1dc;
+  --coat-ear: var(--coat-base);
+  --coat-iris: #e8c547;
+  --coat-toe-opacity: 0.6;
+}
+
+html[data-cat="lihua"] {
+  --coat-base: #b8a27f;
+  --coat-stripe: #3f3328;
+  --coat-light: #efe4d0;
+  --coat-ear: url(#coat-lihua-ear);
+  --coat-inner-ear: #e3a3a0;
+  --coat-iris: #c9d84f;
+  --coat-blush-opacity: 0.3;
+}
+
+html[data-cat="siamese"] {
+  --coat-base: #f4ead8;
+  --coat-point: #5b4334;
+  --coat-transition: #a8876c;
+  --coat-ear: var(--coat-point);
+  --coat-inner-ear: #b98080;
+  --coat-lid-l: var(--coat-transition);
+  --coat-lid-r: var(--coat-transition);
+  --coat-paw-l: var(--coat-point);
+  --coat-paw-r: var(--coat-point);
+  --coat-toe-l: var(--coat-mouth-line);
+  --coat-toe-r: var(--coat-mouth-line);
+  --coat-tail: var(--coat-point);
+  --coat-tail-tip: none;
+  --coat-iris: #7ec8f0;
+  --coat-nose: #3a2a22;
+  --coat-mouth-line: #eadfcd;
+  --coat-blush-opacity: 0;
 }
 
 * { box-sizing: border-box; }
@@ -56,6 +133,9 @@ body {
   max-width: 960px;
 }
 
+/* 首次应用毛色前不显示场景，避免 URL 指定的新猫先闪出奶牛猫。 */
+html:not([data-cat]) #scene { visibility: hidden; }
+
 #controls {
   flex: none;
   display: flex;
@@ -75,39 +155,60 @@ body {
 #scene .ink { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 #scene .ink-line { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 #scene .ink-thin { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
-#scene .fur-white { fill: var(--fur-white); }
-#scene .fur-black { fill: var(--fur-black); }
-#scene .pink { fill: var(--pink); }
-#scene .blush { fill: var(--pink); opacity: 0.45; }
+#scene .coat-base { fill: var(--coat-base); }
+#scene .coat-cow-marking { fill: var(--fur-black); }
+#scene .coat-ear { fill: var(--coat-ear); }
+#scene .coat-inner-ear { fill: var(--coat-inner-ear); }
+#scene .coat-paw-l { fill: var(--coat-paw-l); }
+#scene .coat-paw-r { fill: var(--coat-paw-r); }
+#scene .coat-light { fill: var(--coat-light); }
+#scene .coat-solid-stripe { fill: var(--coat-stripe); }
+#scene .coat-stripe { fill: none; stroke: var(--coat-stripe); stroke-linecap: round; stroke-linejoin: round; }
+#scene .coat-stop-base { stop-color: var(--coat-base); }
+#scene .coat-stop-stripe { stop-color: var(--coat-stripe); }
+#scene .coat-stop-point { stop-color: var(--coat-point); }
+#scene .coat-stop-transition { stop-color: var(--coat-transition); }
+#scene .coat-nose { fill: var(--coat-nose); }
+#scene .coat-mouth-line { stroke: var(--coat-mouth-line); }
+#scene .blush { fill: var(--pink); opacity: var(--coat-blush-opacity); }
+html[data-cat]:not([data-cat="cow"]) #scene .coat-cow-marking,
+html:not([data-cat="orange"]) #scene [data-coat-pattern="orange"],
+html:not([data-cat="lihua"]) #scene [data-coat-pattern="lihua"],
+html:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"] { display: none; }
 #scene .shadow { fill: var(--ink); opacity: 0.1; }
 
 #scene .sclera { fill: var(--fur-white); }
-#scene .iris { fill: var(--iris); }
+#scene .iris { fill: var(--coat-iris); }
 #scene .pupil { fill: var(--ink); }
 #scene .shine { fill: #fff; }
-#scene .lid-black { fill: var(--fur-black); }
-#scene .lid-white { fill: var(--fur-white); }
+#scene .lid-l { fill: var(--coat-lid-l); }
+#scene .lid-r { fill: var(--coat-lid-r); }
 #scene .lid-line { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
 #scene .eye-ring { fill: none; stroke: var(--ink); stroke-width: 5; }
-#scene .eye-arc { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
-#scene .eye-arc-light { fill: none; stroke: var(--fur-white); stroke-width: 5; stroke-linecap: round; }
+#scene .eye-arc-l, #scene .eye-arc-r { fill: none; stroke-width: 5; stroke-linecap: round; }
+#scene .eye-arc-l { stroke: var(--coat-eye-arc-l); }
+#scene .eye-arc-r { stroke: var(--coat-eye-arc-r); }
 #scene .whisker { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
 #scene .fang { fill: #fff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
 
 /* 正面尾巴：实心轮廓（cat.js 按中线算出粗细渐变、圆尾尖）；白尾尖往里缩半个描边宽度 */
-#scene .tail-body { fill: var(--fur-black); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
-#scene .tail-tip-white { fill: var(--fur-white); }
+#scene .tail-body { fill: var(--coat-tail); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
+#scene .tail-tip-fill { fill: var(--coat-tail-tip); }
+#scene .tail-ring { fill: var(--coat-stripe, none); }
+html:not(:is([data-cat="orange"], [data-cat="lihua"])) #scene .tail-ring { display: none; }
 /* 罢工背影的尾巴仍用描边画法 */
 #scene .tail-outline { fill: none; stroke: var(--ink); stroke-width: 31; stroke-linecap: round; }
-#scene .tail-fill { fill: none; stroke: var(--fur-black); stroke-width: 21; stroke-linecap: round; }
-#scene .tail-tip { fill: none; stroke: var(--fur-white); stroke-width: 21; stroke-linecap: round;
+#scene .tail-fill { fill: none; stroke: var(--coat-tail); stroke-width: 21; stroke-linecap: round; }
+#scene .tail-tip { fill: none; stroke: var(--coat-tail-tip); stroke-width: 21; stroke-linecap: round;
   stroke-dasharray: 16 84; stroke-dashoffset: 16; }
 
 #scene .arm-outline { fill: none; stroke: var(--ink); stroke-width: 34; stroke-linecap: round; }
-#scene .arm-fill-black { fill: none; stroke: var(--fur-black); stroke-width: 24; stroke-linecap: round; }
-#scene .arm-fill-white { fill: none; stroke: var(--fur-white); stroke-width: 24; stroke-linecap: round; }
-#scene .toe-light { fill: none; stroke: #77707f; stroke-width: 3; stroke-linecap: round; }
-#scene .toe-dark { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+#scene .arm-fill-l, #scene .arm-fill-r { fill: none; stroke-width: 24; stroke-linecap: round; }
+#scene .arm-fill-l { stroke: var(--coat-arm-l); }
+#scene .arm-fill-r { stroke: var(--coat-arm-r); }
+#scene .toe-l, #scene .toe-r { fill: none; stroke-width: 3; stroke-linecap: round; opacity: var(--coat-toe-opacity); }
+#scene .toe-l { stroke: var(--coat-toe-l); }
+#scene .toe-r { stroke: var(--coat-toe-r); }
 
 #scene .z { fill: var(--ink); font-size: 24px; font-weight: 800; font-family: inherit; }
 
@@ -173,7 +274,7 @@ body {
 
 /* ---------- 疲劳与情绪（fatigue.js） ---------- */
 #scene .brow { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
-#scene .brow-light { fill: none; stroke: #8f8898; stroke-width: 5; stroke-linecap: round; }
+#scene .brow-light { fill: none; stroke: var(--coat-brow-l); stroke-width: 5; stroke-linecap: round; }
 #scene .sweat { fill: #cfe8ff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
 #scene .sigh { fill: #f3f1ee; stroke: var(--ink); stroke-width: 2; }
 #scene .anger { fill: none; stroke: #e5484d; stroke-width: 5; stroke-linecap: round; }
@@ -220,7 +321,7 @@ body {
 #scene .sparkle path { fill: #fff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
 #scene .cloth path { fill: #bfe0f5; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
 #scene .cloth .cloth-fold { fill: none; stroke-width: 1.8; }
-#scene .ghost-black { fill: var(--fur-black); }
+#scene .ghost-black { fill: var(--coat-paw-l); }
 #scene .ghost-white { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; }
 
 /* ---------- 状态条（statusbar.js）：猫头顶上方，困了 / 烦躁 / 消气中 ---------- */
