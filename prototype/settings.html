@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>捣蛋奶牛猫 · 设置</title>
+<title>捣蛋猫 · 设置</title>
 <style>
   :root {
     --ink: #1d1b22;
@@ -46,6 +46,26 @@
   input[aria-invalid="true"] { border-color: var(--error); }
   input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
   input[type="range"] { width: 150px; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--accent); }
+  #cat-options { display: flex; gap: 8px; margin-top: 8px; }
+  .cat-option {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 76px;
+    padding: 6px 4px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+    cursor: pointer;
+  }
+  .cat-option input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; opacity: 0; }
+  .cat-option img { width: 56px; height: 51px; }
+  .cat-option:hover { background: rgba(0, 0, 0, .04); }
+  .cat-option:has(input:checked) { border-color: var(--accent); background: rgba(255, 122, 89, .08); color: var(--ink); font-weight: 700; }
+  .cat-option:has(input:focus-visible) { outline: 2px solid rgba(255, 122, 89, .45); outline-offset: 2px; }
   .push-interval { justify-content: flex-start; margin-top: 6px; }
   .unit { color: var(--muted); }
   #size-percent { width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
@@ -94,8 +114,12 @@
   </div>
   <p id="perm-msg"></p>
 </section>
-<h1>猫的作息</h1>
+<h1>猫的设置</h1>
 <form id="form" novalidate autocomplete="off">
+  <div class="row">
+    <div class="head"><strong id="cat-label">换只猫</strong></div>
+    <div id="cat-options" role="radiogroup" aria-labelledby="cat-label"></div>
+  </div>
   <div class="row" data-key="sleep">
     <div class="head"><label for="f-sleep">多久不操作就睡着</label>
       <span class="field"><input id="f-sleep" type="number" inputmode="decimal"><span class="unit">秒</span></span></div>
@@ -151,13 +175,32 @@
 </footer>
 
 <script src="settings.js"></script>
+<script src="coats.js"></script>
 <script>
 (function () {
   'use strict';
   const S = window.SillySettings;
   const T = window.__TAURI__;
   const invoke = T && T.core ? T.core.invoke : null;
+  const form = document.getElementById('form');
   const statusEl = document.getElementById('status');
+  const catOptions = document.getElementById('cat-options');
+  const catNames = new Map(window.SillyCoats.list().map(({ id, name }) => [id, name]));
+  for (const id of S.CATS) {
+    const label = document.createElement('label');
+    label.className = 'cat-option';
+    const input = document.createElement('input');
+    input.type = 'radio';
+    input.name = 'cat';
+    input.value = id;
+    const img = document.createElement('img');
+    img.src = `cats/${id}.svg`;
+    img.alt = '';
+    const name = document.createElement('span');
+    name.textContent = catNames.get(id);
+    label.append(input, img, name);
+    catOptions.append(label);
+  }
   const rows = {};
   for (const k of S.KEYS) {
     const row = document.querySelector(`.row[data-key="${k}"]`);
@@ -179,6 +222,7 @@
 
   const fmt = (v) => String(Math.round(v * 100) / 100);
   function fill(s) {
+    form.elements.cat.value = s.cat;
     for (const k of S.KEYS) {
       const { input, f } = rows[k];
       input.value = s[k] === null ? '' : fmt(s[k]);
@@ -189,7 +233,7 @@
   }
   // 时间项按秒读；可选项留空 = null（自动），其他时间项留空 = NaN（校验报错）
   function read() {
-    const s = {};
+    const s = { cat: form.elements.cat.value };
     for (const k of S.KEYS) {
       const { input, f } = rows[k];
       const t = input.value.trim();
@@ -209,7 +253,7 @@
   function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = cls || ''; }
 
   let timer = 0;
-  function onEdit() {
+  function onEdit(immediate = false) {
     const s = read();
     refreshHints(s);
     const err = S.validate(s);
@@ -220,7 +264,8 @@
     clearTimeout(timer);
     if (Object.keys(err).length) { setStatus('有设置不合法，没有保存', 'bad'); return; }
     setStatus('…');
-    timer = setTimeout(() => save(s), 250);
+    if (immediate) save(s);
+    else timer = setTimeout(() => save(s), 250);
   }
   function save(s) {
     if (!invoke) { setStatus('不在桌面版里，改动不会保存', 'bad'); return; }
@@ -229,8 +274,18 @@
       .catch((e) => setStatus('保存失败：' + e, 'bad'));
   }
 
-  document.getElementById('form').addEventListener('input', onEdit);
-  document.getElementById('form').addEventListener('submit', (e) => e.preventDefault());
+  let previewFrame = null;
+  sizeInput.addEventListener('input', () => {
+    if (!invoke || previewFrame !== null) return;
+    previewFrame = requestAnimationFrame(() => {
+      previewFrame = null;
+      invoke('preview_cat_size', { size: sizeInput.valueAsNumber / 100 }).catch(() => {});
+    });
+  });
+  sizeInput.addEventListener('change', () => onEdit(true));
+  catOptions.addEventListener('change', () => onEdit(true));
+  form.addEventListener('input', (e) => { if (e.target.name !== 'cat') onEdit(); });
+  form.addEventListener('submit', (e) => e.preventDefault());
   document.getElementById('reset').addEventListener('click', () => { fill(S.DEFAULTS); onEdit(); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && T && T.window) T.window.getCurrentWindow().close().catch(() => {});
@@ -244,11 +299,11 @@
 
   // ---------- 收不到键盘输入时的处理区 ----------
   // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
-  // 显示时把窗口加高到放得下全部内容，收起时回到默认的 400×814（BASE_H，和 main.rs 的 SETTINGS_HEIGHT 一致）。
-  const BASE_W = 400, BASE_H = 814;
+  // 展开授权区时加高，收起时回到基础高度；两者都为屏幕工作区留 40 px，内容超出时可滚动。
+  // BASE_H 和 main.rs 的 SETTINGS_HEIGHT 一致。
+  const BASE_W = 400, BASE_H = 952;
   const perm = document.getElementById('perm');
   const permMsg = document.getElementById('perm-msg');
-  let grown = false;
   function setPermMsg(text, bad) { permMsg.textContent = text; permMsg.className = bad ? 'bad' : ''; }
   function fitWindow() {
     if (!T || !T.window) return;
@@ -259,10 +314,11 @@
     if (!perm.hidden) {
       const cs = getComputedStyle(perm);
       const extra = perm.getBoundingClientRect().height + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
-      const maxH = (window.screen && window.screen.availHeight) ? window.screen.availHeight - 40 : 2000;
-      h = Math.min(Math.ceil(BASE_H + extra), Math.max(BASE_H, maxH));
-    } else if (!grown) return;
-    grown = h !== BASE_H;
+      h += extra;
+    }
+    const availHeight = window.screen?.availHeight;
+    const maxH = availHeight ? Math.max(1, availHeight - 40) : Infinity;
+    h = Math.min(Math.ceil(h), maxH);
     win.setSize(new Size(BASE_W, h)).catch(() => {});
   }
   function showPerm(show) {

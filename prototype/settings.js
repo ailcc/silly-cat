@@ -8,10 +8,12 @@
   // drool / slump 为 null 表示「自动」：沿用 sleep.js 的原逻辑（入睡时间 × 2、× 3.5）
   // statusBar：猫头顶的状态条（困了 / 烦躁 / 消气中）显示与否；push：推杯子开关。两个都是开关项，不参与 KEYS 里的数字校验
   // pushEvery：大约多久推一次杯子（秒），push.js 在它的 0.5–1.5 倍之间随机
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, push: true, pushEvery: 600, size: 1 });
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, push: true, pushEvery: 600, size: 1, cat: 'cow' });
   const BOOLS = Object.freeze(['statusBar', 'push']);
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
   const SIZE = Object.freeze({ min: 0.5, max: 2, step: 0.05 });
+  // 和 coats.js 的列表保持一致，顺序也是设置页的头像顺序。
+  const CATS = Object.freeze(['cow', 'orange', 'lihua', 'siamese']);
 
   // min / max 都是秒
   const FIELDS = Object.freeze({
@@ -59,6 +61,7 @@
       for (const k of BOOLS) if (typeof raw[k] === 'boolean') s[k] = raw[k]; // 旧的 settings.json 没有这项：用默认值
       const size = raw.size;
       if (Number.isFinite(size) && size >= SIZE.min && size <= SIZE.max) s.size = size;
+      if (CATS.includes(raw.cat)) s.cat = raw.cat;
     }
     const err = validate(s);
     if (err.drool) s.drool = null;
@@ -67,5 +70,5 @@
     return s;
   }
 
-  window.SillySettings = { DEFAULTS, AUTO, SIZE, FIELDS, KEYS, BOOLS, validate, sanitize, effDrool, effSlump };
+  window.SillySettings = { DEFAULTS, AUTO, SIZE, CATS, FIELDS, KEYS, BOOLS, validate, sanitize, effDrool, effSlump };
 })();

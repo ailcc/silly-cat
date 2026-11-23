@@ -167,7 +167,7 @@
     <!-- strike-body：背影的身体，按每只猫的体型静态缩放（coats.js），和正面身体一致 -->
     <g id="strike-body">
       <path class="coat-base" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/>
-      <g clip-path="url(#clip-back-body)">
+      <g id="coat-back-body-patterns" clip-path="url(#clip-back-body)">
         <path class="coat-cow-marking" d="M 334 284 C 304 286, 284 318, 284 354 C 284 380, 298 396, 316 392 C 334 388, 330 364, 336 346 C 342 326, 352 310, 348 296 C 346 288, 340 284, 334 284 Z"/>
       </g>
       <path class="ink-line" fill="none" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412"/>
@@ -176,13 +176,15 @@
     <g id="strike-tail">
       <path class="tail-outline" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
       <path class="tail-fill" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
+      <!-- 环纹：虚线描边，dasharray 由 coats.js 按每只猫的 tail.rings 算（pathLength=100，从尾根量起） -->
+      <path id="strike-tail-rings" class="strike-tail-rings" pathLength="100" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
       <path class="tail-tip" pathLength="100" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
     </g>
     <g id="strike-head"><g id="strike-head-shape">
       <g class="ear-shape-l"><path id="strike-ear-l" class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z" transform="rotate(-12 322 110)"/></g>
       <g class="ear-shape-r"><path id="strike-ear-r" class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z" transform="rotate(12 478 110)"/></g>
       <path class="coat-base" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
-      <g clip-path="url(#clip-back-head)">
+      <g id="coat-back-head-patterns" clip-path="url(#clip-back-head)">
         <path class="coat-cow-marking" d="M 250 40 H 550 V 236 C 516 240, 484 222, 466 192 C 448 160, 436 128, 396 116 C 352 104, 300 108, 250 122 Z"/>
       </g>
       <path class="ink-line" fill="none" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
@@ -294,15 +296,17 @@
   'use strict';
   const params = new URLSearchParams(location.search);
   const desktopMode = SillyDesktopInput.isDesktop();
-  const catSelect = document.getElementById('cat-select');
-  for (const { id, name } of SillyCoats.list()) catSelect.add(new Option(name, id));
-  catSelect.value = SillyCoats.apply(desktopMode ? 'cow' : params.get('cat')).id;
-  // 保留原生下拉框的按键操作，避免被页面的全局键盘监听截走。
-  catSelect.addEventListener('keydown', (event) => event.stopPropagation());
-  catSelect.addEventListener('change', () => {
-    SillyCoats.apply(catSelect.value);
-    catSelect.blur();
-  });
+  if (!desktopMode) {
+    const catSelect = document.getElementById('cat-select');
+    for (const { id, name } of SillyCoats.list()) catSelect.add(new Option(name, id));
+    catSelect.value = SillyCoats.apply(params.get('cat')).id;
+    // 保留原生下拉框的按键操作，避免被页面的全局键盘监听截走。
+    catSelect.addEventListener('keydown', (event) => event.stopPropagation());
+    catSelect.addEventListener('change', () => {
+      SillyCoats.apply(catSelect.value);
+      catSelect.blur();
+    });
+  }
   const num = (k) => { const v = parseFloat(params.get(k)); return Number.isFinite(v) && v > 0 ? v : null; };
   // URL 参数可以超出滑块范围（方便快速验收），滑块只显示夹到范围内的位置
   const sleep = num('sleep') ?? 20;
@@ -337,10 +341,11 @@
     const desktop = SillyDesktopInput.create(cat, { headEl, sceneEl: document.getElementById('scene') });
     Object.defineProperty(window, '__desktop', { value: desktop.debug, writable: false, configurable: false });
 
-    // 设置窗口里的时间参数：启动时读 settings.json，之后每次保存都会发 silly:settings 事件过来，立即生效。
-    // 优先级：启动时 URL 参数 > 已保存设置 > 默认值；之后在设置窗口里改的值总是生效（覆盖 URL 参数）。
+    // 启动时读 settings.json 再显示猫，之后每次保存都会发 silly:settings 事件过来，立即生效。
+    // 猫的品种只读设置。其他支持 URL 的字段在启动时优先用 URL 参数，之后以设置窗口为准。
     const applySettings = (raw, skipUrl) => {
       const s = SillySettings.sanitize(raw);
+      SillyCoats.apply(s.cat);
       const use = (k) => !(skipUrl && num(k) !== null);
       if (use('sleep')) cat.setSleepSeconds(s.sleep);
       if (use('drool')) sleepMod.setDroolSeconds(s.drool ?? NaN); // NaN = 自动（入睡时间 × 2）
@@ -352,7 +357,9 @@
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
     const T = window.__TAURI__;
-    T.core.invoke('load_settings').then((raw) => { if (raw) applySettings(raw, true); }).catch(() => {});
+    T.core.invoke('load_settings')
+      .then((raw) => { if (raw) applySettings(raw, true); else SillyCoats.apply('cow'); })
+      .catch(() => SillyCoats.apply('cow'));
     T.event.listen('silly:settings', (ev) => applySettings(ev.payload, false));
   } else {
     SillyInput.createBrowserInput(cat, {

@@ -204,6 +204,7 @@ html:not(:is([data-cat="orange"], [data-cat="lihua"])) #scene .tail-ring { displ
 /* 罢工背影的尾巴仍用描边画法 */
 #scene .tail-outline { fill: none; stroke: var(--ink); stroke-width: 31; stroke-linecap: round; }
 #scene .tail-fill { fill: none; stroke: var(--coat-tail); stroke-width: 21; stroke-linecap: round; }
+#scene .strike-tail-rings { fill: none; stroke: var(--coat-stripe); stroke-width: 21; }
 #scene .tail-tip { fill: none; stroke: var(--coat-tail-tip); stroke-width: 21; stroke-linecap: round;
   stroke-dasharray: 16 84; stroke-dashoffset: 16; }
 
@@ -330,7 +331,7 @@ html[data-cat="lihua"] #scene .arm-stripes { display: inline; }
 #scene .cloth path { fill: #bfe0f5; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
 #scene .cloth .cloth-fold { fill: none; stroke-width: 1.8; }
 #scene .ghost-black { fill: var(--coat-paw-l); }
-#scene .ghost-white { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; }
+#scene .ghost-white { fill: var(--coat-paw-r); stroke: var(--ink); stroke-width: 3; }
 
 /* ---------- 状态条（statusbar.js）：猫头顶上方，困了 / 烦躁 / 消气中 ---------- */
 #status-bar, #status-bar * { pointer-events: none; }

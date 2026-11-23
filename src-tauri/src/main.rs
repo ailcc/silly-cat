@@ -218,6 +218,17 @@ fn apply_cat_size(win: &WebviewWindow, size: f64) {
     }
 }
 
+/// 拖动滑块时只调整主窗口大小，设置由 save_settings 写盘和广播。
+#[tauri::command]
+fn preview_cat_size(app: AppHandle, size: f64) {
+    if !size.is_finite() || !(SIZE_MIN..=SIZE_MAX).contains(&size) {
+        return;
+    }
+    if let Some(win) = app.get_webview_window("main") {
+        apply_cat_size(&win, size);
+    }
+}
+
 /// 设置页每次改出合法值就调：写盘，再通知主窗口立即生效
 #[tauri::command]
 fn save_settings(app: AppHandle, settings: serde_json::Value) -> Result<(), String> {
@@ -292,7 +303,7 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
 }
 
 /// 设置窗口的默认高度，和 settings.html 的 BASE_H 一致。留一点字体换行余量，授权提示显示时由页面加高。
-const SETTINGS_HEIGHT: f64 = 814.0;
+const SETTINGS_HEIGHT: f64 = 952.0;
 
 fn show_settings(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {
@@ -301,9 +312,16 @@ fn show_settings(app: &AppHandle) {
         let _ = w.set_focus();
         return;
     }
+    let monitor = app.get_webview_window("main")
+        .and_then(|win| win.current_monitor().ok().flatten())
+        .or_else(|| app.primary_monitor().ok().flatten());
+    let height = monitor.map_or(SETTINGS_HEIGHT, |m| {
+        let work_height = m.work_area().size.to_logical::<f64>(m.scale_factor()).height;
+        SETTINGS_HEIGHT.min((work_height - 40.0).max(1.0))
+    });
     let built = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
-        .title("捣蛋奶牛猫 · 设置")
-        .inner_size(400.0, SETTINGS_HEIGHT)
+        .title("捣蛋猫 · 设置")
+        .inner_size(400.0, height)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)
@@ -453,6 +471,7 @@ fn main() {
             reset_input_monitoring,
             restart_app,
             load_settings,
+            preview_cat_size,
             save_settings,
             open_settings,
             show_context_menu

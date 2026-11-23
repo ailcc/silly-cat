@@ -34,6 +34,18 @@
       body: `
         ${bib}
         ${mirrorStripe('M 312 298 Q 328 317 347 320 M 300 337 Q 317 353 339 357 M 290 374 Q 310 389 334 393', 9)}`,
+      // 罢工背影：后脑勺几道纵纹一路往下、在后颈收拢接上脊线，两侧横纹；背上一条脊线，肋纹从脊线往两侧斜着下去
+      backHead: `
+        <path class="coat-solid-stripe" d="${taper(400, 62, 400, 160, 400, 256, 13)}"/>
+        ${mirrorFill([
+          taper(372, 68, 377, 150, 391, 246, 10),
+          taper(344, 82, 353, 140, 377, 228, 8),
+          taper(266, 188, 290, 191, 314, 189, 8),
+          taper(270, 212, 292, 215, 312, 214, 7),
+        ].join(' '))}`,
+      backBody: `
+        <path class="coat-stripe" stroke-width="10" d="M 400 260 V 406"/>
+        ${mirrorFill([282, 310, 338, 366].map((y) => taper(400, y, 358, y + 4, 302, y + 26, 11)).join(' '))}`,
       tail: { rings: [[0.30, 0.38], [0.50, 0.58], [0.70, 0.78]], tip: [0.88, 1] },
       shape: { bodySX: 1.24, bodySY: 0.95, headSX: 1.08 }, // 十个橘猫九个胖：身体宽一圈、稍矮，脸也圆一点
     },
@@ -70,6 +82,20 @@
           taper(290, 340, 306, 346, 324, 352, 9),
           taper(290, 366, 306, 372, 322, 378, 9),
         ].join(' '))}`,
+      backHead: `
+        <path class="coat-solid-stripe" d="${taper(400, 60, 400, 160, 400, 262, 13)}"/>
+        ${mirrorFill([
+          taper(381, 62, 385, 156, 393, 252, 10),
+          taper(361, 68, 369, 150, 386, 242, 10),
+          taper(340, 80, 352, 144, 378, 228, 8),
+          taper(266, 150, 284, 152, 300, 149, 7),
+          taper(264, 178, 290, 181, 314, 180, 9),
+          taper(266, 202, 288, 205, 310, 204, 8),
+          taper(274, 226, 290, 228, 304, 227, 6),
+        ].join(' '))}`,
+      backBody: `
+        <path class="coat-stripe" stroke-width="12" d="M 400 260 V 406"/>
+        ${mirrorFill([276, 298, 320, 342, 364, 386].map((y) => taper(400, y, 356, y + 4, 300, y + 24, 10)).join(' '))}`,
       tail: { rings: [[0.23, 0.30], [0.39, 0.46], [0.55, 0.62], [0.71, 0.78]], tip: [0.88, 1] },
     },
     {
@@ -93,10 +119,14 @@
       const defs = document.querySelector('#scene defs');
       const head = document.getElementById('coat-head-patterns');
       const body = document.getElementById('coat-body-patterns');
+      const backHead = document.getElementById('coat-back-head-patterns');
+      const backBody = document.getElementById('coat-back-body-patterns');
       for (const coat of coats) {
         if (coat.defs) defs.insertAdjacentHTML('beforeend', coat.defs);
         if (coat.head) head.insertAdjacentHTML('beforeend', `<g data-coat-pattern="${coat.id}">${coat.head}</g>`);
         if (coat.body) body.insertAdjacentHTML('beforeend', `<g data-coat-pattern="${coat.id}">${coat.body}</g>`);
+        if (coat.backHead) backHead.insertAdjacentHTML('beforeend', `<g data-coat-pattern="${coat.id}">${coat.backHead}</g>`);
+        if (coat.backBody) backBody.insertAdjacentHTML('beforeend', `<g data-coat-pattern="${coat.id}">${coat.backBody}</g>`);
         if (coat.eye) {
           for (const [side, cx] of [['l', 345], ['r', 455]]) {
             document.getElementById('eye-' + side + '-open')
@@ -113,6 +143,7 @@
     }
     selected = next;
     applyShape(next.shape || {});
+    applyStrikeRings(next.tail && next.tail.rings);
     return selected;
   }
 
@@ -135,6 +166,18 @@
     const hx = shape.headSX || 1, head = document.getElementById('strike-head-shape');
     if (hx === 1) head.removeAttribute('transform');
     else head.setAttribute('transform', `translate(400 0) scale(${hx} 1) translate(-400 0)`);
+  }
+
+  // 罢工背影的尾巴是描边画法，环纹用虚线描边：pathLength=100，按 tail.rings（从尾根量起的比例）排出 dash 和 gap
+  function applyStrikeRings(rings) {
+    const el = document.getElementById('strike-tail-rings');
+    if (!rings || !rings.length) { el.style.display = 'none'; return; }
+    const parts = [0];
+    let at = 0;
+    for (const [a, b] of rings) { parts.push((a - at) * 100, (b - a) * 100); at = b; }
+    parts.push((1 - at) * 100);
+    el.style.display = '';
+    el.style.strokeDasharray = parts.map((v) => Math.round(v * 10) / 10).join(' ');
   }
 
   // createCat 的扩展模块：把当前这只猫的体型乘进每帧姿态
