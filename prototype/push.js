@@ -4,11 +4,12 @@
 
   // 从开始盯人算起（毫秒）。2900 开始挥爪，3000 杯子脱手。
   const REACH = 600, TAP = 1000, STARE = 2200, SHOVE = 2900, RELEASE = 3000;
-  const WATCH = 3200, FALL_END = 3600, SMUG = 4200, END = 5200;
+  const WATCH = 3200, FALL_END = 3800, SMUG = 4200, END = 5200; // 下落 800ms：从猫身旁的高度落出窗口底边
   const RETURN_MS = 60000, FADE_MS = 600, SETTLE_MS = 180;
   const TAP_MS = (STARE - TAP) / 3, TAP_STEP = 10, MAX_OFFSET = 30;
   const IDLE_MIN = 2500, IDLE_MAX = 20000;
-  const MUG = { x: 690, y: 556 };
+  // 杯底中心：猫身旁、和猫坐的高度一样（身体底边 y≈412），在键盘右上角后面，爪子往旁边一伸就够得着
+  const MUG = { x: 655, y: 410 };
   const FRONT = { x: 400, y: 178 };
   const DEMOS = ['push', 'push-back'];
 
@@ -30,7 +31,8 @@
     let dir = cupDir();
 
     const $ = (id) => document.getElementById(id);
-    $('mouse').insertAdjacentHTML('afterend', `
+    // 画在键盘前面的那层之前：杯子在键盘后面（被键盘挡住），手臂和爪子仍盖在杯子上
+    $('keyboard').insertAdjacentHTML('beforebegin', `
       <g id="mug" class="mug" style="display:none">
         <ellipse id="mug-shadow" class="shadow" cy="2" rx="26" ry="5"/>
         <g id="mug-cup">
@@ -234,7 +236,7 @@
       E.mug.setAttribute('transform', `translate(${x} ${MUG.y})`);
       E.shadow.style.display = fall < 180 ? '' : 'none';
       E.shadow.setAttribute('fill-opacity', f1(1 - unit(fall / 180)));
-      E.cup.setAttribute('transform', `translate(${f1(d * 0.24 * fall)} ${f1(0.00048 * fall * fall - 0.075 * fall)}) scale(${d} 1) rotate(${f1(rotation)})`);
+      E.cup.setAttribute('transform', `translate(${f1(d * 0.12 * fall)} ${f1(0.0006 * fall * fall - 0.06 * fall)}) scale(${d} 1) rotate(${f1(rotation)})`);
       const steamOn = distance === 0 && fall === 0;
       E.steam.style.display = steamOn ? '' : 'none';
       if (!steamOn) return;
