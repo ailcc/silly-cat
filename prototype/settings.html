@@ -45,7 +45,9 @@
   input:focus { outline: 2px solid rgba(255, 122, 89, 0.45); outline-offset: 0; border-color: var(--accent); }
   input[aria-invalid="true"] { border-color: var(--error); }
   input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
+  input[type="range"] { width: 150px; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--accent); }
   .unit { color: var(--muted); }
+  #size-percent { width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
   .hint { margin-top: 2px; color: var(--muted); font-size: 12px; }
   .err { margin-top: 2px; color: var(--error); font-size: 12px; }
   .err:empty { display: none; }
@@ -128,6 +130,11 @@
       <span class="field"><input id="f-statusBar" type="checkbox"></span></div>
     <div class="hint">快睡着、快发飙、正在消气时，猫头顶出现一条进度条。</div>
   </div>
+  <div class="row" data-size>
+    <div class="head"><label for="f-size">猫的大小</label>
+      <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
+    <div id="size-hint" class="hint">100% 是原来的大小，可调 50%–200%。改大小时猫的右下角位置不动。</div>
+  </div>
 </form>
 <footer>
   <button id="reset" type="button">恢复默认</button>
@@ -155,6 +162,11 @@
   }
   const bools = {};
   for (const k of S.BOOLS) bools[k] = document.querySelector(`.row[data-bool="${k}"] input`);
+  const sizeInput = document.getElementById('f-size');
+  const sizePercent = document.getElementById('size-percent');
+  sizeInput.min = String(Math.round(S.SIZE.min * 100));
+  sizeInput.max = String(Math.round(S.SIZE.max * 100));
+  sizeInput.step = String(Math.round(S.SIZE.step * 100));
 
   const fmt = (v) => String(Math.round(v * 100) / 100);
   function fill(s) {
@@ -163,9 +175,10 @@
       input.value = s[k] === null ? '' : fmt(s[k]);
     }
     for (const k of S.BOOLS) bools[k].checked = s[k] !== false;
+    sizeInput.value = Math.round(s.size * 100);
     refreshHints(s);
   }
-  // 都是秒；可选项留空 = null（自动），其他留空 = NaN（校验报错）
+  // 时间项按秒读；可选项留空 = null（自动），其他时间项留空 = NaN（校验报错）
   function read() {
     const s = {};
     for (const k of S.KEYS) {
@@ -175,11 +188,13 @@
       else s[k] = Number(t);
     }
     for (const k of S.BOOLS) s[k] = bools[k].checked;
+    s.size = sizeInput.valueAsNumber / 100;
     return s;
   }
   function refreshHints(s) {
     const sleep = Number.isFinite(s.sleep) && s.sleep > 0 ? s.sleep : S.DEFAULTS.sleep;
     for (const b of document.querySelectorAll('[data-auto]')) b.textContent = fmt(S.AUTO[b.dataset.auto] * sleep);
+    sizePercent.textContent = `${sizeInput.value}%`;
   }
   function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = cls || ''; }
 
@@ -219,8 +234,8 @@
 
   // ---------- 收不到键盘输入时的处理区 ----------
   // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
-  // 显示时把窗口加高到放得下全部内容，收起时回到原来的 400×660（BASE_H，和 main.rs 的 SETTINGS_HEIGHT 一致）。
-  const BASE_W = 400, BASE_H = 660;
+  // 显示时把窗口加高到放得下全部内容，收起时回到默认的 400×724（BASE_H，和 main.rs 的 SETTINGS_HEIGHT 一致）。
+  const BASE_W = 400, BASE_H = 724;
   const perm = document.getElementById('perm');
   const permMsg = document.getElementById('perm-msg');
   let grown = false;

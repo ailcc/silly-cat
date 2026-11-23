@@ -32,9 +32,15 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 const MARGIN: f64 = 24.0;
+// 和 tauri.conf.json 的 main 窗口一致，即 100% 时的逻辑尺寸。
+const BASE_W: f64 = 420.0;
+const BASE_H: f64 = 345.0;
+// 和 prototype/settings.js 的 SIZE 一致。
+const SIZE_MIN: f64 = 0.5;
+const SIZE_MAX: f64 = 2.0;
 
 /// 窗口左上角位置。macOS：全局坐标的「点」（逻辑像素）；Windows：虚拟桌面的物理像素
 /// （Windows 各屏缩放可以不同，逻辑坐标在多屏下没有统一含义，所以存物理像素）。
@@ -177,11 +183,39 @@ fn settings_file(app: &AppHandle) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join("settings.json"))
 }
 
-/// 读已保存的时间参数（没有或读坏了返回 null，前端用默认值）。字段和校验在前端（settings.js）
+/// 读已保存的设置（没有或读坏了返回 null，前端用默认值）。字段和校验在前端（settings.js）
 #[tauri::command]
 fn load_settings(app: AppHandle) -> Option<serde_json::Value> {
     let s = std::fs::read_to_string(settings_file(&app)?).ok()?;
     serde_json::from_str::<serde_json::Value>(&s).ok().filter(|v| v.is_object())
+}
+
+fn cat_size_of(settings: &serde_json::Value) -> f64 {
+    settings["size"]
+        .as_f64()
+        .filter(|size| size.is_finite() && (SIZE_MIN..=SIZE_MAX).contains(size))
+        .unwrap_or(1.0)
+}
+
+/// 用物理像素固定右下角，缩放时只移动左上角。
+fn apply_cat_size(win: &WebviewWindow, size: f64) {
+    let Ok(k) = win.scale_factor() else { return };
+    let target = PhysicalSize::new(
+        (BASE_W * size * k).round() as u32,
+        (BASE_H * size * k).round() as u32,
+    );
+    let Ok(current) = win.outer_size() else { return };
+    if current.width.abs_diff(target.width) <= 1 && current.height.abs_diff(target.height) <= 1 {
+        return;
+    }
+    let Ok(pos) = win.outer_position() else { return };
+    let top_left = PhysicalPosition::new(
+        pos.x + (current.width as i32 - target.width as i32),
+        pos.y + (current.height as i32 - target.height as i32),
+    );
+    if win.set_size(target).is_ok() {
+        let _ = win.set_position(top_left);
+    }
 }
 
 /// 设置页每次改出合法值就调：写盘，再通知主窗口立即生效
@@ -196,6 +230,9 @@ fn save_settings(app: AppHandle, settings: serde_json::Value) -> Result<(), Stri
     }
     let text = serde_json::to_string_pretty(&settings).map_err(|e| e.to_string())?;
     std::fs::write(&f, text).map_err(|e| e.to_string())?;
+    if let Some(win) = app.get_webview_window("main") {
+        apply_cat_size(&win, cat_size_of(&settings));
+    }
     let _ = app.emit_to("main", "silly:settings", settings);
     Ok(())
 }
@@ -254,8 +291,8 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
     }
 }
 
-/// 设置窗口的默认高度：五个时间项加「显示状态条」开关放得下，留出一点余量（不同系统字体换行不同）。授权提示那块显示时，页面自己把窗口加高（settings.html）
-const SETTINGS_HEIGHT: f64 = 660.0;
+/// 设置窗口的默认高度，和 settings.html 的 BASE_H 一致。留一点字体换行余量，授权提示显示时由页面加高。
+const SETTINGS_HEIGHT: f64 = 724.0;
 
 fn show_settings(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {
@@ -302,12 +339,7 @@ fn save_pos(app: &AppHandle, p: SavedPos) {
 /// 主屏右下角（避开 Dock / 菜单栏）
 #[cfg(not(target_os = "windows"))]
 fn default_pos(win: &WebviewWindow) -> SavedPos {
-    let size = win
-        .outer_size()
-        .ok()
-        .zip(win.scale_factor().ok())
-        .map(|(s, k)| s.to_logical::<f64>(k))
-        .unwrap_or(tauri::LogicalSize::new(420.0, 345.0));
+    let size = logical_size(win);
     if let Ok(Some(m)) = win.primary_monitor() {
         let k = m.scale_factor();
         let wa = m.work_area();
@@ -322,7 +354,8 @@ fn default_pos(win: &WebviewWindow) -> SavedPos {
 #[cfg(not(target_os = "windows"))]
 fn on_some_screen(win: &WebviewWindow, p: SavedPos) -> bool {
     let Ok(monitors) = win.available_monitors() else { return false };
-    let (cx, cy) = (p.x + 210.0, p.y + 172.0);
+    let size = logical_size(win);
+    let (cx, cy) = (p.x + size.width / 2.0, p.y + size.height / 2.0);
     monitors.iter().any(|m| {
         let k = m.scale_factor();
         let pos = m.position().to_logical::<f64>(k);
@@ -343,14 +376,13 @@ fn moved_pos(win: &WebviewWindow, pos: PhysicalPosition<i32>) -> Option<SavedPos
     Some(SavedPos { x: l.x, y: l.y })
 }
 
-/// 窗口的逻辑尺寸（配置里是 420×345）
-#[cfg(target_os = "windows")]
+/// 窗口当前的逻辑尺寸，取不到时按 100% 算。
 fn logical_size(win: &WebviewWindow) -> tauri::LogicalSize<f64> {
     win.outer_size()
         .ok()
         .zip(win.scale_factor().ok())
         .map(|(s, k)| s.to_logical::<f64>(k))
-        .unwrap_or(tauri::LogicalSize::new(420.0, 345.0))
+        .unwrap_or(tauri::LogicalSize::new(BASE_W, BASE_H))
 }
 
 /// Windows：主屏工作区（已扣掉任务栏，任务栏在哪条边都行）右下角，全部按物理像素算；
@@ -430,6 +462,11 @@ fn main() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             let win = app.get_webview_window("main").expect("main window");
+            // 先恢复大小，屏幕检查和默认位置才能用缩放后的尺寸。
+            let size = load_settings(app.handle().clone()).as_ref().map_or(1.0, cat_size_of);
+            if size != 1.0 {
+                let _ = win.set_size(tauri::LogicalSize::new(BASE_W * size, BASE_H * size));
+            }
             let start = load_pos(app.handle()).filter(|p| on_some_screen(&win, *p)).unwrap_or_else(|| default_pos(&win));
             place(&win, start);
             let _ = win.show();
