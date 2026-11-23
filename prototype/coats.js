@@ -8,6 +8,17 @@
     <path class="coat-stripe" stroke-width="${width}" d="${d}"/>
     <path class="coat-stripe" stroke-width="${width}" transform="translate(800 0) scale(-1 1)" d="${d}"/>`;
   const cheeks = 'M 300 190 Q 288 191 270 185 M 302 204 Q 289 207 271 209';
+  // 一头粗一头尖的实心条纹：粗端在 (x1,y1)、宽 w，经控制点 (cx,cy) 收成尖到 (x2,y2)
+  const taper = (x1, y1, cx, cy, x2, y2, w) => {
+    const l = Math.hypot(cx - x1, cy - y1) || 1;
+    const nx = -(cy - y1) / l * w / 2, ny = (cx - x1) / l * w / 2;
+    const n = (v) => Math.round(v * 10) / 10;
+    return `M ${n(x1 + nx)} ${n(y1 + ny)} Q ${n(cx + nx / 2)} ${n(cy + ny / 2)} ${x2} ${y2}`
+      + ` Q ${n(cx - nx / 2)} ${n(cy - ny / 2)} ${n(x1 - nx)} ${n(y1 - ny)} A ${w / 2} ${w / 2} 0 0 0 ${n(x1 + nx)} ${n(y1 + ny)} Z`;
+  };
+  const mirrorFill = (d) => `
+    <path class="coat-solid-stripe" d="${d}"/>
+    <path class="coat-solid-stripe" transform="translate(800 0) scale(-1 1)" d="${d}"/>`;
 
   const coats = [
     { id: 'cow', name: '奶牛猫' },
@@ -31,15 +42,33 @@
         <stop offset="33%" class="coat-stop-stripe"/>
         <stop offset="33%" class="coat-stop-base"/>
       </linearGradient>`,
+      // 狸花：黄褐底、近黑的粗条纹；额头几道往眉心收拢的纹成 M，眼眶一圈浅色、眼角黑线扫向脸颊；
+      // 白色只留在嘴和下巴，胸口是稍浅的底色加项圈纹，手臂有横纹（style.css 的 .arm-stripes）
       head: `
         ${muzzle}
-        <path class="coat-stripe" stroke-width="7" d="M 352 128 L 366 96 L 384 122 L 400 92 L 416 122 L 434 96 L 448 128"/>
-        <path class="coat-stripe" stroke-width="5" d="M 380 74 Q 380 84 382 94 M 400 72 V 92 M 420 74 Q 420 84 418 94"/>
-        ${mirrorStripe('M 316 184 Q 300 183 288 176 ' + cheeks, 5)}`,
+        <path class="coat-solid-stripe" d="${taper(400, 60, 400, 98, 400, 124, 12)}"/>
+        ${mirrorFill([
+          taper(368, 104, 366, 124, 370, 141, 10),
+          taper(368, 104, 386, 113, 399, 127, 8),
+          taper(362, 68, 364, 88, 368, 106, 10),
+          taper(384, 62, 385, 84, 387, 104, 8),
+          taper(326, 80, 332, 98, 343, 114, 9),
+          taper(266, 168, 290, 172, 311, 181, 9),
+          taper(266, 192, 284, 194, 302, 196, 8),
+          taper(268, 212, 282, 212, 294, 209, 6),
+          taper(268, 140, 280, 141, 292, 138, 7),
+        ].join(' '))}`,
+      // 眼眶浅圈放进睁眼那组里：闭眼、眯眼笑时跟着眼睛一起隐藏，不会留下两个白圈
+      eye: (cx) => `<circle class="coat-rim" cx="${cx}" cy="178" r="34"/>`,
       body: `
-        ${bib}
-        <path class="coat-stripe" stroke-width="6" d="M 368 295 Q 400 314 432 295 M 359 316 Q 400 337 441 316"/>
-        ${mirrorStripe('M 325 289 Q 338 305 347 312 M 307 307 Q 316 330 336 343 M 295 334 Q 300 356 324 371 M 291 366 Q 297 385 316 397', 7)}`,
+        <ellipse class="coat-belly" cx="400" cy="348" rx="52" ry="74"/>
+        <path class="coat-stripe" stroke-width="8" d="M 346 290 Q 400 318 454 290 M 338 316 Q 400 348 462 316"/>
+        ${mirrorFill([
+          taper(296, 290, 312, 296, 330, 300, 10),
+          taper(292, 314, 308, 320, 326, 326, 10),
+          taper(290, 340, 306, 346, 324, 352, 9),
+          taper(290, 366, 306, 372, 322, 378, 9),
+        ].join(' '))}`,
       tail: { rings: [[0.23, 0.30], [0.39, 0.46], [0.55, 0.62], [0.71, 0.78]], tip: [0.88, 1] },
     },
     {
@@ -66,6 +95,12 @@
         if (coat.defs) defs.insertAdjacentHTML('beforeend', coat.defs);
         if (coat.head) head.insertAdjacentHTML('beforeend', `<g data-coat-pattern="${coat.id}">${coat.head}</g>`);
         if (coat.body) body.insertAdjacentHTML('beforeend', `<g data-coat-pattern="${coat.id}">${coat.body}</g>`);
+        if (coat.eye) {
+          for (const [side, cx] of [['l', 345], ['r', 455]]) {
+            document.getElementById('eye-' + side + '-open')
+              .insertAdjacentHTML('afterbegin', `<g data-coat-pattern="${coat.id}">${coat.eye(cx)}</g>`);
+          }
+        }
       }
       initialized = true;
     }

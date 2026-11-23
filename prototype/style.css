@@ -58,9 +58,12 @@ html[data-cat="orange"] {
 }
 
 html[data-cat="lihua"] {
-  --coat-base: #b8a27f;
-  --coat-stripe: #3f3328;
-  --coat-light: #efe4d0;
+  --coat-base: #a98a5f;
+  --coat-stripe: #2a221c;
+  --coat-light: #f4ede0;
+  --coat-belly: #c9b18b;
+  --coat-paw-l: var(--coat-base);
+  --coat-paw-r: var(--coat-base);
   --coat-ear: url(#coat-lihua-ear);
   --coat-inner-ear: #e3a3a0;
   --coat-iris: #c9d84f;
@@ -164,6 +167,8 @@ html:not([data-cat]) #scene { visibility: hidden; }
 #scene .coat-light { fill: var(--coat-light); }
 #scene .coat-solid-stripe { fill: var(--coat-stripe); }
 #scene .coat-stripe { fill: none; stroke: var(--coat-stripe); stroke-linecap: round; stroke-linejoin: round; }
+#scene .coat-belly { fill: var(--coat-belly); }
+#scene .coat-rim { fill: none; stroke: var(--coat-light); stroke-width: 7; }
 #scene .coat-stop-base { stop-color: var(--coat-base); }
 #scene .coat-stop-stripe { stop-color: var(--coat-stripe); }
 #scene .coat-stop-point { stop-color: var(--coat-point); }
@@ -206,6 +211,9 @@ html:not(:is([data-cat="orange"], [data-cat="lihua"])) #scene .tail-ring { displ
 #scene .arm-fill-l, #scene .arm-fill-r { fill: none; stroke-width: 24; stroke-linecap: round; }
 #scene .arm-fill-l { stroke: var(--coat-arm-l); }
 #scene .arm-fill-r { stroke: var(--coat-arm-r); }
+/* 手臂横纹：和手臂同一条中线的虚线描边，只有狸花显示 */
+#scene .arm-stripes { display: none; fill: none; stroke: var(--coat-stripe); stroke-width: 24; stroke-dasharray: 6 12; stroke-dashoffset: 10; }
+html[data-cat="lihua"] #scene .arm-stripes { display: inline; }
 #scene .toe-l, #scene .toe-r { fill: none; stroke-width: 3; stroke-linecap: round; opacity: var(--coat-toe-opacity); }
 #scene .toe-l { stroke: var(--coat-toe-l); }
 #scene .toe-r { stroke: var(--coat-toe-r); }

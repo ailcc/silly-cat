@@ -282,7 +282,7 @@
       return {
         side, held: [], releaseAt: 0, lastCode: null,
         x: rest.x, y: rest.y, press: 0, lift: 0,
-        els: { armOutline: $('arm-' + s + '-outline'), armFill: $('arm-' + s + '-fill'), paw: $('paw-' + s) },
+        els: { armOutline: $('arm-' + s + '-outline'), armFill: $('arm-' + s + '-fill'), armStripes: $('arm-' + s + '-stripes'), paw: $('paw-' + s) },
       };
     }
     function restPoint(side) {
@@ -531,6 +531,7 @@
         const d = `M ${f1(sh.x)} ${f1(sh.y)} Q ${f1(cx)} ${f1(cy)} ${f1(ex)} ${f1(ey)}`;
         paw.els.armOutline.setAttribute('d', d);
         paw.els.armFill.setAttribute('d', d);
+        paw.els.armStripes.setAttribute('d', d);
       }
       const at = turnTf(P);
       el.armG.l.setAttribute('transform', at);
