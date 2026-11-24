@@ -30,7 +30,11 @@
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const approach = (cur, target, dt, tau) => cur + (target - cur) * (1 - Math.exp(-dt / tau));
   const f1 = (v) => (Math.round(v * 10) / 10).toString();
-  const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  // Windows 上不跟随系统：浏览器内核在 Windows 上把「在 Windows 中显示动画」关掉当成减少动画，
+  // 而这个开关常被「最佳性能」、远程桌面、虚拟机顺手关掉，用户并没有要求少看动画。
+  // 跟随时键名不飘、不推杯子、不砸键盘，猫就少了大半表演。macOS 的「减弱动态效果」是专门打开的辅助功能，照常跟随。
+  const IS_WINDOWS = /Windows/i.test(navigator.userAgent || '');
+  const mq = !IS_WINDOWS && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
   const reducedMotion = () => !!(mq && mq.matches);
   const SVG_NS = 'http://www.w3.org/2000/svg';
   // 头部轮廓；b > 0 时两颊向外鼓（生气鼓腮帮），填色、裁切和描边用同一条路径
