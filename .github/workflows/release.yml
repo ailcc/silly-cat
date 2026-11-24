@@ -4,19 +4,31 @@
 #
 # 写法参照 Tauri 2 官方文档 https://v2.tauri.app/distribute/pipelines/github/ 和
 # https://github.com/tauri-apps/tauri-action （2026-11 查阅：tauri-action@v1、checkout@v7、setup-node@v6）。
-# 目前没有签名 / 公证：macOS 包是 ad-hoc 签名（见下面 APPLE_SIGNING_IDENTITY），下载后要在
-# 「系统设置 → 隐私与安全性」里放行；Windows 安装包会被 SmartScreen 提示「未知发布者」。
+# 手动运行只生成 workflow artifacts。macOS 有证书时固定签名，首次打开仍需在「隐私与安全性」放行。
 name: release
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      signing_mode:
+        description: macOS 签名方式（tauri 默认，script 用于自签证书导入失败时）
+        type: choice
+        default: tauri
+        options:
+          - tauri
+          - script
 
 jobs:
   build:
     permissions:
       contents: write # 创建 Release、上传安装包
+    env:
+      MACOS_HAS_CERTIFICATE: ${{ matrix.platform == 'macos-latest' && secrets.MACOS_SIGNING_CERT_P12_BASE64 != '' }}
+      MACOS_HAS_CERTIFICATE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.MACOS_SIGNING_CERT_PASSWORD != '' }}
+      MACOS_SIGNING_CERT_SHA1: ${{ matrix.platform == 'macos-latest' && vars.MACOS_SIGNING_CERT_SHA1 || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -56,24 +68,112 @@ jobs:
       #   - tauri.conf.json 的 bundle.windows 里填 certificateThumbprint / digestAlgorithm: "sha256" / timestampUrl，
       #     或者改用 signCommand（Azure Artifact Signing、Key Vault 等）。
 
-      - name: 构建并上传到草稿 Release
+      - name: 检查 macOS 签名配置
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        run: |
+          if [[ $MACOS_HAS_CERTIFICATE != true && $MACOS_HAS_CERTIFICATE_PASSWORD != true ]]; then
+            exit 0
+          fi
+          if [[ $MACOS_HAS_CERTIFICATE != true || $MACOS_HAS_CERTIFICATE_PASSWORD != true ]]; then
+            echo "::error::请同时配置或同时清除 MACOS_SIGNING_CERT_P12_BASE64 和 MACOS_SIGNING_CERT_PASSWORD。"
+            exit 1
+          fi
+          if [[ ! $MACOS_SIGNING_CERT_SHA1 =~ ^[0-9A-F]{40}$ ]]; then
+            echo "::error::请将 MACOS_SIGNING_CERT_SHA1 设置为 40 位大写十六进制证书指纹。"
+            exit 1
+          fi
+
+      - name: 用 Tauri 构建并上传
+        if: matrix.platform != 'macos-latest' || inputs.signing_mode != 'script'
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS 没有证书时用 ad-hoc 签名（"-"），否则 Apple Silicon 上从网上下载的包会被报「已损坏」。
-          # ---- 以后加 macOS 签名 / 公证：把下面这行换成真实的签名身份，并在仓库 Secrets 里加上这些变量
-          # （见 https://v2.tauri.app/distribute/sign/macos/ ）：
-          #   APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}                   # base64 的 .p12
-          #   APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          #   APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}         # Developer ID Application: ...
-          #   KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-          #   公证（二选一）：APPLE_ID / APPLE_PASSWORD（App 专用密码）/ APPLE_TEAM_ID，
-          #   或 APPLE_API_ISSUER / APPLE_API_KEY / APPLE_API_KEY_PATH
-          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && '-' || '' }}
+          APPLE_CERTIFICATE: ${{ env.MACOS_HAS_CERTIFICATE == 'true' && secrets.MACOS_SIGNING_CERT_P12_BASE64 || '' }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ env.MACOS_HAS_CERTIFICATE_PASSWORD == 'true' && secrets.MACOS_SIGNING_CERT_PASSWORD || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && (env.MACOS_HAS_CERTIFICATE == 'true' && env.MACOS_HAS_CERTIFICATE_PASSWORD == 'true' && env.MACOS_SIGNING_CERT_SHA1 || '-') || '' }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'SillyCat ${{ github.ref_name }}'
-          releaseBody: '捣蛋奶牛猫桌宠。macOS 下载 .dmg（Intel 和 Apple Silicon 通用），Windows 下载 -setup.exe。未签名，首次打开需要手动放行。'
+          # tauri-action 将空字符串视为未配置 Release。
+          tagName: ${{ github.event_name == 'push' && github.ref_name || '' }}
+          releaseName: ${{ github.event_name == 'push' && format('SillyCat {0}', github.ref_name) || '' }}
+          releaseBody: '捣蛋奶牛猫桌宠。macOS 下载 .dmg（Intel 和 Apple Silicon 通用），Windows 下载 -setup.exe。首次打开需要手动放行。'
           releaseDraft: true
           prerelease: false
+          uploadWorkflowArtifacts: ${{ github.event_name == 'workflow_dispatch' }}
           args: ${{ matrix.args }}
+
+      # 方案 B：--bundles app → macos-sign.sh → hdiutil 和 tar 打包 → 验签。
+      # 手动运行上传 workflow artifact。若 B 验收通过并切为标签发布路径，
+      # 将这两个同名资产上传到 Windows 步骤使用的同一个草稿 Release。
+      - name: 构建 macOS 应用
+        if: matrix.platform == 'macos-latest' && inputs.signing_mode == 'script'
+        env:
+          APPLE_SIGNING_IDENTITY: '-'
+        run: npm run desktop:build -- --target universal-apple-darwin --bundles app
+
+      - name: 用签名脚本签名并打包
+        if: matrix.platform == 'macos-latest' && inputs.signing_mode == 'script'
+        shell: bash
+        env:
+          MACOS_SIGNING_CERT_P12_BASE64: ${{ secrets.MACOS_SIGNING_CERT_P12_BASE64 }}
+          MACOS_SIGNING_CERT_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD }}
+        run: |
+          bundle=src-tauri/target/universal-apple-darwin/release/bundle
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          app="$bundle/macos/SillyCat.app"
+          tools/macos-sign.sh sign "$app"
+          mkdir -p "$bundle/dmg"
+          staging=$(mktemp -d)
+          trap 'rm -rf -- "$staging"' EXIT
+          ditto "$app" "$staging/SillyCat.app"
+          ln -s /Applications "$staging/Applications"
+          hdiutil create -volname SillyCat -srcfolder "$staging" -format UDZO \
+            "$bundle/dmg/SillyCat_${version}_universal.dmg"
+          tar -czf "$bundle/macos/SillyCat_${version}_universal.app.tar.gz" -C "$bundle/macos" SillyCat.app
+
+      - name: 验证 macOS 安装包签名
+        id: verify-mac
+        if: matrix.platform == 'macos-latest'
+        shell: bash
+        env:
+          SIGNING_MODE: ${{ inputs.signing_mode }}
+        run: |
+          bundle=src-tauri/target/universal-apple-darwin/release/bundle
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          dmg="$bundle/dmg/SillyCat_${version}_universal.dmg"
+          archive="$bundle/macos/SillyCat.app.tar.gz"
+          if [[ $SIGNING_MODE == script ]]; then
+            archive="$bundle/macos/SillyCat_${version}_universal.app.tar.gz"
+          fi
+
+          verify() {
+            if [[ $MACOS_HAS_CERTIFICATE == true ]]; then
+              tools/verify-mac-signing.sh "$1" "$MACOS_SIGNING_CERT_SHA1"
+            else
+              tools/verify-mac-signing.sh "$1"
+            fi
+          }
+          fence='```'
+          for artifact in "$dmg" "$archive"; do
+            result=$(verify "$artifact")
+            printf '%s\n' "$result"
+            printf '### %s\n\n%stext\n%s\n%s\n\n' "${artifact##*/}" "$fence" "$result" "$fence" >> "$GITHUB_STEP_SUMMARY"
+          done
+          printf 'dmg=%s\narchive=%s\n' "$dmg" "$archive" >> "$GITHUB_OUTPUT"
+
+      # tauri-action v1 上传 workflow artifacts 后才生成 .app.tar.gz。
+      - name: 上传 macOS 应用归档
+        if: matrix.platform == 'macos-latest' && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: SillyCat-universal-app-archive
+          path: ${{ steps.verify-mac.outputs.archive }}
+          if-no-files-found: error
+
+      - name: 上传签名脚本生成的 DMG
+        if: matrix.platform == 'macos-latest' && inputs.signing_mode == 'script'
+        uses: actions/upload-artifact@v7
+        with:
+          name: SillyCat-universal-script-dmg
+          path: ${{ steps.verify-mac.outputs.dmg }}
+          if-no-files-found: error

@@ -32,13 +32,13 @@
 
 ## 桌面版（Tauri 2，macOS / Windows；Windows 版只做过编译检查，没在 Windows 上运行过）
 
-- 开发运行：`npm install` 后 `npm run desktop`。打包：`npm run desktop:build`。macOS 出 `src-tauri/target/release/bundle/macos/SillyCat.app` 和 `bundle/dmg/*.dmg`；Windows 出 `bundle/nsis/*-setup.exe`。都未签名：macOS 首次打开要在「隐私与安全性」里放行，Windows 会被 SmartScreen 提示「未知发布者」。
+- 开发运行：`npm install` 后 `npm run desktop`。打包：`npm run desktop:build`。macOS 出 `src-tauri/target/release/bundle/macos/SillyCat.app` 和 `bundle/dmg/*.dmg`；Windows 出 `bundle/nsis/*-setup.exe`。本地 macOS 构建默认使用 ad-hoc 签名，配置证书的 CI 使用固定自签证书。macOS 首次打开仍要在「隐私与安全性」里放行，Windows 会被 SmartScreen 提示「未知发布者」。
 - 外壳在 `src-tauri/`，页面直接用 `prototype/`，没有打包步骤。页面在 Tauri 里会给 `<html>` 加 `desktop` class：隐藏标题和滑块、背景透明，输入来源从 `input.js` 换成 `input-desktop.js`。网页版不受影响。
 - 窗口默认 420×345，透明、无边框、置顶、不进 Dock。窗口随「猫的大小」按比例缩放（50%–200%），启动时先恢复大小再定位，之后缩放保持右下角不动。拖动滑块时，设置页每帧最多调用一次 `preview_cat_size` 来缩放窗口。预览只调整窗口，`save_settings` 写入文件并广播 `silly:settings`，滑块松手时立即保存。透明的地方点击会穿透到后面的应用（每 33ms 取一次全局指针位置做命中判断）。
 - 全局键鼠：两边都只取键位驱动动画，不记录、不落盘。Windows 用低级键鼠钩子（`src-tauri/src/win_input.rs`），不需要授权，但收不到以管理员身份运行的窗口、UAC 和锁屏界面里的按键。macOS 用只读的 CGEventTap（`src-tauri/src/tap.rs`），需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 SillyCat（键盘和鼠标按键都要这一项）；没授权时猫照常显示，只是不跟着打字。
 - macOS 收不到键盘输入时的提示：猫左上方冒出气泡「我看不到你打字 / 点这里处理」，点它打开设置窗口，顶部多出一块处理区（「打开输入监控设置」「重置授权」「重新启动 SillyCat」），授权正常后气泡和处理区都会自己收起。Windows 和网页版没有这些。
   - 判断方法：不看 `CGPreflightListenEventAccess`（结果在进程里有缓存），看 WindowServer 让不让键盘 tap 打开——没授权、或授权记录绑的是别的签名时，`CGEventTapCreate` 照样返回 tap，但 `CGEventTapIsEnabled` 为 false、开不起来。SillyCat 自己在前台（设置窗口在前面）时系统会放行它的 tap，这时不重新判断，沿用它上次在后台时的结论。
-  - 应用没有正式签名，每次构建签名都不同。授权绑在旧签名上时（例如先给本地构建授过权，再装了 CI 构建的版本），系统设置里的开关看起来是开的，但收不到按键，系统也不再弹授权窗口，系统日志里有 `Failed to match existing code requirement for subject com.drew.sillycat and service kTCCServiceListenEvent`。处理：设置窗口里点「重置授权」（应用自己执行 `/usr/bin/tccutil reset ListenEvent com.drew.sillycat`，只清本应用的这一条记录，再申请一次授权并打开输入监控设置），然后在列表里重新打开 SillyCat；打开后系统提示「退出并重新打开」就点它，没提示、或列表里没有 SillyCat，就点「重新启动 SillyCat」。
+  - ad-hoc 签名随构建变化。首个证书签名的版本需要重新授权一次，之后同一证书签名的版本会保留授权。授权绑在旧签名上时（例如先给本地构建授过权，再装了 CI 构建的版本），系统设置里的开关看起来是开的，但收不到按键，系统也不再弹授权窗口，系统日志里有 `Failed to match existing code requirement for subject com.drew.sillycat and service kTCCServiceListenEvent`。处理：设置窗口里点「重置授权」（应用自己执行 `/usr/bin/tccutil reset ListenEvent com.drew.sillycat`，只清本应用的这一条记录，再申请一次授权并打开输入监控设置），然后在列表里重新打开 SillyCat；打开后系统提示「退出并重新打开」就点它，没提示、或列表里没有 SillyCat，就点「重新启动 SillyCat」。
 - 按住头是摸头；按住身体、键盘、鼠标等其他地方拖动窗口，位置记在 `~/Library/Application Support/com.drew.sillycat/window-position.json`（Windows 在 `%APPDATA%\com.drew.sillycat\`，记的是物理像素）。
 - 菜单栏（托盘）图标：设置…、显示/隐藏猫、重置位置、打开输入监控设置（仅 macOS）、退出。
 - 右键猫、键盘、鼠标等有画面的地方，在指针位置弹出菜单：设置…、退出。
@@ -47,7 +47,10 @@
 - `settings.json` 的 `cat` 字段可填 `settings.js` 的 `CATS` 中的任一 ID，缺失或无效时用 `cow`。桌面版启动时等 `load_settings` 返回再显示选中的猫，读取失败时显示奶牛猫。设置页点头像后立即保存，主窗口收到 `silly:settings` 就切换。
 - 桌面版忽略 `?cat=`。支持 URL 的其他字段（含 `?statusbar=`、`?push=`、`?pushevery=`）在启动时按 URL 参数 > 已保存设置 > 默认值取值；之后在设置窗口里改的值覆盖 URL 参数。网页版不读也不写 settings.json，照旧用 URL 参数和控制栏。
 - 已知问题：其他应用全屏时猫可能不显示；在密码框里打字时系统不把按键交给监听，按住的键可能卡在按下状态。
-- 发布：推送 `v*` 标签后，GitHub Actions（`.github/workflows/release.yml`）会构建 macOS 通用版 dmg 和 Windows NSIS 安装包，挂到草稿 Release 上。v0.0.1、v0.0.2 都是这个流程打出来的。
+- 发布：推送 `v*` 标签后，GitHub Actions（`.github/workflows/release.yml`）会构建 macOS 通用版 dmg 和 Windows NSIS 安装包，挂到草稿 Release 上。手动运行只上传 workflow artifacts，默认由 Tauri 在打 DMG 前签名，也可以选 `signing_mode=script` 用脚本签完再打包。CI 验证 DMG 和应用归档的签名，并把签名要求写入运行摘要。
+  - 用 `tools/make-signing-cert.sh <仓库外的输出目录>` 生成一次固定证书。按脚本输出把 `.p12.base64` 和密码文件分别写入 Secrets `MACOS_SIGNING_CERT_P12_BASE64`、`MACOS_SIGNING_CERT_PASSWORD`，把证书 SHA-1 写入 Variable `MACOS_SIGNING_CERT_SHA1`。两个 Secrets 都没有时用 ad-hoc 签名。
+  - 将 `.p12` 和密码备份到密码管理器或离线介质。换证书，或丢失证书且无法从备份恢复时，所有用户都要重新授权。发布首个证书签名的版本时，在草稿 Release 说明里提醒用户重置一次输入监控授权。
+  - 本地验签时，把 `.p12.base64` 和密码从文件读入上述同名环境变量，运行 `tools/macos-sign.sh sign <SillyCat.app>`，再用 `tools/verify-mac-signing.sh <产物路径> <证书SHA-1>` 检查 `.app`、`.dmg` 或 `.app.tar.gz`。单架构本地测试包可在产物路径前加 `--allow-single-arch`。
 
 ## 手绘毛发部件
 
