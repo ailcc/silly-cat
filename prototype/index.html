@@ -333,12 +333,13 @@
   // 状态条：默认显示；?statusbar=0 关掉（网页版没有设置窗口）
   const statusBarParam = params.has('statusbar') ? !/^(0|false|off|no)$/i.test(params.get('statusbar')) : null;
   const pushParam = params.has('push') ? !/^(0|false|off|no)$/i.test(params.get('push')) : null;
+  const eyesParam = params.has('eyes') ? !/^(0|false|off|no)$/i.test(params.get('eyes')) : null;
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
   let fatigue = null, sleepMod = null, push = null, statusBar = null;
   const cat = SillyCat.createCat({
-    keyboard: kb, sleepSeconds: sleep, demo,
+    keyboard: kb, sleepSeconds: sleep, eyesFollow: eyesParam ?? SillySettings.DEFAULTS.eyesFollow, demo,
     modules: [
       (ctx) => (sleepMod = SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo })),
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
@@ -366,6 +367,7 @@
       if (use('rest')) fatigue.setRestSeconds(s.rest);
       if (!(skipUrl && statusBarParam !== null)) statusBar.setEnabled(s.statusBar);
       if (!(skipUrl && pushParam !== null)) push.setEnabled(s.push);
+      if (!(skipUrl && eyesParam !== null)) cat.setEyesFollow(s.eyesFollow);
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
     const T = window.__TAURI__;

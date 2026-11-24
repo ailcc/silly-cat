@@ -183,6 +183,11 @@
     <div id="push-hint" class="hint">醒着、你刚停手时，猫会把杯子推下去，60 秒后杯子回来。</div>
     <div class="err"></div>
   </div>
+  <div class="row" data-bool="eyesFollow">
+    <div class="head"><label for="f-eyesFollow">眼睛跟着鼠标</label>
+      <span class="field"><input id="f-eyesFollow" type="checkbox" aria-describedby="eyes-follow-hint"></span></div>
+    <div id="eyes-follow-hint" class="hint">醒着时，猫的眼睛会跟着鼠标指针看；指针停下几秒后收回目光。</div>
+  </div>
   <div class="row" data-bool="autoUpdate" hidden>
     <div class="head"><label for="f-autoUpdate">自动检查更新</label>
       <span class="field"><input id="f-autoUpdate" type="checkbox" aria-describedby="update-hint"></span></div>
@@ -442,7 +447,7 @@
   // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
   // 展开授权区时加高，收起时回到基础高度；两者都为屏幕工作区留 40 px，内容超出时可滚动。
   // BASE_H 和 main.rs 的 SETTINGS_HEIGHT 一致。
-  const BASE_W = 400, BASE_H = 1208;
+  const BASE_W = 400, BASE_H = 1288;
   const perm = document.getElementById('perm');
   const permMsg = document.getElementById('perm-msg');
   function setPermMsg(text, bad) { permMsg.textContent = text; permMsg.className = bad ? 'bad' : ''; }

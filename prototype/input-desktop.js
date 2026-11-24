@@ -81,6 +81,7 @@
     let over = false;         // 指针此刻是否在有画面的地方
     let ignoring = null;      // 窗口当前是否点击穿透
     let lastG = null;         // 上一次的全局指针位置
+    let lastLocal = null;     // 上一次用于视线的视口位置
     const status = { granted: null, keys: false, mouse: false, keyboard: null, needs_permission: false };
     const permBubble = sceneEl ? buildPermBubble(sceneEl) : null;
     let blockedStreak = 0;
@@ -230,6 +231,11 @@
             }
           }
           lastG = { x: c.gx, y: c.gy };
+          if (!lastLocal) lastLocal = { x: c.x, y: c.y };
+          else if (Math.hypot(c.x - lastLocal.x, c.y - lastLocal.y) >= 0.5) {
+            lastLocal = { x: c.x, y: c.y };
+            sink.pointerAt(c.x, c.y);
+          }
           over = hitAt(c.x, c.y);
           setIgnore(!(over || pet));
         }
