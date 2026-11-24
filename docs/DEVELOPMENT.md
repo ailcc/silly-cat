@@ -46,7 +46,8 @@
 - 设置窗口的基础高度由 `SETTINGS_HEIGHT` 和 `BASE_H` 一起定义。创建时按猫所在显示器的工作区逻辑高度减 40 px 封顶，取不到所在显示器时用主显示器，两者都取不到时用基础高度。页面展开或收起授权区时按 `screen.availHeight - 40` 封顶，内容超出时可上下滚动。
 - `settings.json` 的 `cat` 字段可填 `settings.js` 的 `CATS` 中的任一 ID，缺失或无效时用 `cow`。桌面版启动时等 `load_settings` 返回再显示选中的猫，读取失败时显示奶牛猫。设置页点头像后立即保存，主窗口收到 `silly:settings` 就切换。
 - 桌面版忽略 `?cat=`。支持 URL 的其他字段（含 `?statusbar=`、`?push=`、`?pushevery=`）在启动时按 URL 参数 > 已保存设置 > 默认值取值；之后在设置窗口里改的值覆盖 URL 参数。网页版不读也不写 settings.json，照旧用 URL 参数和控制栏。
-- 已知问题：其他应用全屏时猫可能不显示；在密码框里打字时系统不把按键交给监听，按住的键可能卡在按下状态。
+- macOS 上猫窗口在其他应用的原生全屏 Space 里也显示（`src-tauri/src/macos_window.rs`）：主窗口在首次 `show()` 前设置 `collectionBehavior = CanJoinAllSpaces | Stationary | CanJoinAllApplications`（`CanJoinAllApplications` 是 macOS 13 起的跨应用浮窗角色，我们最低 13），置顶时窗口层级设为 `NSStatusWindowLevel`（25）。设置失败只记日志，猫照常显示。验证：用 `CGWindowListCopyWindowInfo` 看到猫窗口 layer = 25、onscreen；另一个应用进入原生全屏后肉眼确认猫仍在（macOS 26.6.2）。设置窗口没有做这个处理。
+- 已知问题：在密码框里打字时系统不把按键交给监听，按住的键可能卡在按下状态。
 - 发布：推送 `v*` 标签后，GitHub Actions（`.github/workflows/release.yml`）会构建 macOS 通用版 dmg 和 Windows NSIS 安装包，挂到草稿 Release 上。手动运行只上传 workflow artifacts，默认由 Tauri 在打 DMG 前签名，也可以选 `signing_mode=script` 用脚本签完再打包。CI 验证 DMG 和应用归档的签名，并把签名要求写入运行摘要。
   - 用 `tools/make-signing-cert.sh <仓库外的输出目录>` 生成一次固定证书。按脚本输出把 `.p12.base64` 和密码文件分别写入 Secrets `MACOS_SIGNING_CERT_P12_BASE64`、`MACOS_SIGNING_CERT_PASSWORD`，把证书 SHA-1 写入 Variable `MACOS_SIGNING_CERT_SHA1`。两个 Secrets 都没有时用 ad-hoc 签名。
   - 将 `.p12` 和密码备份到密码管理器或离线介质。换证书，或丢失证书且无法从备份恢复时，所有用户都要重新授权。发布首个证书签名的版本时，在草稿 Release 说明里提醒用户重置一次输入监控授权。
