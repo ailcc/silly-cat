@@ -4,6 +4,10 @@
 // 「键盘输入收不到、要提示授权」只有 macOS 有（tap::keyboard_state），见 input_status。
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod updater;
+
+#[cfg(target_os = "macos")]
+mod macos_window;
 #[cfg(target_os = "macos")]
 mod tap;
 #[cfg(target_os = "macos")]
@@ -244,6 +248,7 @@ fn save_settings(app: AppHandle, settings: serde_json::Value) -> Result<(), Stri
     if let Some(win) = app.get_webview_window("main") {
         apply_cat_size(&win, cat_size_of(&settings));
     }
+    updater::set_auto(&app, &settings);
     let _ = app.emit_to("main", "silly:settings", settings);
     Ok(())
 }
@@ -277,6 +282,10 @@ const MENU_CTX_QUIT: &str = "ctx-quit";
 fn handle_menu_event(app: &AppHandle, id: &str) {
     match id {
         "prefs" | MENU_CTX_PREFS => show_settings(app),
+        "check-update" => {
+            show_settings(app);
+            updater::manual_check(app.clone());
+        }
         "quit" | MENU_CTX_QUIT => app.exit(0),
         _ => {
             let Some(win) = app.get_webview_window("main") else { return };
@@ -474,9 +483,13 @@ fn main() {
             preview_cat_size,
             save_settings,
             open_settings,
-            show_context_menu
+            show_context_menu,
+            updater::install_update,
+            updater::updater_configured,
+            updater::update_status
         ])
         .setup(|app| {
+            updater::setup(app.handle());
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
@@ -488,6 +501,13 @@ fn main() {
             }
             let start = load_pos(app.handle()).filter(|p| on_some_screen(&win, *p)).unwrap_or_else(|| default_pos(&win));
             place(&win, start);
+            // 全屏行为配置失败时只记日志，猫照常显示（只是可能进不了别的应用的全屏 Space）。
+            #[cfg(target_os = "macos")]
+            {
+                if let Err(e) = macos_window::configure_cat(&win) {
+                    eprintln!("[silly-cat] 设置跨全屏窗口行为失败：{e}");
+                }
+            }
             let _ = win.show();
 
             // 拖动后记住位置
@@ -503,6 +523,7 @@ fn main() {
 
             // 托盘菜单
             let prefs = MenuItem::with_id(app, "prefs", "设置…", true, None::<&str>)?;
+            let update = MenuItem::with_id(app, "check-update", "检查更新…", true, None::<&str>)?;
             let toggle = MenuItem::with_id(app, "toggle", "显示/隐藏猫", true, None::<&str>)?;
             let reset = MenuItem::with_id(app, "reset", "重置位置", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
@@ -511,10 +532,10 @@ fn main() {
             #[cfg(target_os = "macos")]
             let menu = {
                 let settings = MenuItem::with_id(app, "settings", "打开输入监控设置", true, None::<&str>)?;
-                Menu::with_items(app, &[&prefs, &toggle, &reset, &settings, &sep, &quit])?
+                Menu::with_items(app, &[&prefs, &update, &toggle, &reset, &settings, &sep, &quit])?
             };
             #[cfg(not(target_os = "macos"))]
-            let menu = Menu::with_items(app, &[&prefs, &toggle, &reset, &sep, &quit])?;
+            let menu = Menu::with_items(app, &[&prefs, &update, &toggle, &reset, &sep, &quit])?;
             let mut tray = TrayIconBuilder::with_id("main")
                 .tooltip("捣蛋奶牛猫")
                 .menu(&menu)

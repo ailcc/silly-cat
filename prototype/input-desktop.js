@@ -78,9 +78,37 @@
     const status = { granted: null, keys: false, mouse: false, keyboard: null, needs_permission: false };
     const permBubble = sceneEl ? buildPermBubble(sceneEl) : null;
     let blockedStreak = 0;
+    let updateNotice = null;
+    let visibleNotice = null;
+    const permissionNotice = { title: '我看不到你打字', detail: '点这里处理 ›' };
+    function refreshBubble() {
+      const notice = blockedStreak >= 2 ? permissionNotice : updateNotice;
+      if (!permBubble || notice === visibleNotice) return;
+      visibleNotice = notice;
+      permBubble.style.display = notice ? '' : 'none';
+      if (!notice) return;
+      permBubble.setAttribute('aria-label', [notice.title, notice.detail].filter(Boolean).join('，'));
+      permBubble.setAttribute('role', notice === permissionNotice || notice.installable ? 'button' : 'status');
+      const lines = permBubble.querySelectorAll('text');
+      [notice.title, notice.detail].forEach((value, i) => {
+        const line = lines[i];
+        const text = value || '';
+        // 设置页显示完整原因。猫旁的窄气泡只留一行，短版本号和进度可完整显示。
+        line.textContent = text.length > 20 ? text.slice(0, 19) + '…' : text;
+        line.removeAttribute('textLength');
+        if (line.getComputedTextLength() > 224) {
+          line.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+          line.setAttribute('textLength', '224');
+        }
+      });
+    }
+    function onUpdate(notice) {
+      updateNotice = notice;
+      refreshBubble();
+    }
     function updatePermBubble(s) {
       blockedStreak = s && s.needs_permission === true ? blockedStreak + 1 : 0;
-      if (permBubble) permBubble.style.display = blockedStreak >= 2 ? '' : 'none';
+      refreshBubble();
     }
     const inPermBubble = (t) => !!permBubble && isNode(t) && permBubble.contains(t);
 
@@ -165,7 +193,9 @@
       if (e.button !== 0) return;
       if (inPermBubble(e.target)) {
         e.preventDefault();
-        invoke('open_settings').catch(() => {});
+        if (visibleNotice === permissionNotice) invoke('open_settings').catch(() => {});
+        else if (visibleNotice?.installable) window.SillyUpdater.install(onUpdate);
+        else onUpdate(null);
         return;
       }
       const h = headEls.find((n) => isNode(e.target) && n.contains(e.target));
@@ -204,7 +234,7 @@
     window.addEventListener('pointercancel', onPointerUp);
     window.addEventListener('contextmenu', onContextMenu);
 
-    const unlisten = [];
+    const unlisten = [window.SillyUpdater.subscribe(onUpdate)];
     T.event.listen('silly:key', (ev) => onKey(ev.payload)).then((u) => unlisten.push(u));
     T.event.listen('silly:button', (ev) => onButton(ev.payload)).then((u) => unlisten.push(u));
     const timer = setInterval(poll, POLL_MS);
@@ -227,7 +257,7 @@
         get over() { return over; },
         get ignoring() { return ignoring; },
         get input() { return { ...status }; },
-        get permBubble() { return !!permBubble && permBubble.style.display !== 'none'; },
+        get permBubble() { return !!permBubble && visibleNotice === permissionNotice; },
         get held() { return [...heldKeys]; },
       }),
       destroy() {
