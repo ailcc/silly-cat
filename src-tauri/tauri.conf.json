@@ -50,13 +50,13 @@
       "minimumSystemVersion": "13.0"
     },
     "windows": {
-      "webviewInstallMode": {
-        "type": "offlineInstaller",
-        "silent": true
-      },
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["SimpChinese", "English"]
+        "languages": ["SimpChinese", "English"],
+        "customLanguageFiles": {
+          "SimpChinese": "installer/SimpChinese.nsh",
+          "English": "installer/English.nsh"
+        }
       }
     }
   },

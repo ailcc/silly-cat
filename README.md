@@ -15,7 +15,7 @@
 到本仓库的 [Releases 页面](../../releases/latest)下载安装包。
 
 - macOS 下载 `SillyCat_x.y.z_universal.dmg`，Intel 和 Apple 芯片通用。
-- Windows 下载 `SillyCat_x.y.z_x64-setup.exe`。安装包内置 WebView2 运行库，安装时不需要联网下载，系统里没有 WebView2 也能装。
+- Windows 下载 `SillyCat_x.y.z_x64-setup.exe`。
 
 应用没有正式签名。
 
@@ -65,6 +65,7 @@ SillyCat 只读取按键位置和鼠标事件来驱动动画，不记录或保�
 - **macOS 输入监控开着，猫还是不跟着打字。** 换过版本后，授权可能还绑在旧版本的签名上。在 SillyCat 的设置窗口点「重置授权」，然后在输入监控列表里重新打开 SillyCat。系统提示「退出并重新打开」时点它。若没有提示，或列表里找不到 SillyCat，就在设置窗口点「重新启动 SillyCat」。
 - **在密码框里打字，猫没反应。** 系统不会把这些按键交给监听，已经按住的键可能卡在按下状态。
 - **Windows 下只在某些窗口里不跟着打字。** 猫收不到以管理员身份运行的窗口里的按键。
+- **Windows 安装时提示「无法下载 WebView2」或「无法安装 WebView2」。** SillyCat 需要微软的 WebView2 运行库。系统里没有时，安装程序会联网到微软服务器下载，连不上就会失败。请先到[WebView2 运行库页面](https://github.com/S0u1/silly-cat/releases/tag/webview2-runtime)下载 `MicrosoftEdgeWebView2RuntimeInstallerX64.exe` 并安装，再重新运行 SillyCat 的安装程序。Windows 7 目前不支持。
 
 ## 接下来想做
 
