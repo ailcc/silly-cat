@@ -15,7 +15,7 @@
 到本仓库的 [Releases 页面](../../releases/latest)下载安装包。
 
 - macOS 下载 `SillyCat_x.y.z_universal.dmg`，Intel 和 Apple 芯片通用。
-- Windows 下载 `SillyCat_x.y.z_x64-setup.exe`。
+- Windows 下载 `SillyCat_x.y.z_x64-setup.exe`。安装包内置 WebView2 运行库，安装时不需要联网下载，系统里没有 WebView2 也能装。
 
 应用没有正式签名。
 

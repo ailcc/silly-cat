@@ -53,6 +53,7 @@
   - CI 里不把证书交给 tauri：tauri 收到 `APPLE_CERTIFICATE` 时只认通用名带 Apple 前缀（如 `Developer ID Application:`）的证书，自签证书会报 `failed to resolve signing identity`。工作流在签名前自己把证书导入临时钥匙串并设为「代码签名受信任」，只把证书 SHA-1 作为 `APPLE_SIGNING_IDENTITY` 交给 tauri。2026-11-24 在 CI 实测，`signing_mode=tauri` 和 `script` 两种方式产出的 DMG、应用归档签名要求一致：`identifier "com.drew.sillycat" and certificate leaf = H"<SHA-1>"`，均为 universal。
   - 将 `.p12` 和密码备份到密码管理器或离线介质。换证书，或丢失证书且无法从备份恢复时，所有用户都要重新授权。发布首个证书签名的版本时，在草稿 Release 说明里提醒用户重置一次输入监控授权。
   - 本地验签时，把 `.p12.base64` 和密码从文件读入上述同名环境变量，运行 `tools/macos-sign.sh sign <SillyCat.app>`，再用 `tools/verify-mac-signing.sh <产物路径> <证书SHA-1>` 检查 `.app`、`.dmg` 或 `.app.tar.gz`。单架构本地测试包可在产物路径前加 `--allow-single-arch`。
+- Windows 的 WebView2：`bundle.windows.webviewInstallMode` 用 `offlineInstaller`，安装包内置完整运行库（Tauri 文档写增加约 127MB），不依赖安装时联网。原来用默认的 `downloadBootstrapper`（安装时联网下载），在没有预装 WebView2 又连不上微软服务器的机器上会报「缺少 WebView2」。注意：Tauri 2 的 Windows 自更新直接下载这个 `-setup.exe`，所以每次 Windows 自更新也会下载这个体积。如果嫌大，可以改成两份安装包：更新用精简版（已装的机器必然有 WebView2），手动下载用离线版。
 
 ## 更新机制
 
