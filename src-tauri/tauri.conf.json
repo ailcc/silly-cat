@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "SillyCat",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "identifier": "com.drew.sillycat",
   "build": {
     "frontendDist": "../prototype"
@@ -65,7 +65,7 @@
       "requireSignedVersion": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgxOEI0MjRENTA0NjIyRUYKUldUdklrWlFUVUtMZ1M5dGkvcW1KSmoxdmg5VEJ0OHhMa0t5dDN1Q1o0SUJLRCtEQWtkN2NLRTYK",
       "endpoints": [
-        "https://github.com/S0u1/silly-cat/releases/latest/download/latest.json"
+        "https://github.com/ailcc/silly-cat/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

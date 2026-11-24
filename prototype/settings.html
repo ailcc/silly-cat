@@ -178,6 +178,21 @@
     <div id="push-hint" class="hint">醒着、你刚停手时，猫会把杯子推下去，60 秒后杯子回来。</div>
     <div class="err"></div>
   </div>
+  <div class="row" data-bool="sounds">
+    <div class="head"><label for="f-sounds">音效</label>
+      <span class="field"><input id="f-sounds" type="checkbox"></span></div>
+    <div class="hint">喵叫、踩奶的呼噜、砸键盘、敲碗声，全是现场合成的（网页版要先点过页面才出声）。</div>
+  </div>
+  <div class="row" data-stats>
+    <div class="head"><strong>小账本</strong>
+      <span class="field"><button type="button" id="stats-reset">清零</button></span></div>
+    <div class="hint" id="stats-line">累计按键 0 次 · 发飙 0 次 · 推杯 0 次</div>
+  </div>
+  <div class="row" data-affection>
+    <div class="head"><strong>好感度</strong>
+      <span class="field"><button type="button" id="affection-reset">清零</button></span></div>
+    <div class="hint" id="affection-line">♥ 0（陌生）· 常摸摸头会增进感情</div>
+  </div>
   <div class="row" data-bool="autoUpdate" hidden>
     <div class="head"><label for="f-autoUpdate">自动检查更新</label>
       <span class="field"><input id="f-autoUpdate" type="checkbox" aria-describedby="update-hint"></span></div>
@@ -195,6 +210,8 @@
 </footer>
 
 <script src="updater.js"></script>
+<script src="stats.js"></script>
+<script src="affection.js"></script>
 <script src="settings.js"></script>
 <script src="coats.js"></script>
 <script>
@@ -327,6 +344,35 @@
   });
 
   fill(S.DEFAULTS);
+  // ---------- 小账本：累计按键 / 发飙 / 推杯 ----------
+  const statsLine = document.getElementById('stats-line');
+  function refreshStats() {
+    const st = window.SillyStats.get();
+    statsLine.textContent = `累计按键 ${st.keys} 次 · 发飙 ${st.rage} 次 · 推杯 ${st.push} 次`;
+  }
+  document.getElementById('stats-reset').addEventListener('click', () => {
+    window.SillyStats.reset();
+    refreshStats();
+    setStatus('账本已清零', 'ok');
+  });
+  refreshStats();
+  setInterval(refreshStats, 1500);
+  // ---------- 好感度：摸头攒好感，够亲了会踩奶 ----------
+  const affectionLine = document.getElementById('affection-line');
+  function refreshAffection() {
+    const a = window.SillyAffection.get();
+    const next = a.v < 30 ? [30, '熟悉'] : a.v < 60 ? [60, '亲近'] : a.v < 100 ? [100, '死忠'] : null;
+    const tail = next ? `，还差 ${next[0] - a.v} 点到「${next[1]}」` : '，已经是最高级啦';
+    const knead = a.v >= 60 ? ' · 它会在你发呆时踩奶' : '';
+    affectionLine.textContent = `♥ ${a.v}（${a.tier}）${tail}${knead}`;
+  }
+  document.getElementById('affection-reset').addEventListener('click', () => {
+    window.SillyAffection.reset();
+    refreshAffection();
+    setStatus('好感度已清零', 'ok');
+  });
+  refreshAffection();
+  setInterval(refreshAffection, 1500);
   if (invoke) {
     const updateResult = document.getElementById('update-result');
     const install = document.getElementById('update-install');

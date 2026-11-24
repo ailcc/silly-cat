@@ -225,6 +225,10 @@
 
     function render(now, dt, rm) {
       const frame = view(now);
+      if (run && run.acting && !run.counted && now - run.start >= SHOVE) {
+        run.counted = true;
+        if (window.SillyStats) window.SillyStats.addPush(); // 小账本：真把杯子推出去了 +1
+      }
       const shown = (enabled || demo) && frame.opacity > 0;
       E.mug.style.display = shown ? '' : 'none';
       if (!shown) return;

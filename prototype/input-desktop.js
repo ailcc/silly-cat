@@ -263,6 +263,8 @@
       }
       if (inScene(e.target)) {
         e.preventDefault();
+        // 抓尾巴是给 pull-tail.js 的「拉尾巴会生气」，不算拖窗口
+        if (isNode(e.target) && e.target.closest && e.target.closest('#tail, #tail-front')) return;
         if (positionLocked === false) appWin.startDragging().catch(() => {});
       }
     }

@@ -117,6 +117,7 @@
       F.impactsDone = 0; F.mouseHitDone = false; F.splitDone = false; F.patDone = false;
       ctx.releaseAll();
       S.excited = false;
+      if (window.SillyStats) window.SillyStats.addRage(); // 小账本：发飙 +1
       if (ctx.reducedMotion()) { brokenStatic(t, false); F.impactsDone = IMPACTS.length; F.mouseHitDone = F.splitDone = true; }
     }
     function enterStrike(t) {
@@ -578,6 +579,7 @@
           F.broken = true;
           spawnCaps(F.impactsDone, now);
           shake(now, 180, 7);
+          if (window.SillySounds) window.SillySounds.play('smash');
           F.impactsDone++;
         }
         const tm = t - MOUSE_T0;
@@ -585,6 +587,7 @@
           F.mouseHitDone = true;
           const T = slamPoint();
           shake(now, 170, 9); impactLines(T.x, T.y + 18, now);
+          if (window.SillySounds) window.SillySounds.play('smash');
         }
         if (tm >= M_SPLIT && !F.splitDone) { F.splitDone = true; shatterMouse(now); }
         if (tm >= M_PAT1 - 20 && !F.patDone) { F.patDone = true; shake(now, 90, 4); }
@@ -701,6 +704,8 @@
       refresh, overrideState, block, keycapStyle, afterKeyDown, forcedPawTarget, pose, render,
       setWorkSeconds(v) { workSec = clamp(+v || 90, 1, 36000); },
       setRestSeconds(v) { restSec = clamp(+v || 20, 1, 36000); },
+      // 外部模块给猫添堵用（拉尾巴、被吵醒……）：涨一截疲劳，发飙 / 罢工 / 修理期间不算
+      bump(dv) { if (!F.rage && !F.strike && !F.repair) F.v = clamp(F.v + (+dv || 0), 0, 1); },
       // 只读：给状态条用。fatigue = 疲劳值 0–1；phase = 'rage' | 'strike' | 'repair' | null；
       // rest = 罢工时已累计休息 / 需要休息的时长（0–1），不在罢工时为 null
       statusInfo() {

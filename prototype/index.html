@@ -296,8 +296,21 @@
 <script src="coats.js"></script>
 <script src="cat.js"></script>
 <script src="sleep.js"></script>
+<script src="sounds.js"></script>
 <script src="fatigue.js"></script>
+<script src="pounce.js"></script>
 <script src="push.js"></script>
+<script src="idle-gestures.js"></script>
+<script src="easter-words.js"></script>
+<script src="poke.js"></script>
+<script src="pull-tail.js"></script>
+<script src="coffee.js"></script>
+<script src="meal.js"></script>
+<script src="icons.js"></script>
+<script src="zoomies.js"></script>
+<script src="shed-fur.js"></script>
+<script src="stats.js"></script>
+<script src="affection.js"></script>
 <script src="statusbar.js"></script>
 <script src="input.js"></script>
 <script src="updater.js"></script>
@@ -333,6 +346,7 @@
   // 状态条：默认显示；?statusbar=0 关掉（网页版没有设置窗口）
   const statusBarParam = params.has('statusbar') ? !/^(0|false|off|no)$/i.test(params.get('statusbar')) : null;
   const pushParam = params.has('push') ? !/^(0|false|off|no)$/i.test(params.get('push')) : null;
+  const soundsParam = params.has('sounds') ? !/^(0|false|off|no)$/i.test(params.get('sounds')) : null;
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
@@ -340,9 +354,22 @@
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep, demo,
     modules: [
+      (ctx) => window.SillySounds.create(ctx), // 第一个注册：借输入事件解锁音频
       (ctx) => (sleepMod = SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo })),
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
+      (ctx) => SillyPounce.create(ctx, { demo }),
       (ctx) => (push = SillyPush.create(ctx, { enabled: pushParam ?? true, everySeconds: pushEveryParam, demo })),
+      (ctx) => SillyIdleGestures.create(ctx, { demo }),
+      (ctx) => SillyEasterWords.create(ctx, { demo }),
+      (ctx) => SillyPoke.create(ctx, { demo }),
+      (ctx) => SillyPullTail.create(ctx, { demo, fatigue }),
+      (ctx) => SillyCoffee.create(ctx, { demo, push, fatigue }),
+      (ctx) => SillyMeal.create(ctx, { demo }),
+      (ctx) => SillyIcons.create(ctx, { demo }),
+      (ctx) => SillyZoomies.create(ctx, { demo }),
+      (ctx) => SillyShed.create(ctx, { demo, sleep: sleepMod }),
+      (ctx) => window.SillyStats.create(ctx),
+      (ctx) => SillyAffection.create(ctx, { demo }),
       (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, enabled: statusBarParam ?? true })),
       SillyCoats.shapeModule,
     ],
@@ -366,6 +393,7 @@
       if (use('rest')) fatigue.setRestSeconds(s.rest);
       if (!(skipUrl && statusBarParam !== null)) statusBar.setEnabled(s.statusBar);
       if (!(skipUrl && pushParam !== null)) push.setEnabled(s.push);
+      if (!(skipUrl && soundsParam !== null)) window.SillySounds.setEnabled(s.sounds);
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
     const T = window.__TAURI__;
