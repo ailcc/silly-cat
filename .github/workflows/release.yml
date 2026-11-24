@@ -103,6 +103,38 @@ jobs:
             echo 'args=--config ci-no-updater.json' >> "$GITHUB_OUTPUT"
           fi
 
+      # tauri 拿到 APPLE_CERTIFICATE 时只认通用名带 Apple 前缀（Developer ID Application: 等）的证书，
+      # 自签证书会报 failed to resolve signing identity。所以这里自己导入证书，设为代码签名受信任，
+      # 再只给 tauri 一个 APPLE_SIGNING_IDENTITY（证书指纹），让它直接用钥匙串里已有的身份签名。
+      - name: 导入并信任自签证书
+        if: matrix.platform == 'macos-latest' && env.MACOS_HAS_CERTIFICATE == 'true' && env.MACOS_HAS_CERTIFICATE_PASSWORD == 'true' && inputs.signing_mode != 'script'
+        shell: bash
+        env:
+          P12_BASE64: ${{ secrets.MACOS_SIGNING_CERT_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.MACOS_SIGNING_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/sillycat-sign"
+          mkdir -p "$dir"
+          printf '%s' "$P12_BASE64" | base64 -d > "$dir/c.p12"
+          kc="$dir/sillycat.keychain-db"
+          kcpw=$(uuidgen)
+          security create-keychain -p "$kcpw" "$kc"
+          security set-keychain-settings -lut 21600 "$kc"
+          security unlock-keychain -p "$kcpw" "$kc"
+          security import "$dir/c.p12" -k "$kc" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$kcpw" "$kc" >/dev/null
+          # 加入用户搜索列表，codesign 才能按指纹找到身份
+          existing=$(security list-keychains -d user | tr -d '"')
+          # shellcheck disable=SC2086
+          security list-keychains -d user -s "$kc" $existing
+          openssl pkcs12 -in "$dir/c.p12" -passin env:P12_PASSWORD -nokeys -clcerts -out "$dir/c.pem" \
+            || openssl pkcs12 -legacy -in "$dir/c.p12" -passin env:P12_PASSWORD -nokeys -clcerts -out "$dir/c.pem"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain "$dir/c.pem"
+          rm -f "$dir/c.p12" "$dir/c.pem"
+          security find-identity -v -p codesigning | grep -F "$MACOS_SIGNING_CERT_SHA1" \
+            || { echo "::error::导入后找不到指纹为 $MACOS_SIGNING_CERT_SHA1 的有效签名身份"; exit 1; }
+
       - name: 用 Tauri 构建并上传
         if: matrix.platform != 'macos-latest' || inputs.signing_mode != 'script'
         uses: tauri-apps/tauri-action@v1
@@ -110,8 +142,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_CERTIFICATE: ${{ env.MACOS_HAS_CERTIFICATE == 'true' && secrets.MACOS_SIGNING_CERT_P12_BASE64 || '' }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ env.MACOS_HAS_CERTIFICATE_PASSWORD == 'true' && secrets.MACOS_SIGNING_CERT_PASSWORD || '' }}
           APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && (env.MACOS_HAS_CERTIFICATE == 'true' && env.MACOS_HAS_CERTIFICATE_PASSWORD == 'true' && env.MACOS_SIGNING_CERT_SHA1 || '-') || '' }}
         with:
           # tauri-action 将空字符串视为未配置 Release。
