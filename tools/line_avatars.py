@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 
@@ -94,6 +95,8 @@ def main():
     styles = "\n".join(css.split(f"/* portrait-{block}:start */")[1]
                        .split(f"/* portrait-{block}:end */")[0].replace("html", "svg")
                        for block in ("palette", "face"))
+    # 线条头像用不到只在毛绒画风生效的规则（如英短蓝的眨眼眼皮色），去掉免得头像里留着无效样式。
+    styles = re.sub(r'^svg[^{\n]*:not\(\[data-art-style="line"\]\)[^{\n]*\{[^}]*\}\n', "", styles, flags=re.M)
     directory = PROTOTYPE / "cats" / "line"
     directory.mkdir(parents=True, exist_ok=True)
     for portrait in data["portraits"]:
