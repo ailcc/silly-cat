@@ -20,21 +20,22 @@
     <path class="coat-solid-stripe" d="${d}"/>
     <path class="coat-solid-stripe" transform="translate(800 0) scale(-1 1)" d="${d}"/>`;
 
+  function art(id, { headWidth = 300, tailScale = 1 } = {}) {
+    return {
+      base: `art/${id}/`,
+      head: { cx: 400, cy: 176, width: headWidth },
+      ear: { x: 278, y: 24, width: 110 },
+      body: { cx: 400, y: 246, width: 240 },
+      paw: { cx: 0, cy: -2, width: 66 },
+      arm: { width: 54, top: 18, bottom: 12, segments: 8 },
+      tail: { fringe: 6, segments: 16, scale: tailScale },
+    };
+  }
+
   const coats = [
+    { id: 'cow', name: '奶牛猫', art: art('cow') },
     {
-      id: 'cow', name: '奶牛猫',
-      art: {
-        base: 'art/cow/',
-        head: { cx: 400, cy: 176, width: 300 },
-        ear: { x: 278, y: 24, width: 110 },
-        body: { cx: 400, y: 246, width: 240 },
-        paw: { cx: 0, cy: -2, width: 66 },
-        arm: { width: 54, top: 18, bottom: 12, segments: 8 },
-        tail: { fringe: 6, segments: 16 },
-      },
-    },
-    {
-      id: 'orange', name: '橘猫',
+      id: 'orange', name: '橘猫', art: art('orange'),
       head: `
         ${muzzle}
         <path class="coat-solid-stripe" d="M 395.5 78 Q 400 74 404.5 78 Q 405 105 400 128 Q 395 112 395.5 78 Z
@@ -61,7 +62,7 @@
       shape: { bodySX: 1.24, bodySY: 0.95, headSX: 1.08 }, // 十个橘猫九个胖：身体宽一圈、稍矮，脸也圆一点
     },
     {
-      id: 'lihua', name: '狸花猫',
+      id: 'lihua', name: '狸花猫', art: art('lihua'),
       defs: `<linearGradient id="coat-lihua-ear" x2="0%" y2="100%">
         <stop offset="33%" class="coat-stop-stripe"/>
         <stop offset="33%" class="coat-stop-base"/>
@@ -110,7 +111,7 @@
       tail: { rings: [[0.23, 0.30], [0.39, 0.46], [0.55, 0.62], [0.71, 0.78]], tip: [0.88, 1] },
     },
     {
-      id: 'siamese', name: '暹罗猫',
+      id: 'siamese', name: '暹罗猫', art: art('siamese'),
       defs: `<radialGradient id="coat-siamese-mask">
         <stop offset="38%" class="coat-stop-point"/>
         <stop offset="68%" class="coat-stop-transition"/>
@@ -119,6 +120,15 @@
       head: '<ellipse fill="url(#coat-siamese-mask)" cx="400" cy="200" rx="96" ry="84"/>',
       shape: { bodySX: 0.9, headSX: 0.95, ear: 1.2 }, // 身材细长、脸窄一点、耳朵大
     },
+    { id: 'black', name: '黑猫', art: art('black') },
+    { id: 'calico', name: '三花猫', art: art('calico') },
+    { id: 'blue', name: '英短蓝猫', art: art('blue', { tailScale: 1.15 }),
+      shape: { bodySX: 1.15, bodySY: 0.96, headSX: 1.1, ear: 0.85 } },
+    { id: 'white', name: '异瞳白猫', art: art('white') },
+    { id: 'maine', name: '缅因猫', art: art('maine', { headWidth: 320, tailScale: 1.45 }),
+      shape: { bodySX: 1.12, bodySY: 1.03, headSX: 1.05, ear: 1.15 } },
+    { id: 'sphynx', name: '无毛猫', art: art('sphynx', { tailScale: 0.7 }),
+      shape: { bodySX: 0.88, headSX: 0.94, ear: 1.3 } },
   ];
 
   const root = document.documentElement;

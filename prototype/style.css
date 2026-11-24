@@ -1,3 +1,4 @@
+/* portrait-palette:start */
 :root {
   --ink: #1d1b22;
   --fur-black: #26232b;
@@ -25,13 +26,18 @@
   --coat-tail: var(--fur-black);
   --coat-tail-tip: var(--fur-white);
   --coat-iris: var(--iris);
+  --coat-iris-l: var(--coat-iris);
+  --coat-iris-r: var(--coat-iris);
+  --coat-whisker: var(--ink);
+  --coat-whisker-opacity: 1;
+  --coat-brow: var(--ink);
   --coat-nose: var(--pink);
   --coat-mouth-line: var(--ink);
   --coat-blush-opacity: 0.45;
   --coat-brow-l: #8f8898;
 }
 
-html:is([data-cat="orange"], [data-cat="lihua"], [data-cat="siamese"]) {
+html[data-cat]:where(:not([data-cat="cow"])) {
   --coat-lid-l: var(--coat-base);
   --coat-lid-r: var(--coat-base);
   --coat-eye-arc-l: var(--ink);
@@ -89,6 +95,60 @@ html[data-cat="siamese"] {
   --coat-mouth-line: #eadfcd;
   --coat-blush-opacity: 0;
 }
+
+html:is([data-cat="black"], [data-cat="calico"], [data-cat="blue"],
+        [data-cat="white"], [data-cat="maine"], [data-cat="sphynx"]) {
+  --coat-ear: var(--coat-base);
+  --coat-paw-l: var(--coat-base);
+  --coat-paw-r: var(--coat-base);
+  --coat-tail: var(--coat-base);
+  --coat-tail-tip: var(--coat-base);
+  --coat-brow-l: var(--coat-brow);
+}
+html[data-cat="black"] {
+  --coat-base: #26232b;
+  --coat-eye-arc-l: #e8e2ec;
+  --coat-eye-arc-r: #e8e2ec;
+  --coat-iris: #f0c030;
+  --coat-nose: #3a3036;
+  --coat-mouth-line: #d8d0dc;
+  --coat-whisker: #d8d0dc;
+  --coat-brow: #e8e2ec;
+  --coat-brow-l: var(--coat-brow);
+  --coat-blush-opacity: 0;
+}
+html[data-cat="calico"] {
+  --coat-base: #fffdf8;
+  --coat-lid-l: #26232b;
+  --coat-eye-arc-l: #e8e2ec;
+  --coat-iris: #e0a63a;
+  --coat-blush-opacity: 0.4;
+}
+html[data-cat="blue"] {
+  --coat-base: #8d9aaa;
+  --coat-iris: #e3963a;
+  --coat-nose: #6b6f7c;
+  --coat-blush-opacity: 0.2;
+}
+html[data-cat="white"] {
+  --coat-base: #fffdf8;
+  --coat-iris-l: #6cb8ec;
+  --coat-iris-r: #e8b84a;
+}
+html[data-cat="maine"] {
+  --coat-base: #c3c7cd;
+  --coat-iris: #b9c845;
+  --coat-nose: #c27c6c;
+  --coat-blush-opacity: 0.25;
+}
+html[data-cat="sphynx"] {
+  --coat-base: #e6c3b3;
+  --coat-iris: #b8d86a;
+  --coat-nose: #d98f8f;
+  --coat-whisker-opacity: 0.35;
+  --coat-blush-opacity: 0.5;
+}
+/* portrait-palette:end */
 
 * { box-sizing: border-box; }
 
@@ -155,6 +215,7 @@ html:not([data-cat]) #scene { visibility: hidden; }
 .status b { font-weight: 600; min-width: 4em; display: inline-block; }
 
 /* ---------- SVG ---------- */
+/* portrait-face:start */
 #scene .ink { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 #scene .ink-line { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 #scene .ink-thin { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -183,7 +244,8 @@ html:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"] { display: n
 #scene .shadow { fill: var(--ink); opacity: 0.1; }
 
 #scene .sclera { fill: var(--fur-white); }
-#scene .iris { fill: var(--coat-iris); }
+#scene #iris-l { fill: var(--coat-iris-l); }
+#scene #iris-r { fill: var(--coat-iris-r); }
 #scene .pupil { fill: var(--ink); }
 #scene .shine { fill: #fff; }
 #scene .lid-l { fill: var(--coat-lid-l); }
@@ -193,8 +255,10 @@ html:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"] { display: n
 #scene .eye-arc-l, #scene .eye-arc-r { fill: none; stroke-width: 5; stroke-linecap: round; }
 #scene .eye-arc-l { stroke: var(--coat-eye-arc-l); }
 #scene .eye-arc-r { stroke: var(--coat-eye-arc-r); }
-#scene .whisker { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+#scene .whisker { fill: none; stroke: var(--coat-whisker); opacity: var(--coat-whisker-opacity); stroke-width: 3; stroke-linecap: round; }
 #scene .fang { fill: #fff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+
+/* portrait-face:end */
 
 /* 正面尾巴：实心轮廓（cat.js 按中线算出粗细渐变、圆尾尖）；白尾尖往里缩半个描边宽度 */
 #scene .tail-body { fill: var(--coat-tail); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
@@ -282,7 +346,7 @@ html[data-cat="lihua"] #scene .arm-stripes { display: inline; }
 #scene .tuft { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
 
 /* ---------- 疲劳与情绪（fatigue.js） ---------- */
-#scene .brow { fill: none; stroke: var(--ink); stroke-width: 5; stroke-linecap: round; }
+#scene .brow { fill: none; stroke: var(--coat-brow); stroke-width: 5; stroke-linecap: round; }
 #scene .brow-light { fill: none; stroke: var(--coat-brow-l); stroke-width: 5; stroke-linecap: round; }
 #scene .sweat { fill: #cfe8ff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
 #scene .sigh { fill: #f3f1ee; stroke: var(--ink); stroke-width: 2; }

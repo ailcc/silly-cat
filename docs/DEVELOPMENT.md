@@ -5,7 +5,7 @@
 - 运行：`npm start`（等于 `python3 -m http.server 4317 --bind 0.0.0.0 --directory prototype`），打开 http://localhost:4317/
 - `?sleep=5` 设置入睡时间；`?drool=` `?slump=` 覆盖流口水、趴下的时刻（从最后一次输入算起的秒数）；`?work=` 连续打字多久会生气，`?rest=` 罢工后休息多久消气。URL 参数可以超出滑块范围，控制台里 `window.__cat` 是只读调试信息。
 - `?push=0` 关闭推东西；`?pushevery=秒` 设置推杯子的随机间隔基准（默认 600 秒，URL 参数夹在 5–36000 秒）。
-- `?cat=cow|orange|lihua|siamese` 选择猫，网页控制栏也可以切换。`prototype/cats/*.svg` 是设置页的静态头像（奶牛猫由下文的资源脚本更新），改了某只猫的正面花纹后要重新导出对应的头像。
+- `?cat=猫ID` 选择猫，网页控制栏也可以切换。`prototype/cats/*.svg` 是设置页的静态头像（有手绘部件时由下文的资源脚本更新），改了某只猫的正面花纹后要重新导出对应的头像。
 - 键盘和鼠标朝向猫摆放（猫是使用者，观众看到的键帽字是倒的）。凡是说左右的地方（`__cat.paws.left/right`、代码里的 `'L'/'R'`、`mouseSide`）都按猫自己的左右：`left` = 猫的左爪 = 观众右侧那只白爪。
 - 鼠标用尾巴操作：鼠标一动，尾巴从身后绕过身体一侧（鼠标在哪边就绕哪边）伸到前面，尾尖搭在鼠标上跟着动；点击时尾尖压到按的那颗键上，松开弹一下；鼠标停下 1.5 秒后收回身后接着摆。伸出 0.38 秒、收回 0.52 秒。两只爪子一直留在键盘上照常打字（空格默认用鼠标那一侧的爪，它正按着别的键就换另一只）。只有发飙抓鼠标砸、消气后修鼠标时才用爪子；发飙时尾巴先收回去再抓。`prefers-reduced-motion` 下尾巴直接切换，不做过渡。
 - 鼠标相关的调试字段：`__cat.paws.left/right` 是爪子此刻的目标（键名、`rest`、发飙/修理时的 `rage`/`repair` 等），不会再出现 `mouse`；`__cat.mouseSide` 仍是鼠标摆在猫的哪一侧；`__cat.tail` 是尾巴和鼠标的关系：`idle` 收在身后、`reaching` 伸出途中、`on-mouse` 搭在鼠标上、`retracting` 收回途中；`__cat.tailReach` 是伸出进度 0–1（按渲染帧推进，后台标签页里会落后）。
@@ -44,7 +44,7 @@
 - 右键猫、键盘、鼠标等有画面的地方，在指针位置弹出菜单：设置…、退出。
 - 设置窗口：从右键菜单或菜单栏图标里的「设置…」打开（已经开着就带到前面，Esc 关闭；关掉不会退出应用）。页面是 `prototype/settings.html`，字段表和校验在 `prototype/settings.js`。时间参数都按秒填：入睡时间（默认 20，5–3600）；开始流口水、趴到键盘上的时刻（从最后一次操作算起，6/7–10800，留空 = 自动，即入睡时间 × 2、× 3.5；必须入睡 < 流口水 < 趴下）；连续打字多久发飙（默认 90，15–36000）；罢工后歇多久消气（默认 20，5–3600）；大约多久推一次东西（默认 600，60–36000）。「显示状态条」和「推东西」默认开启。改出合法值后立即生效并写入 `~/Library/Application Support/com.drew.sillycat/settings.json`，下次启动自动读取；「恢复默认」回到上面的默认值。
 - 设置窗口的基础高度由 `SETTINGS_HEIGHT` 和 `BASE_H` 一起定义。创建时按猫所在显示器的工作区逻辑高度减 40 px 封顶，取不到所在显示器时用主显示器，两者都取不到时用基础高度。页面展开或收起授权区时按 `screen.availHeight - 40` 封顶，内容超出时可上下滚动。
-- `settings.json` 的 `cat` 字段可填 `cow`、`orange`、`lihua`、`siamese`，缺失或无效时用 `cow`。桌面版启动时等 `load_settings` 返回再显示选中的猫，读取失败时显示奶牛猫。设置页点头像后立即保存，主窗口收到 `silly:settings` 就切换。
+- `settings.json` 的 `cat` 字段可填 `settings.js` 的 `CATS` 中的任一 ID，缺失或无效时用 `cow`。桌面版启动时等 `load_settings` 返回再显示选中的猫，读取失败时显示奶牛猫。设置页点头像后立即保存，主窗口收到 `silly:settings` 就切换。
 - 桌面版忽略 `?cat=`。支持 URL 的其他字段（含 `?statusbar=`、`?push=`、`?pushevery=`）在启动时按 URL 参数 > 已保存设置 > 默认值取值；之后在设置窗口里改的值覆盖 URL 参数。网页版不读也不写 settings.json，照旧用 URL 参数和控制栏。
 - 已知问题：其他应用全屏时猫可能不显示；在密码框里打字时系统不把按键交给监听，按住的键可能卡在按下状态。
 - 发布：推送 `v*` 标签后，GitHub Actions（`.github/workflows/release.yml`）会构建 macOS 通用版 dmg 和 Windows NSIS 安装包，挂到草稿 Release 上。v0.0.1、v0.0.2 都是这个流程打出来的。
@@ -53,10 +53,11 @@
 
 网页与桌面主窗口都通过 `SillyCoats.apply(id)` 换猫。`index.html` 先加载 `art.js`、各猫的尺寸清单，再加载 `coats.js`。只有同时具备毛色的 `art` 配置和清单条目的部件才会替换对应矢量。切走时移除图片和切片，恢复原花纹与轮廓。眼睛、鼻口、牙齿、胡须、腮红、鼻边黑点、键鼠、杯子和特效继续由矢量绘制。头图鼓腮时绕 (400, 205) 缩放，压痕仍使用动态的头部裁剪路径。
 
-给下一只猫添加部件：
+新增一只猫时，依次完成以下步骤。
 
-1. 准备透明 RGBA PNG。头部留出五官，耳朵单独画观众左耳，右耳会镜像。前腿由肩到腕从上往下画成直条，尾巴也拉直、根在上尖在下。爪子单独出图。`-l` 和 `-r` 都按观众左右。背面单独出头、身体和同一方向的耳朵。
-2. 对新猫，把 `head.png`、`ear.png`、`body.png`、`arm-l.png`、`arm-r.png`、`paw-l.png`、`paw-r.png`、`tail.png`、`back-head.png`、`ear-back.png`、`back-body.png` 放在同一输入目录。运行 `python3 tools/prepare_art.py --cat 猫ID --source 原图目录`（需要 Pillow 支持 WebP）。脚本清除 alpha < 32 的像素，按非透明范围裁切后留 6 px，再用 LANCZOS 缩到长边至多 768 px，导出有损质量 90、method 6 的透明 WebP 及尺寸清单到 `prototype/art/猫ID/`。每次用完整的可用原图目录重跑，缺图会从清单中省略。奶牛猫可直接运行 `python3 tools/prepare_art.py --cat cow`，其输入映射见脚本的 `COW`。
-3. 在 `index.html` 的 `coats.js` 前加载新清单。复制奶牛猫的 `art` 配置到目标毛色，把 `base` 设为新资源目录。按 800 × 620 的场景坐标调节头和爪的中心、耳朵的左上角、身体的水平中心和顶边；高度按原图比例计算。背面复用相应的正面摆放，耳朵随罢工姿态旋转。
-4. 调整前腿宽度、肩部延长量和腕部延长量。每条前腿默认切 8 段，在姿态更新时沿手臂二次曲线逐段旋转。相邻两段按接点的角平分线斜切拼接（`art.js` 的 `bend()`：每段两头各多画一截，再用多边形裁掉），所以弯的时候外侧不会裂出白缝、内侧不会叠出深色边。尾巴默认切 16 段，宽度由现有尾巴直径加毛边决定；鼠标上方的尾巴在原遮罩内复用同组切片。罢工尾巴只沿静态路径贴一次，由原有组变换带动。可用 `?demo=tail-mouse`、`?demo=strike` 检查。
-5. 奶牛猫的头和耳朵齐备时，脚本也会更新 `prototype/cats/cow.svg`，沿用头像里的矢量五官并内嵌长边至多 256 px 的图片。调整头像摆放时，同步修改脚本的 `avatar()`。
+1. 在 `prototype/coats.js` 的列表登记 ID、名称、`art: art(id)` 和可选的 `shape`。在 `settings.js` 的 `CATS` 同位置加入 ID。网页下拉框从 `SillyCoats.list()` 读取列表。更新 README 的猫列表。
+2. 在 `style.css` 的头像调色区域添加该 ID 的基础毛色和四肢、尾巴、耳朵的回退色。左右眼皮用 `--coat-lid-l/r` 匹配眼周的毛色，闭眼弧线用 `--coat-eye-arc-l/r`。两只虹膜默认使用 `--coat-iris`，异瞳分别覆盖 `--coat-iris-l`、`--coat-iris-r`。胡须使用 `--coat-whisker` 和 `--coat-whisker-opacity`，眉毛使用 `--coat-brow`，浅色侧眉毛可用 `--coat-brow-l` 覆盖。按需设置鼻子、嘴线和腮红透明度。
+3. 将透明 PNG 放进同一输入目录，包括 `head`、`ear`、`body`、`arm-l`、`arm-r`、`paw-l`、`paw-r`、`tail`、`back-head`、`ear-back`、`back-body`。头图留出五官。前腿从肩到腕、尾巴从根到尖，都从上往下画成直条。正面和背面分别按观众左右命名：`ear` 和 `ear-back` 在画面左边；右耳默认镜像左耳。花色不对称时，再给出已朝右的 `ear-r.png`、`ear-back-r.png`，各自在对应视角的右边直接使用。
+4. 在 `tools/prepare_art.py` 的 `PORTRAITS` 登记头图宽度、`headSX` 和耳朵缩放，与 `coats.js` 同步。运行 `python3 tools/prepare_art.py --cat 猫ID --source 原图目录`（需要 Pillow 的 WebP 支持）。奶牛猫沿用脚本内的旧文件名映射。脚本清除 alpha < 32 的像素，裁切后留 6 px 透明边，缩到长边至多 768 px，导出质量 90 的 WebP 和尺寸清单到 `prototype/art/猫ID/`。头图和耳图齐备时同步生成 `prototype/cats/猫ID.svg`。头像内嵌长边至多 256 px 的图片，复用网页的矢量五官和配色。
+5. 在 `index.html` 的 `art.js` 与 `coats.js` 之间加载新清单。原图未齐时可先登记空清单 `SillyArt.register("猫ID", {});` 并提供矢量头像。已有的九只非奶牛猫均预留了清单入口，生成资源后刷新页面即可。
+6. 按 800 × 620 场景坐标调摆放。`art(id, { headWidth, tailScale })` 可覆盖头图宽度和尾巴宽度倍数。前腿默认切 8 段，尾巴默认切 16 段，相邻切片按接点的角平分线斜切拼接。正面尾宽为（原直径 + 毛边）× `art.tail.scale`，鼠标上方复用这组切片。罢工尾宽为 31 × 同一倍数，路径和时序沿用原姿态。用 `?cat=猫ID&demo=tail-mouse` 和 `?cat=猫ID&demo=strike` 检查正背面、尾巴和耳朵，再在设置页检查头像与键盘选猫。

@@ -303,7 +303,7 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
 }
 
 /// 设置窗口的默认高度，和 settings.html 的 BASE_H 一致。留一点字体换行余量，授权提示显示时由页面加高。
-const SETTINGS_HEIGHT: f64 = 952.0;
+const SETTINGS_HEIGHT: f64 = 1008.0;
 
 fn show_settings(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {

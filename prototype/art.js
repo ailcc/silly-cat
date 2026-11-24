@@ -113,9 +113,16 @@
     place('body', cfg.body, $('cat-body'));
     place('back-body', cfg.body, $('strike-body'));
     for (const side of ['l', 'r']) {
-      const mirror = side === 'r' ? 'translate(800 0) scale(-1 1)' : '';
-      place('ear', cfg.ear, document.querySelector('#ear-' + side + ' .ear-shape-' + side), undefined, mirror);
-      place('ear-back', cfg.ear, $('strike-ear-' + side), undefined, mirror);
+      function placeEar(key, parent) {
+        if (side === 'r' && sizes[key + '-r']) {
+          const right = { ...cfg.ear, x: 800 - cfg.ear.x - cfg.ear.width };
+          place(key + '-r', right, parent);
+        } else {
+          place(key, cfg.ear, parent, undefined, side === 'r' ? 'translate(800 0) scale(-1 1)' : '');
+        }
+      }
+      placeEar('ear', document.querySelector('#ear-' + side + ' .ear-shape-' + side));
+      placeEar('ear-back', $('strike-ear-' + side));
       place('paw-' + side, cfg.paw, $('paw-' + side));
       const key = 'arm-' + side;
       if (sizes[key]) arms.set(key, strip($(key), href(key), sizes[key], cfg.arm));
@@ -134,7 +141,7 @@
       const length = guide.getTotalLength();
       const points = Array.from({ length: cfg.tail.segments + 1 }, (_, i) => guide.getPointAtLength(length * i / cfg.tail.segments));
       guide.remove();
-      bend(strip(strike, href('tail'), sizes.tail, cfg.tail), points, () => 31);
+      bend(strip(strike, href('tail'), sizes.tail, cfg.tail), points, () => 31 * (cfg.tail.scale ?? 1));
     }
   }
 
@@ -156,7 +163,7 @@
     },
     get tailSegments() { return tailStrip?.slices.length || 0; },
     tail(points, diameter) {
-      bend(tailStrip, points, s => diameter(s) + tailStrip.config.fringe);
+      bend(tailStrip, points, s => (diameter(s) + tailStrip.config.fringe) * (tailStrip.config.scale ?? 1));
     },
   };
 })();

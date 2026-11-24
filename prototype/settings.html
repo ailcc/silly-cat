@@ -46,14 +46,14 @@
   input[aria-invalid="true"] { border-color: var(--error); }
   input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
   input[type="range"] { width: 150px; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--accent); }
-  #cat-options { display: flex; gap: 8px; margin-top: 8px; }
+  #cat-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 8px; }
   .cat-option {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 76px;
-    padding: 6px 4px;
+    min-width: 0;
+    padding: 4px 0;
     border: 2px solid transparent;
     border-radius: 12px;
     color: var(--muted);
@@ -62,7 +62,7 @@
     cursor: pointer;
   }
   .cat-option input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; opacity: 0; }
-  .cat-option img { width: 56px; height: 51px; }
+  .cat-option img { width: 45px; height: 41px; }
   .cat-option:hover { background: rgba(0, 0, 0, .04); }
   .cat-option:has(input:checked) { border-color: var(--accent); background: rgba(255, 122, 89, .08); color: var(--ink); font-weight: 700; }
   .cat-option:has(input:focus-visible) { outline: 2px solid rgba(255, 122, 89, .45); outline-offset: 2px; }
@@ -301,7 +301,7 @@
   // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
   // 展开授权区时加高，收起时回到基础高度；两者都为屏幕工作区留 40 px，内容超出时可滚动。
   // BASE_H 和 main.rs 的 SETTINGS_HEIGHT 一致。
-  const BASE_W = 400, BASE_H = 952;
+  const BASE_W = 400, BASE_H = 1008;
   const perm = document.getElementById('perm');
   const permMsg = document.getElementById('perm-msg');
   function setPermMsg(text, bad) { permMsg.textContent = text; permMsg.className = bad ? 'bad' : ''; }

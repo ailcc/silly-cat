@@ -1,0 +1,1 @@
+SillyArt.register("white", {"head": [768, 648], "ear": [611, 768], "body": [754, 768], "arm-l": [200, 768], "arm-r": [200, 768], "paw-l": [768, 534], "paw-r": [768, 534], "tail": [120, 768], "back-head": [768, 640], "ear-back": [597, 768], "back-body": [741, 768]});

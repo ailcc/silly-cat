@@ -1,0 +1,1 @@
+SillyArt.register("lihua", {"head": [768, 668], "ear": [604, 768], "body": [752, 768], "arm-l": [205, 768], "arm-r": [205, 768], "paw-l": [768, 546], "paw-r": [768, 546], "tail": [120, 768], "back-head": [768, 650], "ear-back": [601, 768], "back-body": [755, 768]});

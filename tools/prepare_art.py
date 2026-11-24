@@ -16,8 +16,10 @@ COW = {
     "paw-l": "paw-black.png", "paw-r": "paw-white.png",
     **{name: f"v2/{name}.png" for name in ("tail", "back-head", "ear-back", "back-body")},
 }
-SVG = "http://www.w3.org/2000/svg"
-ET.register_namespace("", SVG)
+# (head width, headSX, ear scale) in scene coordinates. Keep in sync with coats.js.
+PORTRAITS = dict.fromkeys(("cow", "lihua", "black", "calico", "white"), (300, 1, 1))
+PORTRAITS.update(orange=(300, 1.08, 1), siamese=(300, .95, 1.2),
+                 blue=(300, 1.1, .85), maine=(320, 1.05, 1.15), sphynx=(300, .94, 1.3))
 
 
 def publish(path, data):
@@ -46,45 +48,86 @@ def prepare(source):
     return image
 
 
-def avatar(directory):
-    # Keep the existing portrait's self-contained vector face and head pose.
-    path = PROTOTYPE / "cats/cow.svg"
-    tree = ET.parse(path)
-    pose = tree.getroot().find(f"{{{SVG}}}g")
-    for child in list(pose):
-        if child.tag == f"{{{SVG}}}ellipse":  # first blush mark starts the face
-            break
-        pose.remove(child)
-    for key, width in (("head", 300), ("ear", 110)):
-        with Image.open(directory / f"{key}.webp") as image:
-            height = width * image.height / image.width
-            image.thumbnail((256, 256), Image.Resampling.LANCZOS)
-            buffer = io.BytesIO()
-            image.save(buffer, "WEBP", quality=85, method=6)
-        uri = base64.b64encode(buffer.getvalue()).decode("ascii")
-        node = ET.Element(f"{{{SVG}}}image", {
-            "href": "data:image/webp;base64," + uri, "width": str(width), "height": f"{height:.3f}",
-            "x": "278" if key == "ear" else "250",
-            "y": "24" if key == "ear" else f"{176-height/2:.3f}",
-        })
-        pose.insert(0, node)
-        if key == "ear":
-            node.set("id", "portrait-ear")
-            pose.insert(1, ET.Element(f"{{{SVG}}}use", {
-                "href": "#portrait-ear", "transform": "translate(800 0) scale(-1 1)",
-            }))
-    publish(path, ET.tostring(tree.getroot(), encoding="utf-8"))
+def portrait_image(directory, key, width, x, y=None):
+    with Image.open(directory / f"{key}.webp") as image:
+        height = width * image.height / image.width
+        image.thumbnail((256, 256), Image.Resampling.LANCZOS)
+        buffer = io.BytesIO()
+        image.save(buffer, "WEBP", quality=85, method=6)
+    return ET.Element("image", {
+        "href": "data:image/webp;base64," + base64.b64encode(buffer.getvalue()).decode(),
+        "width": str(width), "height": f"{height:.3f}", "x": str(x),
+        "y": str(y) if y is not None else f"{176 - height / 2:.3f}",
+    })
+
+
+def avatar(cat, sizes):
+    # Reuse the scene's vector face and palette, including side-specific lids and irises.
+    page = (PROTOTYPE / "index.html").read_text()
+    start = page.index('<svg id="scene"')
+    scene = ET.fromstring(page[start:page.index("</svg>", start) + 6])
+    head = scene.find(".//*[@id='cat-head']")
+    root = ET.Element("svg", {"xmlns": "http://www.w3.org/2000/svg",
+                              "viewBox": "244 12 312 284", "data-cat": cat})
+    css = (PROTOTYPE / "style.css").read_text()
+    rules = []
+    for block in ("palette", "face"):
+        rules.append(css.split(f"/* portrait-{block}:start */")[1]
+                     .split(f"/* portrait-{block}:end */")[0].replace("html", "svg"))
+    ET.SubElement(root, "style").text = "\n".join(rules)
+    defs = ET.SubElement(root, "defs")
+    for side in ("l", "r"):
+        defs.append(scene.find(f".//*[@id='clip-eye-{side}']"))
+    width, head_scale, ear_scale = PORTRAITS[cat]
+    pose = ET.SubElement(root, "g", {"id": "scene", "transform":
+        f"rotate(-4 400 262) translate(400 262) scale({head_scale} 1) translate(-400 -262)"})
+    directory = PROTOTYPE / "art" / cat
+    for side, pivot in (("l", 322), ("r", 478)):
+        ear = ET.SubElement(pose, "g", {"transform":
+            f"translate({pivot} 110) scale({ear_scale}) translate({-pivot} -110)"})
+        if side == "r" and "ear-r" in sizes:
+            ear.append(portrait_image(directory, "ear-r", 110, 412, 24))
+        elif "ear" not in sizes:
+            ear.append(head.find(f"./g[@id='ear-{side}']"))
+        elif side == "l":
+            image = portrait_image(directory, "ear", 110, 278, 24)
+            image.set("id", "portrait-ear")
+            ear.append(image)
+        else:
+            ET.SubElement(ear, "use", {"href": "#portrait-ear",
+                                        "transform": "translate(800 0) scale(-1 1)"})
+    if "head" in sizes:
+        pose.append(portrait_image(directory, "head", width, 400 - width / 2))
+    else:
+        for key in ("head-fill", "head-line"):
+            pose.append(head.find(f"./path[@id='{key}']"))
+    for child in head:
+        if child.get("class") in ("blush", "whisker", "fang", "ink-thin coat-mouth-line",
+                                  "ink-thin coat-nose", "coat-cow-marking"):
+            pose.append(child)
+        elif child.get("id") in ("eye-l-open", "eye-r-open"):
+            if cat == "lihua":
+                cx = child.find("circle").get("cx")
+                child.insert(0, ET.Element("circle", {"class": "coat-rim", "cx": cx,
+                                                      "cy": "178", "r": "34"}))
+            pose.append(child)
+    path = PROTOTYPE / "cats" / f"{cat}.svg"
+    ET.indent(root)
+    publish(path, ET.tostring(root, encoding="utf-8") + b"\n")
     print(f"{path.name}: {path.stat().st_size:,} bytes")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--cat", default="cow")
+    parser.add_argument("--cat", default="cow", choices=PORTRAITS)
     parser.add_argument("--source", type=Path, required=True, help="原图目录（不进仓库，奶牛猫的原图另存在仓库外）")
     args = parser.parse_args()
     if not args.source.is_dir():
         parser.error(f"Missing source directory: {args.source}")
     mapping = COW if args.cat == "cow" else {name: f"{name}.png" for name in COW}
+    for name in ("ear-r", "ear-back-r"):
+        if (args.source / f"{name}.png").is_file():
+            mapping = {**mapping, name: f"{name}.png"}
     output = PROTOTYPE / "art" / args.cat
     output.mkdir(parents=True, exist_ok=True)
     sizes = {}
@@ -104,8 +147,8 @@ def main():
     registration = f"SillyArt.register({json.dumps(args.cat)}, {json.dumps(sizes)});\n"
     publish(manifest, registration.encode("utf-8"))
     print(f"{manifest.name}: {manifest.stat().st_size:,} bytes")
-    if args.cat == "cow" and {"head", "ear"} <= sizes.keys():
-        avatar(output)
+    if {"head", "ear"} <= sizes.keys():
+        avatar(args.cat, sizes)
 
 
 if __name__ == "__main__":
