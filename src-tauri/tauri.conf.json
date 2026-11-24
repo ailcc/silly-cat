@@ -63,7 +63,7 @@
   "plugins": {
     "updater": {
       "requireSignedVersion": true,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgxOEI0MjRENTA0NjIyRUYKUldUdklrWlFUVUtMZ1M5dGkvcW1KSmoxdmg5VEJ0OHhMa0t5dDN1Q1o0SUJLRCtEQWtkN2NLRTYK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFEODk0RjVGOUE1NTk2MUEKUldRYWxsV2FYMCtKcmRtbFFoSzRHUUhHaEtwN3U5M0xOUVpzdUpldVJyMERiTEFmU1MxaSsyekMK",
       "endpoints": [
         "https://github.com/ailcc/silly-cat/releases/latest/download/latest.json"
       ],
