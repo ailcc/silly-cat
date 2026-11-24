@@ -83,8 +83,10 @@ svg[data-cat="siamese"] {
   --coat-transition: #a8876c;
   --coat-ear: var(--coat-point);
   --coat-inner-ear: #b98080;
-  --coat-lid-l: var(--coat-transition);
-  --coat-lid-r: var(--coat-transition);
+  --coat-lid-l: #5d4333; /* 眼周面罩色，取自 head.png */
+  --coat-lid-r: #5d4333;
+  --coat-eye-arc-l: var(--coat-mouth-line);
+  --coat-eye-arc-r: var(--coat-mouth-line);
   --coat-paw-l: var(--coat-point);
   --coat-paw-r: var(--coat-point);
   --coat-toe-l: var(--coat-mouth-line);
@@ -120,10 +122,15 @@ svg[data-cat="black"] {
 }
 svg[data-cat="calico"] {
   --coat-base: #fffdf8;
-  --coat-lid-l: #26232b;
+  --coat-lid-l: #26232b; /* 左眼在黑块里、右眼在橘块里，取自 head.png */
+  --coat-lid-r: #e68b40;
   --coat-eye-arc-l: #e8e2ec;
   --coat-iris: #e0a63a;
   --coat-blush-opacity: 0.4;
+}
+svg[data-cat="calico"][data-art-style="line"] {
+  --coat-tail: var(--coat-lid-l);
+  --coat-tail-tip: var(--coat-tail);
 }
 svg[data-cat="blue"] {
   --coat-base: #8d9aaa;
@@ -142,6 +149,13 @@ svg[data-cat="maine"] {
   --coat-nose: #c27c6c;
   --coat-blush-opacity: 0.25;
 }
+svg[data-cat="maine"][data-art-style="line"] {
+  --coat-stripe: #5c616b;
+  --coat-light: #eef0f2;
+  --coat-belly: var(--coat-light);
+  --coat-ear: url(#coat-lihua-ear);
+  --coat-tail-tip: var(--coat-stripe);
+}
 svg[data-cat="sphynx"] {
   --coat-base: #e6c3b3;
   --coat-iris: #b8d86a;
@@ -157,6 +171,10 @@ svg[data-cat="sphynx"] {
 #scene .coat-base { fill: var(--coat-base); }
 #scene .coat-cow-marking { fill: var(--fur-black); }
 #scene .coat-ear { fill: var(--coat-ear); }
+svg[data-cat="calico"][data-art-style="line"] #scene :is(#ear-l, #strike-ear-r) .coat-ear,
+#scene .coat-calico-dark { fill: var(--coat-lid-l); }
+svg[data-cat="calico"][data-art-style="line"] #scene :is(#ear-r, #strike-ear-l) .coat-ear,
+#scene .coat-calico-orange { fill: var(--coat-lid-r); }
 #scene .coat-inner-ear { fill: var(--coat-inner-ear); }
 #scene .coat-paw-l { fill: var(--coat-paw-l); }
 #scene .coat-paw-r { fill: var(--coat-paw-r); }
@@ -175,7 +193,9 @@ svg[data-cat="sphynx"] {
 svg[data-cat]:not([data-cat="cow"]) #scene .coat-cow-marking,
 svg:not([data-cat="orange"]) #scene [data-coat-pattern="orange"],
 svg:not([data-cat="lihua"]) #scene [data-coat-pattern="lihua"],
-svg:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"] { display: none; }
+svg:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"],
+svg:not([data-cat="calico"][data-art-style="line"]) #scene [data-coat-pattern="calico"],
+svg:not([data-cat="maine"][data-art-style="line"]) #scene [data-coat-pattern="maine"] { display: none; }
 #scene .shadow { fill: var(--ink); opacity: 0.1; }
 
 #scene .sclera { fill: var(--fur-white); }
@@ -186,6 +206,9 @@ svg:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"] { display: no
 #scene .lid-l { fill: var(--coat-lid-l); }
 #scene .lid-r { fill: var(--coat-lid-r); }
 #scene .lid-line { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+/* 眼皮下沿和闭眼弧线同色：深色毛上用浅色线，眼皮往下落时还看得出是在闭眼 */
+#scene #lidline-l { stroke: var(--coat-eye-arc-l); }
+#scene #lidline-r { stroke: var(--coat-eye-arc-r); }
 #scene .eye-ring { fill: none; stroke: var(--ink); stroke-width: 5; }
 #scene .eye-arc-l, #scene .eye-arc-r { fill: none; stroke-width: 5; stroke-linecap: round; }
 #scene .eye-arc-l { stroke: var(--coat-eye-arc-l); }
