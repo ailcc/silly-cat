@@ -49,6 +49,7 @@
 - 已知问题：其他应用全屏时猫可能不显示；在密码框里打字时系统不把按键交给监听，按住的键可能卡在按下状态。
 - 发布：推送 `v*` 标签后，GitHub Actions（`.github/workflows/release.yml`）会构建 macOS 通用版 dmg 和 Windows NSIS 安装包，挂到草稿 Release 上。手动运行只上传 workflow artifacts，默认由 Tauri 在打 DMG 前签名，也可以选 `signing_mode=script` 用脚本签完再打包。CI 验证 DMG 和应用归档的签名，并把签名要求写入运行摘要。
   - 用 `tools/make-signing-cert.sh <仓库外的输出目录>` 生成一次固定证书。按脚本输出把 `.p12.base64` 和密码文件分别写入 Secrets `MACOS_SIGNING_CERT_P12_BASE64`、`MACOS_SIGNING_CERT_PASSWORD`，把证书 SHA-1 写入 Variable `MACOS_SIGNING_CERT_SHA1`。两个 Secrets 都没有时用 ad-hoc 签名。
+  - CI 里不把证书交给 tauri：tauri 收到 `APPLE_CERTIFICATE` 时只认通用名带 Apple 前缀（如 `Developer ID Application:`）的证书，自签证书会报 `failed to resolve signing identity`。工作流在签名前自己把证书导入临时钥匙串并设为「代码签名受信任」，只把证书 SHA-1 作为 `APPLE_SIGNING_IDENTITY` 交给 tauri。2026-11-24 在 CI 实测，`signing_mode=tauri` 和 `script` 两种方式产出的 DMG、应用归档签名要求一致：`identifier "com.drew.sillycat" and certificate leaf = H"<SHA-1>"`，均为 universal。
   - 将 `.p12` 和密码备份到密码管理器或离线介质。换证书，或丢失证书且无法从备份恢复时，所有用户都要重新授权。发布首个证书签名的版本时，在草稿 Release 说明里提醒用户重置一次输入监控授权。
   - 本地验签时，把 `.p12.base64` 和密码从文件读入上述同名环境变量，运行 `tools/macos-sign.sh sign <SillyCat.app>`，再用 `tools/verify-mac-signing.sh <产物路径> <证书SHA-1>` 检查 `.app`、`.dmg` 或 `.app.tar.gz`。单架构本地测试包可在产物路径前加 `--allow-single-arch`。
 
