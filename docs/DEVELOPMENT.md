@@ -5,7 +5,7 @@
 - 运行：`npm start`（等于 `python3 -m http.server 4317 --bind 0.0.0.0 --directory prototype`），打开 http://localhost:4317/
 - `?sleep=5` 设置入睡时间；`?drool=` `?slump=` 覆盖流口水、趴下的时刻（从最后一次输入算起的秒数）；`?work=` 连续打字多久会生气，`?rest=` 罢工后休息多久消气。URL 参数可以超出滑块范围，控制台里 `window.__cat` 是只读调试信息。
 - `?push=0` 关闭推东西；`?pushevery=秒` 设置推杯子的随机间隔基准（默认 600 秒，URL 参数夹在 5–36000 秒）。
-- `?cat=猫ID` 选择猫，网页控制栏也可以切换。`prototype/cats/*.svg` 是设置页的静态头像（有手绘部件时由下文的资源脚本更新），改了某只猫的正面花纹后要重新导出对应的头像。
+- `?cat=猫ID` 选择猫，网页控制栏也可以切换。`?style=line` 使用线条画风，省略时显示毛绒画风。
 - 键盘和鼠标朝向猫摆放（猫是使用者，观众看到的键帽字是倒的）。凡是说左右的地方（`__cat.paws.left/right`、代码里的 `'L'/'R'`、`mouseSide`）都按猫自己的左右：`left` = 猫的左爪 = 观众右侧那只白爪。
 - 鼠标用尾巴操作：鼠标一动，尾巴从身后绕过身体一侧（鼠标在哪边就绕哪边）伸到前面，尾尖搭在鼠标上跟着动；点击时尾尖压到按的那颗键上，松开弹一下；鼠标停下 1.5 秒后收回身后接着摆。伸出 0.38 秒、收回 0.52 秒。两只爪子一直留在键盘上照常打字（空格默认用鼠标那一侧的爪，它正按着别的键就换另一只）。只有发飙抓鼠标砸、消气后修鼠标时才用爪子；发飙时尾巴先收回去再抓。`prefers-reduced-motion` 下尾巴直接切换，不做过渡。
 - 鼠标相关的调试字段：`__cat.paws.left/right` 是爪子此刻的目标（键名、`rest`、发飙/修理时的 `rage`/`repair` 等），不会再出现 `mouse`；`__cat.mouseSide` 仍是鼠标摆在猫的哪一侧；`__cat.tail` 是尾巴和鼠标的关系：`idle` 收在身后、`reaching` 伸出途中、`on-mouse` 搭在鼠标上、`retracting` 收回途中；`__cat.tailReach` 是伸出进度 0–1（按渲染帧推进，后台标签页里会落后）。
@@ -45,8 +45,8 @@
 - 勾选「锁定位置」后拖不动，摸头和右键照常。「重置位置」仍可把猫放回默认位置，锁定状态保持不变。锁定状态存在应用配置目录的 `window-lock.json`（布尔字段 `locked`），启动时读取，缺失或损坏时默认解锁。
 - 设置窗口：从右键菜单或菜单栏图标里的「设置…」打开（已经开着就带到前面，Esc 关闭；关掉不会退出应用）。页面是 `prototype/settings.html`，字段表和校验在 `prototype/settings.js`。时间参数都按秒填：入睡时间（默认 20，5–3600）；开始流口水、趴到键盘上的时刻（从最后一次操作算起，6/7–10800，留空 = 自动，即入睡时间 × 2、× 3.5；必须入睡 < 流口水 < 趴下）；连续打字多久发飙（默认 90，15–36000）；罢工后歇多久消气（默认 20，5–3600）；大约多久推一次东西（默认 600，60–36000）。「显示状态条」和「推东西」默认开启。改出合法值后立即生效并写入 `~/Library/Application Support/com.drew.sillycat/settings.json`，下次启动自动读取；「恢复默认」回到上面的默认值。
 - 设置窗口的基础高度由 `SETTINGS_HEIGHT` 和 `BASE_H` 一起定义。创建时按猫所在显示器的工作区逻辑高度减 40 px 封顶，取不到所在显示器时用主显示器，两者都取不到时用基础高度。页面展开或收起授权区时按 `screen.availHeight - 40` 封顶，内容超出时可上下滚动。
-- `settings.json` 的 `cat` 字段可填 `settings.js` 的 `CATS` 中的任一 ID，缺失或无效时用 `cow`。桌面版启动时等 `load_settings` 返回再显示选中的猫，读取失败时显示奶牛猫。设置页点头像后立即保存，主窗口收到 `silly:settings` 就切换。
-- 桌面版忽略 `?cat=`。支持 URL 的其他字段（含 `?statusbar=`、`?push=`、`?pushevery=`）在启动时按 URL 参数 > 已保存设置 > 默认值取值；之后在设置窗口里改的值覆盖 URL 参数。网页版不读也不写 settings.json，照旧用 URL 参数和控制栏。
+- `settings.json` 的 `cat` 字段可填 `settings.js` 的 `CATS` 中的任一 ID，缺失或无效时用 `cow`。`artStyle` 可填 `fur`（毛绒）或 `line`（线条），缺失或无效时用 `fur`。桌面版启动时等 `load_settings` 返回再显示选中的猫和画风，读取失败时显示毛绒奶牛猫。设置页换猫或切画风会立即保存，主窗口收到 `silly:settings` 就切换。「恢复默认」会选回毛绒奶牛猫。
+- 桌面版忽略 `?cat=` 和 `?style=`。支持 URL 的其他字段（含 `?statusbar=`、`?push=`、`?pushevery=`）在启动时按 URL 参数 > 已保存设置 > 默认值取值；之后在设置窗口里改的值覆盖 URL 参数。网页版不读也不写 settings.json，照旧用 URL 参数和控制栏；直接打开设置页可切换头像画风预览。
 - macOS 上猫窗口在其他应用的原生全屏 Space 里也显示（`src-tauri/src/macos_window.rs`）：主窗口在首次 `show()` 前设置 `collectionBehavior = CanJoinAllSpaces | Stationary | CanJoinAllApplications`（`CanJoinAllApplications` 是 macOS 13 起的跨应用浮窗角色，我们最低 13），置顶时窗口层级设为 `NSStatusWindowLevel`（25）。设置失败只记日志，猫照常显示。验证：用 `CGWindowListCopyWindowInfo` 看到猫窗口 layer = 25、onscreen；另一个应用进入原生全屏后肉眼确认猫仍在（macOS 26.6.2）。设置窗口没有做这个处理。
 - 已知问题：在密码框里打字时系统不把按键交给监听，按住的键可能卡在按下状态。
 - 发布：推送 `v*` 标签后，GitHub Actions（`.github/workflows/release.yml`）会构建 macOS 通用版 dmg 和 Windows NSIS 安装包，挂到草稿 Release 上。手动运行只上传 workflow artifacts，默认由 Tauri 在打 DMG 前签名，也可以选 `signing_mode=script` 用脚本签完再打包。CI 验证 DMG 和应用归档的签名，并把签名要求写入运行摘要。
@@ -85,6 +85,8 @@
 4. 在 `tools/prepare_art.py` 的 `PORTRAITS` 登记头图中心和宽度、耳图位置和角度、可选耳根支点，以及 `headSX` 和耳朵缩放，与 `coats.js` 同步。运行 `python3 tools/prepare_art.py --cat 猫ID --source 原图目录`（需要 Pillow 的 WebP 支持）。奶牛猫沿用脚本内的旧文件名映射。脚本清除 alpha < 32 的像素，裁切后留 6 px 透明边，缩到长边至多 768 px，导出质量 90 的 WebP 和尺寸清单到 `prototype/art/猫ID/`。头图和耳图齐备时同步生成 `prototype/cats/猫ID.svg`。头像内嵌长边至多 256 px 的图片，复用网页的矢量五官和配色。
 5. 在 `index.html` 的 `art.js` 与 `coats.js` 之间加载新清单。原图未齐时可先登记空清单 `SillyArt.register("猫ID", {});` 并提供矢量头像。已有的九只非奶牛猫均预留了清单入口，生成资源后刷新页面即可。
 6. 按 800 × 620 场景坐标调摆放。用 `art(id, opts)` 按部件浅合并字段，例如 `{ head: { cy: 166 }, arm: { width: 44 }, tail: { scale: 0.6 } }`。前腿默认切 8 段，尾巴默认切 16 段，相邻切片按接点的角平分线斜切拼接。正面尾宽为（原直径 + 毛边）× `art.tail.scale`，鼠标上方复用这组切片。罢工尾宽为 31 × 同一倍数，路径和时序沿用原姿态。用 `?cat=猫ID&demo=tail-mouse` 和 `?cat=猫ID&demo=strike` 检查正背面、尾巴和耳朵，再在设置页检查头像与键盘选猫。
+
+新增猫，或改了线条版的正面花纹、五官、配色或体型后，运行 `python3 tools/line_avatars.py`（需要 Python 3 和 Node.js）。脚本复用场景 SVG、`style.css` 的头像配色和 `coats.js` 的矢量花纹，重新生成 `prototype/cats/line/猫ID.svg`。设置页按画风读取对应目录下的头像。
 
 `head` 和 `paw` 默认用中心点 `cx, cy` 与 `width` 放置，爪子的坐标相对腕部组。罢工后脑勺 `backHead` 继承合并后的 `head`，可单独覆盖。图片高度按素材宽高比计算。`arm` 可覆盖 `width, top, bottom, segments` 和 `maskBody`（用随身体运动的遮罩挡住肩端），`tail` 可覆盖 `scale, fringe, segments`。
 

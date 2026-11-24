@@ -32,7 +32,7 @@
   .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   label { font-weight: 600; }
   .field { display: flex; align-items: center; gap: 6px; flex: none; }
-  input {
+  input, select {
     width: 78px;
     padding: 4px 8px;
     border: 1px solid var(--line);
@@ -42,7 +42,8 @@
     background: #fff;
     color: var(--ink);
   }
-  input:focus { outline: 2px solid rgba(255, 122, 89, 0.45); outline-offset: 0; border-color: var(--accent); }
+  input:focus, select:focus { outline: 2px solid rgba(255, 122, 89, 0.45); outline-offset: 0; border-color: var(--accent); }
+  #f-art-style { width: auto; text-align: left; }
   input[aria-invalid="true"] { border-color: var(--error); }
   input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
   input[type="range"] { width: 150px; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--accent); }
@@ -122,7 +123,16 @@
 <h1>猫的设置</h1>
 <form id="form" novalidate autocomplete="off">
   <div class="row">
-    <div class="head"><strong id="cat-label">换只猫</strong></div>
+    <div class="head">
+      <strong id="cat-label">换只猫</strong>
+      <span class="field">
+        <label for="f-art-style">画风</label>
+        <select id="f-art-style" name="artStyle">
+          <option value="fur">毛绒</option>
+          <option value="line">线条</option>
+        </select>
+      </span>
+    </div>
     <div id="cat-options" role="radiogroup" aria-labelledby="cat-label"></div>
   </div>
   <div class="row" data-key="sleep">
@@ -196,6 +206,8 @@
   const form = document.getElementById('form');
   const statusEl = document.getElementById('status');
   const catOptions = document.getElementById('cat-options');
+  const artStyleInput = document.getElementById('f-art-style');
+  const avatars = new Map();
   const catNames = new Map(window.SillyCoats.list().map(({ id, name }) => [id, name]));
   for (const id of S.CATS) {
     const label = document.createElement('label');
@@ -205,8 +217,8 @@
     input.name = 'cat';
     input.value = id;
     const img = document.createElement('img');
-    img.src = `cats/${id}.svg`;
     img.alt = '';
+    avatars.set(id, img);
     const name = document.createElement('span');
     name.textContent = catNames.get(id);
     label.append(input, img, name);
@@ -232,8 +244,14 @@
   sizeInput.step = String(Math.round(S.SIZE.step * 100));
 
   const fmt = (v) => String(Math.round(v * 100) / 100);
+  function refreshAvatars(style) {
+    const directory = style === 'line' ? 'cats/line' : 'cats';
+    for (const [id, img] of avatars) img.src = `${directory}/${id}.svg`;
+  }
   function fill(s) {
     form.elements.cat.value = s.cat;
+    artStyleInput.value = s.artStyle;
+    refreshAvatars(s.artStyle);
     for (const k of S.KEYS) {
       const { input, f } = rows[k];
       input.value = s[k] === null ? '' : fmt(s[k]);
@@ -244,7 +262,7 @@
   }
   // 时间项按秒读；可选项留空 = null（自动），其他时间项留空 = NaN（校验报错）
   function read() {
-    const s = { cat: form.elements.cat.value };
+    const s = { cat: form.elements.cat.value, artStyle: artStyleInput.value };
     for (const k of S.KEYS) {
       const { input, f } = rows[k];
       const t = input.value.trim();
@@ -295,7 +313,13 @@
   });
   sizeInput.addEventListener('change', () => onEdit(true));
   catOptions.addEventListener('change', () => onEdit(true));
-  form.addEventListener('input', (e) => { if (e.target.name !== 'cat') onEdit(e.target === bools.autoUpdate); });
+  artStyleInput.addEventListener('change', () => {
+    refreshAvatars(artStyleInput.value);
+    onEdit(true);
+  });
+  form.addEventListener('input', (e) => {
+    if (e.target.name !== 'cat' && e.target !== artStyleInput) onEdit(e.target === bools.autoUpdate);
+  });
   form.addEventListener('submit', (e) => e.preventDefault());
   document.getElementById('reset').addEventListener('click', () => { fill(S.DEFAULTS); onEdit(); });
   document.addEventListener('keydown', (e) => {

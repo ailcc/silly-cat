@@ -36,6 +36,51 @@
     };
   }
 
+  const tabby = {
+    // 狸花：黄褐底、近黑的粗条纹；额头几道往眉心收拢的纹成 M，眼眶一圈浅色、眼角黑线扫向脸颊；
+    // 白色只留在嘴和下巴，胸口是稍浅的底色加项圈纹，手臂有横纹（style.css 的 .arm-stripes）
+    head: `
+      ${muzzle}
+      <path class="coat-solid-stripe" d="${taper(400, 60, 400, 98, 400, 124, 12)}"/>
+      ${mirrorFill([
+        taper(368, 104, 366, 124, 370, 141, 10),
+        taper(368, 104, 386, 113, 399, 127, 8),
+        taper(362, 68, 364, 88, 368, 106, 10),
+        taper(384, 62, 385, 84, 387, 104, 8),
+        taper(326, 80, 332, 98, 343, 114, 9),
+        taper(266, 168, 290, 172, 311, 181, 9),
+        taper(266, 192, 284, 194, 302, 196, 8),
+        taper(268, 212, 282, 212, 294, 209, 6),
+        taper(268, 140, 280, 141, 292, 138, 7),
+      ].join(' '))}`,
+    // 眼眶浅圈放进睁眼那组里：闭眼、眯眼笑时跟着眼睛一起隐藏，不会留下两个白圈
+    eye: (cx) => `<circle class="coat-rim" cx="${cx}" cy="178" r="34"/>`,
+    body: `
+      <ellipse class="coat-belly" cx="400" cy="348" rx="52" ry="74"/>
+      <path class="coat-stripe" stroke-width="8" d="M 346 290 Q 400 318 454 290 M 338 316 Q 400 348 462 316"/>
+      ${mirrorFill([
+        taper(296, 290, 312, 296, 330, 300, 10),
+        taper(292, 314, 308, 320, 326, 326, 10),
+        taper(290, 340, 306, 346, 324, 352, 9),
+        taper(290, 366, 306, 372, 322, 378, 9),
+      ].join(' '))}`,
+    backHead: `
+      <path class="coat-solid-stripe" d="${taper(400, 60, 400, 160, 400, 262, 13)}"/>
+      ${mirrorFill([
+        taper(381, 62, 385, 156, 393, 252, 10),
+        taper(361, 68, 369, 150, 386, 242, 10),
+        taper(340, 80, 352, 144, 378, 228, 8),
+        taper(266, 150, 284, 152, 300, 149, 7),
+        taper(264, 178, 290, 181, 314, 180, 9),
+        taper(266, 202, 288, 205, 310, 204, 8),
+        taper(274, 226, 290, 228, 304, 227, 6),
+      ].join(' '))}`,
+    backBody: `
+      <path class="coat-stripe" stroke-width="12" d="M 400 260 V 406"/>
+      ${mirrorFill([276, 298, 320, 342, 364, 386].map((y) => taper(400, y, 356, y + 4, 300, y + 24, 10)).join(' '))}`,
+    tail: { rings: [[0.23, 0.30], [0.39, 0.46], [0.55, 0.62], [0.71, 0.78]], tip: [0.88, 1] },
+  };
+
   const coats = [
     { id: 'cow', name: '奶牛猫', art: art('cow') },
     {
@@ -71,48 +116,7 @@
         <stop offset="33%" class="coat-stop-stripe"/>
         <stop offset="33%" class="coat-stop-base"/>
       </linearGradient>`,
-      // 狸花：黄褐底、近黑的粗条纹；额头几道往眉心收拢的纹成 M，眼眶一圈浅色、眼角黑线扫向脸颊；
-      // 白色只留在嘴和下巴，胸口是稍浅的底色加项圈纹，手臂有横纹（style.css 的 .arm-stripes）
-      head: `
-        ${muzzle}
-        <path class="coat-solid-stripe" d="${taper(400, 60, 400, 98, 400, 124, 12)}"/>
-        ${mirrorFill([
-          taper(368, 104, 366, 124, 370, 141, 10),
-          taper(368, 104, 386, 113, 399, 127, 8),
-          taper(362, 68, 364, 88, 368, 106, 10),
-          taper(384, 62, 385, 84, 387, 104, 8),
-          taper(326, 80, 332, 98, 343, 114, 9),
-          taper(266, 168, 290, 172, 311, 181, 9),
-          taper(266, 192, 284, 194, 302, 196, 8),
-          taper(268, 212, 282, 212, 294, 209, 6),
-          taper(268, 140, 280, 141, 292, 138, 7),
-        ].join(' '))}`,
-      // 眼眶浅圈放进睁眼那组里：闭眼、眯眼笑时跟着眼睛一起隐藏，不会留下两个白圈
-      eye: (cx) => `<circle class="coat-rim" cx="${cx}" cy="178" r="34"/>`,
-      body: `
-        <ellipse class="coat-belly" cx="400" cy="348" rx="52" ry="74"/>
-        <path class="coat-stripe" stroke-width="8" d="M 346 290 Q 400 318 454 290 M 338 316 Q 400 348 462 316"/>
-        ${mirrorFill([
-          taper(296, 290, 312, 296, 330, 300, 10),
-          taper(292, 314, 308, 320, 326, 326, 10),
-          taper(290, 340, 306, 346, 324, 352, 9),
-          taper(290, 366, 306, 372, 322, 378, 9),
-        ].join(' '))}`,
-      backHead: `
-        <path class="coat-solid-stripe" d="${taper(400, 60, 400, 160, 400, 262, 13)}"/>
-        ${mirrorFill([
-          taper(381, 62, 385, 156, 393, 252, 10),
-          taper(361, 68, 369, 150, 386, 242, 10),
-          taper(340, 80, 352, 144, 378, 228, 8),
-          taper(266, 150, 284, 152, 300, 149, 7),
-          taper(264, 178, 290, 181, 314, 180, 9),
-          taper(266, 202, 288, 205, 310, 204, 8),
-          taper(274, 226, 290, 228, 304, 227, 6),
-        ].join(' '))}`,
-      backBody: `
-        <path class="coat-stripe" stroke-width="12" d="M 400 260 V 406"/>
-        ${mirrorFill([276, 298, 320, 342, 364, 386].map((y) => taper(400, y, 356, y + 4, 300, y + 24, 10)).join(' '))}`,
-      tail: { rings: [[0.23, 0.30], [0.39, 0.46], [0.55, 0.62], [0.71, 0.78]], tip: [0.88, 1] },
+      ...tabby,
     },
     {
       id: 'siamese', name: '暹罗猫', art: art('siamese', {
@@ -132,7 +136,20 @@
     { id: 'black', name: '黑猫', art: art('black') },
     { id: 'calico', name: '三花猫', art: art('calico', {
       head: { cx: 400, cy: 173.1, width: 266 }, backHead: { cx: 400.1, cy: 173.3, width: 264.3 },
-    }) },
+    }),
+      head: `
+        <path class="coat-calico-dark" d="M 250 54 C 299 43 357 42 391 62 C 388 88 394 107 388 134 C 385 156 386 175 374 193 C 360 216 335 220 311 216 C 284 212 263 199 248 181 Z"/>
+        <path class="coat-calico-orange" d="M 409 62 C 450 43 512 45 552 58 L 550 187 C 532 205 507 217 482 219 C 458 221 432 209 420 190 C 406 169 414 157 410 135 C 404 107 412 84 409 62 Z"/>`,
+      body: `
+        <path class="coat-calico-dark" d="M 284 282 C 302 270 332 272 347 290 C 361 307 353 329 340 341 C 327 354 330 376 309 386 C 293 395 281 383 276 367 Z"/>
+        <path class="coat-calico-orange" d="M 515 286 C 491 268 465 277 454 300 C 443 324 461 337 464 355 C 468 377 487 395 510 384 C 534 373 532 314 515 286 Z"/>`,
+      backHead: `
+        <path class="coat-calico-orange" d="M 246 54 C 293 48 351 42 382 64 C 409 88 377 115 385 144 C 391 171 382 196 363 215 C 341 236 308 241 277 231 C 248 221 238 184 246 54 Z"/>
+        <path class="coat-calico-dark" d="M 407 60 C 438 44 509 49 554 64 L 557 239 C 528 260 480 259 453 234 C 431 215 440 187 422 165 C 402 141 415 118 410 98 C 407 85 403 72 407 60 Z"/>`,
+      backBody: `
+        <path class="coat-calico-orange" d="M 290 279 C 316 267 351 270 365 291 C 380 312 368 330 351 343 C 338 353 343 375 324 388 C 303 402 278 386 274 360 Z"/>
+        <path class="coat-calico-dark" d="M 520 280 C 492 262 460 268 448 294 C 439 310 450 330 461 344 C 473 359 455 380 476 396 C 494 409 520 397 533 381 Z"/>`,
+    },
     { id: 'blue', name: '英短蓝猫', art: art('blue', {
       head: { cx: 400.1, cy: 181.3, width: 275.3 }, backHead: { cx: 399.8, cy: 180.9, width: 274.5 },
       ear: { x: 276.3, y: 62.3, width: 75.5 }, // 小圆耳，分得开、长得低
@@ -147,6 +164,7 @@
       headPath: 'M 262 168 C 262 106, 322 66, 400 66 C 478 66, 538 106, 538 168 C 540 214, 532 248, 506 268 C 478 286, 440 290, 400 290 C 360 290, 322 286, 294 268 C 268 248, 260 214, 262 168 Z',
       imprint: { dx: 6, dy: -4 },
     }),
+      ...tabby,
       shape: { bodySX: 1.12, bodySY: 1.03, headSX: 1, ear: 1.15 } },
     { id: 'sphynx', name: '无毛猫', art: art('sphynx', {
       head: { cx: 400.1, cy: 169.1, width: 255.3 }, ear: { x: 268, y: 34, width: 110, rotate: 16 },
@@ -157,7 +175,9 @@
       shape: { bodySX: 0.96, headSX: 1, ear: 1.18 } },
   ];
 
+  const lineCoats = new Map(coats.map(({ art, ...coat }) => [coat.id, coat]));
   const root = document.documentElement;
+  let artStyle = 'fur';
   let selected = coats[0];
   let initialized = false;
 
@@ -183,7 +203,9 @@
       }
       initialized = true;
     }
-    const next = coats.find((coat) => coat.id === id) || coats[0];
+    const coat = coats.find((coat) => coat.id === id) || coats[0];
+    const next = artStyle === 'line' ? lineCoats.get(coat.id) : coat;
+    root.dataset.artStyle = artStyle;
     if (root.dataset.cat !== next.id) {
       document.getElementById('scene').setAttribute('aria-label', '坐在键盘后面的' + next.name);
       root.dataset.cat = next.id;
@@ -242,6 +264,10 @@
   window.SillyCoats = {
     list: () => coats.map(({ id, name }) => ({ id, name })),
     apply,
+    setArtStyle(style, id = selected.id) {
+      artStyle = style === 'line' ? 'line' : 'fur';
+      return apply(id);
+    },
     current: () => selected,
     shapeModule,
   };

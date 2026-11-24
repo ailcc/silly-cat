@@ -127,6 +127,10 @@ html[data-cat="calico"] {
   --coat-iris: #e0a63a;
   --coat-blush-opacity: 0.4;
 }
+html[data-cat="calico"][data-art-style="line"] {
+  --coat-tail: var(--coat-lid-l);
+  --coat-tail-tip: var(--coat-tail);
+}
 html[data-cat="blue"] {
   --coat-base: #8d9aaa;
   --coat-iris: #e3963a;
@@ -143,6 +147,13 @@ html[data-cat="maine"] {
   --coat-iris: #b9c845;
   --coat-nose: #c27c6c;
   --coat-blush-opacity: 0.25;
+}
+html[data-cat="maine"][data-art-style="line"] {
+  --coat-stripe: #5c616b;
+  --coat-light: #eef0f2;
+  --coat-belly: var(--coat-light);
+  --coat-ear: url(#coat-lihua-ear);
+  --coat-tail-tip: var(--coat-stripe);
 }
 html[data-cat="sphynx"] {
   --coat-base: #e6c3b3;
@@ -225,6 +236,10 @@ html:not([data-cat]) #scene { visibility: hidden; }
 #scene .coat-base { fill: var(--coat-base); }
 #scene .coat-cow-marking { fill: var(--fur-black); }
 #scene .coat-ear { fill: var(--coat-ear); }
+html[data-cat="calico"][data-art-style="line"] #scene :is(#ear-l, #strike-ear-r) .coat-ear,
+#scene .coat-calico-dark { fill: var(--coat-lid-l); }
+html[data-cat="calico"][data-art-style="line"] #scene :is(#ear-r, #strike-ear-l) .coat-ear,
+#scene .coat-calico-orange { fill: var(--coat-lid-r); }
 #scene .coat-inner-ear { fill: var(--coat-inner-ear); }
 #scene .coat-paw-l { fill: var(--coat-paw-l); }
 #scene .coat-paw-r { fill: var(--coat-paw-r); }
@@ -243,7 +258,9 @@ html:not([data-cat]) #scene { visibility: hidden; }
 html[data-cat]:not([data-cat="cow"]) #scene .coat-cow-marking,
 html:not([data-cat="orange"]) #scene [data-coat-pattern="orange"],
 html:not([data-cat="lihua"]) #scene [data-coat-pattern="lihua"],
-html:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"] { display: none; }
+html:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"],
+html:not([data-cat="calico"][data-art-style="line"]) #scene [data-coat-pattern="calico"],
+html:not([data-cat="maine"][data-art-style="line"]) #scene [data-coat-pattern="maine"] { display: none; }
 #scene .shadow { fill: var(--ink); opacity: 0.1; }
 
 #scene .sclera { fill: var(--fur-white); }
@@ -270,7 +287,8 @@ html:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"] { display: n
 #scene .tail-body { fill: var(--coat-tail); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
 #scene .tail-tip-fill { fill: var(--coat-tail-tip); }
 #scene .tail-ring { fill: var(--coat-stripe, none); }
-html:not(:is([data-cat="orange"], [data-cat="lihua"])) #scene .tail-ring { display: none; }
+html:not(:is([data-cat="orange"], [data-cat="lihua"], [data-cat="maine"][data-art-style="line"])) #scene .tail-ring,
+html[data-cat="maine"]:not([data-art-style="line"]) #scene .strike-tail-rings { display: none; }
 /* 罢工背影的尾巴仍用描边画法 */
 #scene .tail-outline { fill: none; stroke: var(--ink); stroke-width: 31; stroke-linecap: round; }
 #scene .tail-fill { fill: none; stroke: var(--coat-tail); stroke-width: 21; stroke-linecap: round; }
@@ -282,9 +300,9 @@ html:not(:is([data-cat="orange"], [data-cat="lihua"])) #scene .tail-ring { displ
 #scene .arm-fill-l, #scene .arm-fill-r { fill: none; stroke-width: 24; stroke-linecap: round; }
 #scene .arm-fill-l { stroke: var(--coat-arm-l); }
 #scene .arm-fill-r { stroke: var(--coat-arm-r); }
-/* 手臂横纹：和手臂同一条中线的虚线描边，只有狸花显示 */
+/* 手臂横纹：和手臂同一条中线的虚线描边 */
 #scene .arm-stripes { display: none; fill: none; stroke: var(--coat-stripe); stroke-width: 24; stroke-dasharray: 6 12; stroke-dashoffset: 10; }
-html[data-cat="lihua"] #scene .arm-stripes { display: inline; }
+html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .arm-stripes { display: inline; }
 #scene .toe-l, #scene .toe-r { fill: none; stroke-width: 3; stroke-linecap: round; opacity: var(--coat-toe-opacity); }
 #scene .toe-l { stroke: var(--coat-toe-l); }
 #scene .toe-r { stroke: var(--coat-toe-r); }

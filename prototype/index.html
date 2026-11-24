@@ -311,7 +311,7 @@
   if (!desktopMode) {
     const catSelect = document.getElementById('cat-select');
     for (const { id, name } of SillyCoats.list()) catSelect.add(new Option(name, id));
-    catSelect.value = SillyCoats.apply(params.get('cat')).id;
+    catSelect.value = SillyCoats.setArtStyle(params.get('style'), params.get('cat')).id;
     // 保留原生下拉框的按键操作，避免被页面的全局键盘监听截走。
     catSelect.addEventListener('keydown', (event) => event.stopPropagation());
     catSelect.addEventListener('change', () => {
@@ -354,10 +354,10 @@
     Object.defineProperty(window, '__desktop', { value: desktop.debug, writable: false, configurable: false });
 
     // 启动时读 settings.json 再显示猫，之后每次保存都会发 silly:settings 事件过来，立即生效。
-    // 猫的品种只读设置。其他支持 URL 的字段在启动时优先用 URL 参数，之后以设置窗口为准。
+    // 猫的品种和画风只读设置。其他支持 URL 的字段在启动时优先用 URL 参数，之后以设置窗口为准。
     const applySettings = (raw, skipUrl) => {
       const s = SillySettings.sanitize(raw);
-      SillyCoats.apply(s.cat);
+      SillyCoats.setArtStyle(s.artStyle, s.cat);
       const use = (k) => !(skipUrl && num(k) !== null);
       if (use('sleep')) cat.setSleepSeconds(s.sleep);
       if (use('drool')) sleepMod.setDroolSeconds(s.drool ?? NaN); // NaN = 自动（入睡时间 × 2）

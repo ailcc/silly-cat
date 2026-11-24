@@ -1,0 +1,289 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="244 12 312 284" data-cat="cow" data-art-style="line">
+  <style>
+:root {
+  --ink: #1d1b22;
+  --fur-black: #26232b;
+  --fur-white: #fffdf8;
+  --pink: #ff9eb0;
+  --iris: #b9e36b;
+  --bg: #dfe6f5;
+  --cream: #fbf6ea;
+  --cream-dark: #e8dfca;
+  --coral: #ff7a59;
+  --coat-base: var(--fur-white);
+  --coat-ear: var(--fur-black);
+  --coat-inner-ear: var(--pink);
+  --coat-lid-l: var(--fur-black);
+  --coat-lid-r: var(--fur-white);
+  --coat-eye-arc-l: var(--fur-white);
+  --coat-eye-arc-r: var(--ink);
+  --coat-arm-l: var(--fur-black);
+  --coat-arm-r: var(--fur-white);
+  --coat-paw-l: var(--fur-black);
+  --coat-paw-r: var(--fur-white);
+  --coat-toe-l: #77707f;
+  --coat-toe-r: var(--ink);
+  --coat-toe-opacity: 1;
+  --coat-tail: var(--fur-black);
+  --coat-tail-tip: var(--fur-white);
+  --coat-iris: var(--iris);
+  --coat-iris-l: var(--coat-iris);
+  --coat-iris-r: var(--coat-iris);
+  --coat-whisker: var(--ink);
+  --coat-whisker-opacity: 1;
+  --coat-brow: var(--ink);
+  --coat-nose: var(--pink);
+  --coat-mouth-line: var(--ink);
+  --coat-blush-opacity: 0.45;
+  --coat-brow-l: #8f8898;
+}
+
+svg[data-cat]:where(:not([data-cat="cow"])) {
+  --coat-lid-l: var(--coat-base);
+  --coat-lid-r: var(--coat-base);
+  --coat-eye-arc-l: var(--ink);
+  --coat-arm-l: var(--coat-base);
+  --coat-arm-r: var(--coat-base);
+  --coat-toe-l: var(--ink);
+  --coat-brow-l: var(--ink);
+}
+
+svg:is([data-cat="orange"], [data-cat="lihua"]) {
+  --coat-paw-l: var(--coat-light);
+  --coat-paw-r: var(--coat-light);
+  --coat-tail: var(--coat-base);
+  --coat-tail-tip: var(--coat-stripe);
+}
+
+svg[data-cat="orange"] {
+  --coat-base: #f4a957;
+  --coat-stripe: #d97a2b;
+  --coat-light: #fff1dc;
+  --coat-ear: var(--coat-base);
+  --coat-iris: #e8c547;
+  --coat-toe-opacity: 0.6;
+}
+
+svg[data-cat="lihua"] {
+  --coat-base: #a98a5f;
+  --coat-stripe: #2a221c;
+  --coat-light: #f4ede0;
+  --coat-belly: #c9b18b;
+  --coat-paw-l: var(--coat-base);
+  --coat-paw-r: var(--coat-base);
+  --coat-ear: url(#coat-lihua-ear);
+  --coat-inner-ear: #e3a3a0;
+  --coat-iris: #c9d84f;
+  --coat-blush-opacity: 0.3;
+}
+
+svg[data-cat="siamese"] {
+  --coat-base: #f4ead8;
+  --coat-point: #5b4334;
+  --coat-transition: #a8876c;
+  --coat-ear: var(--coat-point);
+  --coat-inner-ear: #b98080;
+  --coat-lid-l: #5d4333; /* 眼周面罩色，取自 head.png */
+  --coat-lid-r: #5d4333;
+  --coat-eye-arc-l: var(--coat-mouth-line);
+  --coat-eye-arc-r: var(--coat-mouth-line);
+  --coat-paw-l: var(--coat-point);
+  --coat-paw-r: var(--coat-point);
+  --coat-toe-l: var(--coat-mouth-line);
+  --coat-toe-r: var(--coat-mouth-line);
+  --coat-tail: var(--coat-point);
+  --coat-tail-tip: none;
+  --coat-iris: #7ec8f0;
+  --coat-nose: #3a2a22;
+  --coat-mouth-line: #eadfcd;
+  --coat-blush-opacity: 0;
+}
+
+svg:is([data-cat="black"], [data-cat="calico"], [data-cat="blue"],
+        [data-cat="white"], [data-cat="maine"], [data-cat="sphynx"]) {
+  --coat-ear: var(--coat-base);
+  --coat-paw-l: var(--coat-base);
+  --coat-paw-r: var(--coat-base);
+  --coat-tail: var(--coat-base);
+  --coat-tail-tip: var(--coat-base);
+  --coat-brow-l: var(--coat-brow);
+}
+svg[data-cat="black"] {
+  --coat-base: #26232b;
+  --coat-eye-arc-l: #e8e2ec;
+  --coat-eye-arc-r: #e8e2ec;
+  --coat-iris: #f0c030;
+  --coat-nose: #3a3036;
+  --coat-mouth-line: #d8d0dc;
+  --coat-whisker: #d8d0dc;
+  --coat-brow: #e8e2ec;
+  --coat-brow-l: var(--coat-brow);
+  --coat-blush-opacity: 0;
+}
+svg[data-cat="calico"] {
+  --coat-base: #fffdf8;
+  --coat-lid-l: #26232b; /* 左眼在黑块里、右眼在橘块里，取自 head.png */
+  --coat-lid-r: #e68b40;
+  --coat-eye-arc-l: #e8e2ec;
+  --coat-iris: #e0a63a;
+  --coat-blush-opacity: 0.4;
+}
+svg[data-cat="calico"][data-art-style="line"] {
+  --coat-tail: var(--coat-lid-l);
+  --coat-tail-tip: var(--coat-tail);
+}
+svg[data-cat="blue"] {
+  --coat-base: #8d9aaa;
+  --coat-iris: #e3963a;
+  --coat-nose: #6b6f7c;
+  --coat-blush-opacity: 0.2;
+}
+svg[data-cat="white"] {
+  --coat-base: #fffdf8;
+  --coat-iris-l: #6cb8ec;
+  --coat-iris-r: #e8b84a;
+}
+svg[data-cat="maine"] {
+  --coat-base: #c3c7cd;
+  --coat-iris: #b9c845;
+  --coat-nose: #c27c6c;
+  --coat-blush-opacity: 0.25;
+}
+svg[data-cat="maine"][data-art-style="line"] {
+  --coat-stripe: #5c616b;
+  --coat-light: #eef0f2;
+  --coat-belly: var(--coat-light);
+  --coat-ear: url(#coat-lihua-ear);
+  --coat-tail-tip: var(--coat-stripe);
+}
+svg[data-cat="sphynx"] {
+  --coat-base: #e6c3b3;
+  --coat-iris: #b8d86a;
+  --coat-nose: #d98f8f;
+  --coat-whisker-opacity: 0.35;
+  --coat-blush-opacity: 0.5;
+}
+
+
+#scene .ink { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+#scene .ink-line { stroke: var(--ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+#scene .ink-thin { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+#scene .coat-base { fill: var(--coat-base); }
+#scene .coat-cow-marking { fill: var(--fur-black); }
+#scene .coat-ear { fill: var(--coat-ear); }
+svg[data-cat="calico"][data-art-style="line"] #scene :is(#ear-l, #strike-ear-r) .coat-ear,
+#scene .coat-calico-dark { fill: var(--coat-lid-l); }
+svg[data-cat="calico"][data-art-style="line"] #scene :is(#ear-r, #strike-ear-l) .coat-ear,
+#scene .coat-calico-orange { fill: var(--coat-lid-r); }
+#scene .coat-inner-ear { fill: var(--coat-inner-ear); }
+#scene .coat-paw-l { fill: var(--coat-paw-l); }
+#scene .coat-paw-r { fill: var(--coat-paw-r); }
+#scene .coat-light { fill: var(--coat-light); }
+#scene .coat-solid-stripe { fill: var(--coat-stripe); }
+#scene .coat-stripe { fill: none; stroke: var(--coat-stripe); stroke-linecap: round; stroke-linejoin: round; }
+#scene .coat-belly { fill: var(--coat-belly); }
+#scene .coat-rim { fill: none; stroke: var(--coat-light); stroke-width: 7; }
+#scene .coat-stop-base { stop-color: var(--coat-base); }
+#scene .coat-stop-stripe { stop-color: var(--coat-stripe); }
+#scene .coat-stop-point { stop-color: var(--coat-point); }
+#scene .coat-stop-transition { stop-color: var(--coat-transition); }
+#scene .coat-nose { fill: var(--coat-nose); }
+#scene .coat-mouth-line { stroke: var(--coat-mouth-line); }
+#scene .blush { fill: var(--pink); opacity: var(--coat-blush-opacity); }
+svg[data-cat]:not([data-cat="cow"]) #scene .coat-cow-marking,
+svg:not([data-cat="orange"]) #scene [data-coat-pattern="orange"],
+svg:not([data-cat="lihua"]) #scene [data-coat-pattern="lihua"],
+svg:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"],
+svg:not([data-cat="calico"][data-art-style="line"]) #scene [data-coat-pattern="calico"],
+svg:not([data-cat="maine"][data-art-style="line"]) #scene [data-coat-pattern="maine"] { display: none; }
+#scene .shadow { fill: var(--ink); opacity: 0.1; }
+
+#scene .sclera { fill: var(--fur-white); }
+#scene #iris-l { fill: var(--coat-iris-l); }
+#scene #iris-r { fill: var(--coat-iris-r); }
+#scene .pupil { fill: var(--ink); }
+#scene .shine { fill: #fff; }
+#scene .lid-l { fill: var(--coat-lid-l); }
+#scene .lid-r { fill: var(--coat-lid-r); }
+#scene .lid-line { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+/* 眼皮下沿和闭眼弧线同色：深色毛上用浅色线，眼皮往下落时还看得出是在闭眼 */
+#scene #lidline-l { stroke: var(--coat-eye-arc-l); }
+#scene #lidline-r { stroke: var(--coat-eye-arc-r); }
+#scene .eye-ring { fill: none; stroke: var(--ink); stroke-width: 5; }
+#scene .eye-arc-l, #scene .eye-arc-r { fill: none; stroke-width: 5; stroke-linecap: round; }
+#scene .eye-arc-l { stroke: var(--coat-eye-arc-l); }
+#scene .eye-arc-r { stroke: var(--coat-eye-arc-r); }
+#scene .whisker { fill: none; stroke: var(--coat-whisker); opacity: var(--coat-whisker-opacity); stroke-width: 3; stroke-linecap: round; }
+#scene .fang { fill: #fff; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+
+</style>
+  <defs>
+    <clipPath id="clip-head">
+      <path id="clip-head-path" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z" />
+    </clipPath>
+    <clipPath id="clip-eye-l">
+      <circle cx="345" cy="178" r="29" />
+    </clipPath>
+    <clipPath id="clip-eye-r">
+      <circle cx="455" cy="178" r="29" />
+    </clipPath>
+    <linearGradient id="coat-lihua-ear" x2="0%" y2="100%">
+      <stop offset="33%" class="coat-stop-stripe" />
+      <stop offset="33%" class="coat-stop-base" />
+    </linearGradient>
+    <radialGradient id="coat-siamese-mask">
+      <stop offset="38%" class="coat-stop-point" />
+      <stop offset="68%" class="coat-stop-transition" />
+      <stop offset="100%" class="coat-stop-base" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <g id="scene" transform="rotate(-4 400 262) translate(400 262) scale(1 1) translate(-400 -262)">
+    <g id="ear-l">
+      <g class="ear-shape-l">
+        <path class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 L 380 150 L 300 160 Z" />
+        <path class="coat-inner-ear" d="M 302 108 L 304 58 L 341 86 Z" />
+      </g>
+    </g>
+    <g id="ear-r">
+      <g class="ear-shape-r">
+        <path class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 L 420 150 L 500 160 Z" />
+        <path class="coat-inner-ear" d="M 498 108 L 496 58 L 459 86 Z" />
+      </g>
+    </g>
+    <path id="head-fill" class="coat-base" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z" />
+    <g id="coat-head-patterns" clip-path="url(#clip-head)">
+      <path class="coat-cow-marking" d="M 255 50 H 545 V 112 C 520 104, 498 101, 470 110 C 452 116, 438 112, 424 122 C 408 134, 398 146, 392 166 C 385 190, 380 214, 346 222 C 316 228, 286 216, 255 202 Z" />
+    </g>
+    <path id="head-line" class="ink-line" fill="none" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z" />
+    <ellipse class="blush" cx="318" cy="232" rx="13" ry="7" />
+    <ellipse class="blush" cx="484" cy="226" rx="13" ry="7" />
+    <g id="eye-l-open">
+      <circle class="sclera" cx="345" cy="178" r="29" />
+      <g clip-path="url(#clip-eye-l)">
+        <circle id="iris-l" class="iris" cx="345" cy="178" r="21" />
+        <circle id="pupil-l" class="pupil" cx="345" cy="179" r="13" />
+        <circle id="shine-l" class="shine" cx="339" cy="173" r="5" />
+        <rect id="lid-l" class="lid-l" x="314" y="147" width="62" height="10" />
+        <line id="lidline-l" class="lid-line" x1="314" x2="376" y1="157" y2="157" />
+      </g>
+      <circle class="eye-ring" cx="345" cy="178" r="29" />
+    </g>
+    <g id="eye-r-open">
+      <circle class="sclera" cx="455" cy="178" r="29" />
+      <g clip-path="url(#clip-eye-r)">
+        <circle id="iris-r" class="iris" cx="455" cy="178" r="21" />
+        <circle id="pupil-r" class="pupil" cx="455" cy="179" r="13" />
+        <circle id="shine-r" class="shine" cx="449" cy="173" r="5" />
+        <rect id="lid-r" class="lid-r" x="424" y="147" width="62" height="10" />
+        <line id="lidline-r" class="lid-line" x1="424" x2="486" y1="157" y2="157" />
+      </g>
+      <circle class="eye-ring" cx="455" cy="178" r="29" />
+    </g>
+    <ellipse class="coat-cow-marking" cx="421" cy="214" rx="11" ry="6.5" transform="rotate(-22 421 214)" />
+    <path class="whisker" d="M 300 226 L 256 218 M 302 236 L 259 242" />
+    <path class="whisker" d="M 500 224 L 546 214 M 499 234 L 543 240" />
+    <path class="fang" d="M 404 232 L 408 242 L 412 231 Z" />
+    <path class="ink-thin coat-mouth-line" fill="none" d="M 400 219 L 400 228 M 383 227 Q 391 237 400 228 Q 410 237 420 224" />
+    <path class="ink-thin coat-nose" d="M 389 206 Q 400 201 411 206 Q 409 216 400 220 Q 391 216 389 206 Z" />
+  </g>
+</svg>
