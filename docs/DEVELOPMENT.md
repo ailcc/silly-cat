@@ -73,6 +73,22 @@
 
 无界面测试可运行 `cargo test --manifest-path src-tauri/Cargo.toml`。允许绑定回环端口的环境还可运行 `cargo test --manifest-path src-tauri/Cargo.toml check_loopback_manifest -- --ignored`，用真实插件检查本地清单中的新版和当前版本。
 
+## Windows 7 / 8 / 8.1 版
+
+Tauri 2.12 起不再支持 Win7，Rust 1.78 起的标准库也要求 Win10。所以发布流程里 `release.yml` 的 `win7` 任务单独用 Rust 1.77.2 和 Tauri 2.11 再构建一个包，传到同一个草稿 Release，文件名带 `win7`：`SillyCat_x.y.z_win7_x64-setup.exe`、对应 `.sig` 和 `latest-win7.json`。主线包的构建不依赖它，它失败时（`continue-on-error`）只是这个 Release 没有 win7 附件。
+
+构建细节（都只发生在 CI 工作区，不改仓库里的 `Cargo.toml` 和 `Cargo.lock`）：
+
+- 给 `Cargo.toml` 加 `rust-version = "1.77.2"`，把 `tauri-plugin-updater` 放宽到 `"2"`（2.14 要求的 Tauri 2.12 在 Win7 上不能用），再用 stable 的 cargo 设 `CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback` 重新生成 `Cargo.lock`，选出 1.77.2 能编的版本（2026-11-24 解析为 tauri 2.11.6、tauri-plugin-updater 2.12.0）。
+- `@tauri-apps/cli` 临时换成 2.11.5，要和 Rust 端的 Tauri 小版本一致。
+- `src-tauri/tauri.win7.conf.json` 叠加在主配置上：只打 NSIS；`webviewInstallMode` 设为 `skip`（微软最新的引导程序在 Win7 上崩，WebView2 109 由用户按 README 常见问题自己装）；更新地址改成 `.../releases/latest/download/latest-win7.json`。这样 Win7 版不会被主线 `latest.json` 更新到普通 Windows 包。
+- `tools/make-win7-manifest.mjs` 用同一把更新私钥签出的 `.sig` 生成 `latest-win7.json`，发布草稿后它才会出现在 `releases/latest/download/`。
+- `tools/win7-check-imports.py` 检查 `silly-cat.exe` 的导入表，发现 Win8 以上才有的系统接口就让任务失败。它只看链接时写进导入表的接口，运行时动态获取的看不到。
+
+约束：以后 Rust 代码不能用 1.77.2 之后才稳定的接口（例如 `LazyLock` 要 1.80，`ErrorKind::ReadOnlyFilesystem` 要 1.83），新增依赖也要能在 1.77.2 下编译，否则 `win7` 任务会失败。本地检查：把上面的 `Cargo.toml` 和 `Cargo.lock` 改动做在临时工作区里，运行 `cargo +1.77.2 check --target x86_64-pc-windows-gnu --locked`。
+
+截至 2026-11-24，这个包没有在 Win7 真机上安装或运行过，导入表检查通过也不等于一定能运行；Win7 版的自动更新、WebView2 109 的安装也都没有真机验证。
+
 ## 手绘毛发部件
 
 网页与桌面主窗口都通过 `SillyCoats.apply(id)` 换猫。`index.html` 先加载 `art.js`、各猫的尺寸清单，再加载 `coats.js`。只有同时具备毛色的 `art` 配置和清单条目的部件才会替换对应矢量。切走时移除图片和切片，恢复原花纹与轮廓。眼睛、鼻口、牙齿、胡须、腮红、鼻边黑点、键鼠、杯子和特效继续由矢量绘制。头图鼓腮时绕 (400, 205) 缩放，压痕仍使用动态的头部裁剪路径。
