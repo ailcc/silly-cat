@@ -208,7 +208,9 @@
       S.blinkUntil = 0;
       S.twitch.ear = null;
       S.lid = Math.max(0.18, P.lidMin);
-      if (S.eyeMode === 'happy' || !frame.acting) { S.pupilX = 0; S.pupilY = 1; }
+      if (S.eyeMode === 'happy' || !frame.acting) {
+        for (const offset of Object.values(S.pupil)) { offset.x = 0; offset.y = 1; }
+      }
       for (const paw of [paws.L, paws.R]) {
         let point = forcedPawTarget(paw, now) || restPoint(paw.side);
         if (frame.acting && frame.t >= WATCH && frame.t < WATCH + 230 && paw !== mousePaw()) {

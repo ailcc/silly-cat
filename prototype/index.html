@@ -347,12 +347,13 @@
   const statusBarParam = params.has('statusbar') ? !/^(0|false|off|no)$/i.test(params.get('statusbar')) : null;
   const pushParam = params.has('push') ? !/^(0|false|off|no)$/i.test(params.get('push')) : null;
   const soundsParam = params.has('sounds') ? !/^(0|false|off|no)$/i.test(params.get('sounds')) : null;
+  const eyesParam = params.has('eyes') ? !/^(0|false|off|no)$/i.test(params.get('eyes')) : null;
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
   let fatigue = null, sleepMod = null, push = null, statusBar = null;
   const cat = SillyCat.createCat({
-    keyboard: kb, sleepSeconds: sleep, demo,
+    keyboard: kb, sleepSeconds: sleep, eyesFollow: eyesParam ?? SillySettings.DEFAULTS.eyesFollow, demo,
     modules: [
       (ctx) => window.SillySounds.create(ctx), // 第一个注册：借输入事件解锁音频
       (ctx) => (sleepMod = SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo })),
@@ -394,6 +395,7 @@
       if (!(skipUrl && statusBarParam !== null)) statusBar.setEnabled(s.statusBar);
       if (!(skipUrl && pushParam !== null)) push.setEnabled(s.push);
       if (!(skipUrl && soundsParam !== null)) window.SillySounds.setEnabled(s.sounds);
+      if (!(skipUrl && eyesParam !== null)) cat.setEyesFollow(s.eyesFollow);
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
     const T = window.__TAURI__;

@@ -17,6 +17,8 @@
   ]);
 
   const EYE = { L: { cx: 345, cy: 178, r: 29 }, R: { cx: 455, cy: 178, r: 29 } };
+  const GAZE_HOLD_MS = 3000, GAZE_FALLOFF = 160;
+  const GAZE_TAU = 60, GAZE_SLOW_TAU = 3 * GAZE_TAU;
   // 肩部锚点贴在身体轮廓内侧，手臂基本竖直往下，让观众右侧的鞍状黑斑露出来
   const SHOULDER = { L: { x: 446, y: 304 }, R: { x: 354, y: 304 } }; // 画面坐标
   // mouseSide 也按猫的视角：'right' = 猫的右手边 = 画面里键盘左侧
@@ -225,7 +227,7 @@
   }
 
   // modules：扩展行为（睡眠阶段、疲劳……）的工厂函数数组，每个接收 ctx 返回一个带可选钩子的对象。
-  function createCat({ keyboard: kb, sleepSeconds = 20, mouseSide = 'right', modules = [], demo = null }) {
+  function createCat({ keyboard: kb, sleepSeconds = 20, mouseSide = 'right', eyesFollow = true, modules = [], demo = null }) {
     const $ = (id) => {
       const n = document.getElementById(id);
       if (!n) throw new Error('missing #' + id);
@@ -264,7 +266,8 @@
       mouseSide, mouseActiveUntil: 0, mouseButtons: new Set(), mouseOff: { x: 0, y: 0 },
       pet: null,                        // { nx, ny }
       shakeStart: -1e9, nodStart: -1e9, lastKeyAt: -1e9, lookCode: null, lookSide: 'R',
-      lid: 0.18, pupilX: 0, pupilY: 1, pupilR: 13,
+      pointer: null, followingPointer: false,
+      lid: 0.18, pupil: { L: { x: 0, y: 1 }, R: { x: 0, y: 1 } }, pupilR: 13,
       nextBlink: t0 + 3000 + Math.random() * 3000, blinkUntil: 0,
       twitch: { ear: null, start: -1e9 }, nextTwitch: t0 + 5000 + Math.random() * 5000,
       tailPhase: 0, tailAngle: 0, eyeMode: null,
@@ -385,6 +388,9 @@
         if (paw.held.length === 0) { paw.releaseAt = now + RELEASE_MS; paw.lastCode = code; }
         kb.setDown(code, false);
       },
+      pointerAt(x, y) {
+        S.pointer = { x, y, at: performance.now() };
+      },
       pointerMove(dx, dy) {
         if (guard('pointerMove', null)) return;
         const now = performance.now();
@@ -433,6 +439,9 @@
       },
       setSleepSeconds(sec) {
         S.sleepMs = clamp(+sec || 20, 1, 3600) * 1000;
+      },
+      setEyesFollow(enabled) {
+        eyesFollow = enabled;
       },
       setMouseSide(side) {
         S.mouseSide = side === 'left' ? 'left' : 'right';
@@ -596,28 +605,50 @@
       if (now < S.blinkUntil) lidGoal = 1;
       S.lid = approach(S.lid, lidGoal, dt, now < S.blinkUntil ? 18 : 60);
 
-      // 看向刚按的键，或者正在用的鼠标
-      let lx = 0, ly = 1;
-      if (now - S.lastKeyAt < 1200 && S.lookCode) {
+      let lx = 0, ly = 1, tau = GAZE_TAU, pointerTarget = null;
+      if (P.look) {
+        // 扩展模块按时间轴控制转眼的过渡。
+        lx = clamp((P.look.x - 400) / 300, -1, 1) * 8;
+        ly = 1 + clamp((P.look.y - 178) / 520, -1, 1) * 8;
+      } else if (now - S.lastKeyAt < 1200 && S.lookCode) {
         const p = keyPoint(S.lookCode, S.lookSide);
         lx = clamp((p.x - 400) / 220, -1, 1) * 5; ly = 4;
-      } else if (now < S.mouseActiveUntil) {
+      } else if (!P.hideCat && eyesFollow && S.pointer && now < S.pointer.at + GAZE_HOLD_MS) {
+        // 头部的屏幕矩阵同时包含场景留边和本帧写入的头部姿态。
+        const headToScreen = el.head.getScreenCTM();
+        if (headToScreen) {
+          pointerTarget = new DOMPoint(S.pointer.x, S.pointer.y).matrixTransform(headToScreen.inverse());
+          tau = S.state === STATES.DROWSY ? GAZE_SLOW_TAU : GAZE_TAU;
+        }
+      } else if (!eyesFollow && now < S.mouseActiveUntil) {
         lx = clamp((mousePoint().x - 400) / 220, -1, 1) * 5; ly = 4;
+      } else if (S.followingPointer) {
+        tau = GAZE_SLOW_TAU;
       }
-      S.pupilX = approach(S.pupilX, lx, dt, 60);
-      S.pupilY = approach(S.pupilY, ly, dt, 60);
+      // 回正期间延续慢速，直到下一个明确的目标接管。
+      if (pointerTarget || tau !== GAZE_SLOW_TAU) S.followingPointer = !!pointerTarget;
       S.pupilR = approach(S.pupilR, S.excited ? 18 : 13, dt, 80);
-      if (P.look) {
-        // 扩展模块按时间轴给出视线目标，转眼的过渡也由模块控制。
-        S.pupilX = clamp((P.look.x - 400) / 300, -1, 1) * 8;
-        S.pupilY = 1 + clamp((P.look.y - 178) / 520, -1, 1) * 8;
-      }
+      // 瞳孔变大时，最大偏移随半径从 8 缩到 6，给虹膜留出边缘。
+      const maxGaze = 8 - (S.pupilR - 13) * 0.4;
 
       for (const s of ['L', 'R']) {
-        const g = EYE[s], e = el.eye[s];
-        const px = g.cx + S.pupilX, py = g.cy + S.pupilY;
-        e.iris.setAttribute('cx', f1(g.cx + S.pupilX * 0.6));
-        e.iris.setAttribute('cy', f1(g.cy + S.pupilY * 0.6));
+        const g = EYE[s], e = el.eye[s], offset = S.pupil[s];
+        let x = lx, y = ly;
+        if (pointerTarget) {
+          const dx = pointerTarget.x - g.cx, dy = pointerTarget.y - g.cy;
+          const scale = maxGaze / Math.max(GAZE_FALLOFF, Math.hypot(dx, dy));
+          x = dx * scale; y = dy * scale;
+        }
+        offset.x = P.look ? x : approach(offset.x, x, dt, tau);
+        offset.y = P.look ? y : approach(offset.y, y, dt, tau);
+        if (pointerTarget) {
+          const scale = maxGaze / Math.max(maxGaze, Math.hypot(offset.x, offset.y));
+          offset.x *= scale;
+          offset.y *= scale;
+        }
+        const px = g.cx + offset.x, py = g.cy + offset.y;
+        e.iris.setAttribute('cx', f1(g.cx + offset.x * 0.6));
+        e.iris.setAttribute('cy', f1(g.cy + offset.y * 0.6));
         e.pupil.setAttribute('cx', f1(px));
         e.pupil.setAttribute('cy', f1(py));
         e.pupil.setAttribute('r', f1(S.pupilR));

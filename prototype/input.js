@@ -98,6 +98,7 @@
     }
 
     function onPointerMove(e) {
+      sink.pointerAt(e.clientX, e.clientY);
       const dx = lastPt ? e.clientX - lastPt.x : 0;
       const dy = lastPt ? e.clientY - lastPt.y : 0;
       lastPt = { x: e.clientX, y: e.clientY };
