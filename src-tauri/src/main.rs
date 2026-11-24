@@ -5,6 +5,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 #[cfg(target_os = "macos")]
+mod macos_window;
+#[cfg(target_os = "macos")]
 mod tap;
 #[cfg(target_os = "macos")]
 use tap as input;
@@ -488,6 +490,13 @@ fn main() {
             }
             let start = load_pos(app.handle()).filter(|p| on_some_screen(&win, *p)).unwrap_or_else(|| default_pos(&win));
             place(&win, start);
+            // 全屏行为配置失败时只记日志，猫照常显示（只是可能进不了别的应用的全屏 Space）。
+            #[cfg(target_os = "macos")]
+            {
+                if let Err(e) = macos_window::configure_cat(&win) {
+                    eprintln!("[silly-cat] 设置跨全屏窗口行为失败：{e}");
+                }
+            }
             let _ = win.show();
 
             // 拖动后记住位置
