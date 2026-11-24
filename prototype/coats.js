@@ -20,15 +20,19 @@
     <path class="coat-solid-stripe" d="${d}"/>
     <path class="coat-solid-stripe" transform="translate(800 0) scale(-1 1)" d="${d}"/>`;
 
-  function art(id, { headWidth = 300, tailScale = 1 } = {}) {
+  function art(id, opts = {}) {
+    const head = { cx: 400, cy: 176, width: 300, ...opts.head };
     return {
       base: `art/${id}/`,
-      head: { cx: 400, cy: 176, width: headWidth },
-      ear: { x: 278, y: 24, width: 110 },
+      head,
+      backHead: { ...head, ...opts.backHead },
+      headPath: opts.headPath,
+      imprint: { dx: 0, dy: 0, ...opts.imprint },
+      ear: { x: 278, y: 24, width: 110, ...opts.ear },
       body: { cx: 400, y: 246, width: 240 },
-      paw: { cx: 0, cy: -2, width: 66 },
-      arm: { width: 54, top: 18, bottom: 12, segments: 8 },
-      tail: { fringe: 6, segments: 16, scale: tailScale },
+      paw: { cx: 0, cy: -2, width: 66, ...opts.paw },
+      arm: { width: 54, top: 18, bottom: 12, segments: 8, ...opts.arm },
+      tail: { fringe: 6, segments: 16, scale: 1, ...opts.tail },
     };
   }
 
@@ -111,24 +115,39 @@
       tail: { rings: [[0.23, 0.30], [0.39, 0.46], [0.55, 0.62], [0.71, 0.78]], tip: [0.88, 1] },
     },
     {
-      id: 'siamese', name: '暹罗猫', art: art('siamese'),
+      id: 'siamese', name: '暹罗猫', art: art('siamese', {
+        head: { cx: 399.9, cy: 173.4, width: 241.8 }, backHead: { cx: 400, cy: 173.6, width: 243 }, ear: { x: 272, y: 22, width: 110, rotate: 12 },
+        arm: { width: 46, maskBody: true }, paw: { width: 58 }, tail: { scale: 0.8 },
+        headPath: 'M 282 166 C 280 104, 332 60, 400 60 C 468 60, 520 104, 518 166 C 517 210, 488 248, 454 270 C 436 281, 418 287, 400 287 C 382 287, 364 281, 346 270 C 312 248, 283 210, 282 166 Z',
+        imprint: { dx: 36, dy: -14 },
+      }),
       defs: `<radialGradient id="coat-siamese-mask">
         <stop offset="38%" class="coat-stop-point"/>
         <stop offset="68%" class="coat-stop-transition"/>
         <stop offset="100%" class="coat-stop-base" stop-opacity="0"/>
       </radialGradient>`,
       head: '<ellipse fill="url(#coat-siamese-mask)" cx="400" cy="200" rx="96" ry="84"/>',
-      shape: { bodySX: 0.9, headSX: 0.95, ear: 1.2 }, // 身材细长、脸窄一点、耳朵大
+      shape: { bodySX: 0.86, headSX: 1, ear: 1.08 }, // 身材细长、脸窄一点、耳朵大
     },
     { id: 'black', name: '黑猫', art: art('black') },
     { id: 'calico', name: '三花猫', art: art('calico') },
-    { id: 'blue', name: '英短蓝猫', art: art('blue', { tailScale: 1.15 }),
+    { id: 'blue', name: '英短蓝猫', art: art('blue', { tail: { scale: 1.15 } }),
       shape: { bodySX: 1.15, bodySY: 0.96, headSX: 1.1, ear: 0.85 } },
     { id: 'white', name: '异瞳白猫', art: art('white') },
-    { id: 'maine', name: '缅因猫', art: art('maine', { headWidth: 320, tailScale: 1.45 }),
-      shape: { bodySX: 1.12, bodySY: 1.03, headSX: 1.05, ear: 1.15 } },
-    { id: 'sphynx', name: '无毛猫', art: art('sphynx', { tailScale: 0.7 }),
-      shape: { bodySX: 0.88, headSX: 0.94, ear: 1.3 } },
+    { id: 'maine', name: '缅因猫', art: art('maine', {
+      head: { cx: 400.4, cy: 178.1, width: 322.3 }, backHead: { cx: 400, cy: 177.9, width: 316.5 }, ear: { x: 278, y: 14, width: 110, rotate: 0 },
+      arm: { width: 62, maskBody: true }, paw: { width: 74 }, tail: { scale: 1.45 },
+      headPath: 'M 262 168 C 262 106, 322 66, 400 66 C 478 66, 538 106, 538 168 C 540 214, 532 248, 506 268 C 478 286, 440 290, 400 290 C 360 290, 322 286, 294 268 C 268 248, 260 214, 262 168 Z',
+      imprint: { dx: 6, dy: -4 },
+    }),
+      shape: { bodySX: 1.12, bodySY: 1.03, headSX: 1, ear: 1.15 } },
+    { id: 'sphynx', name: '无毛猫', art: art('sphynx', {
+      head: { cx: 400.1, cy: 169.1, width: 255.3 }, ear: { x: 268, y: 34, width: 110, rotate: 16 },
+      arm: { width: 48, maskBody: true }, paw: { width: 60 }, tail: { scale: 0.6 },
+      headPath: 'M 274 158 C 272 102, 328 60, 400 60 C 472 60, 528 102, 526 158 C 525 194, 514 216, 494 230 C 482 238, 474 248, 464 258 C 446 272, 424 278, 400 278 C 376 278, 354 272, 336 258 C 326 248, 318 238, 306 230 C 286 216, 275 194, 274 158 Z',
+      imprint: { dx: 30, dy: -16 },
+    }),
+      shape: { bodySX: 0.96, headSX: 1, ear: 1.18 } },
   ];
 
   const root = document.documentElement;

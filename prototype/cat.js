@@ -245,7 +245,8 @@
       mouse: $('mouse'), mouseBtn: { 0: $('mouse-btn-l'), 2: $('mouse-btn-r') },
       zzz: [$('z1'), $('z2'), $('z3')],
       eye: { L: eyeEls('l'), R: eyeEls('r') },
-      headShape: [$('head-fill'), $('head-line'), $('clip-head-path')],
+      headShape: [$('head-fill'), $('head-line')],
+      headClip: $('clip-head-path'),
       armG: { l: $('arm-l'), r: $('arm-r') },
     };
     const fx = createKeycapFx($('fx-layer'));
@@ -567,6 +568,7 @@
         S.cheekDrawn = S.cheek;
         const d = headPathD(S.cheek);
         for (const n of el.headShape) n.setAttribute('d', d);
+        if (!SillyCoats.current().art?.headPath) el.headClip.setAttribute('d', d);
       }
       const hs = hsx !== 1 || hsy !== 1 ? ` translate(400 262) scale(${hsx.toFixed(4)} ${hsy.toFixed(4)}) translate(-400 -262)` : '';
       el.head.setAttribute('transform', `${turnTf(P)}translate(${f1(tx)} ${f1(ty)}) rotate(${rot.toFixed(2)} 400 262)${hs}`);

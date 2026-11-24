@@ -1,1 +1,1 @@
-SillyArt.register("maine", {"head": [768, 685], "ear": [524, 768], "body": [765, 768], "arm-l": [203, 768], "arm-r": [203, 768], "paw-l": [768, 540], "paw-r": [768, 540], "tail": [124, 768], "back-head": [768, 628], "ear-back": [513, 768], "back-body": [755, 768]});
+SillyArt.register("maine", {"head": [768, 549], "ear": [524, 768], "body": [765, 768], "arm-l": [203, 768], "arm-r": [203, 768], "paw-l": [768, 540], "paw-r": [768, 540], "tail": [124, 768], "back-head": [768, 551], "ear-back": [513, 768], "back-body": [755, 768]});

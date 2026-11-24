@@ -16,10 +16,16 @@ COW = {
     "paw-l": "paw-black.png", "paw-r": "paw-white.png",
     **{name: f"v2/{name}.png" for name in ("tail", "back-head", "ear-back", "back-body")},
 }
-# (head width, headSX, ear scale) in scene coordinates. Keep in sync with coats.js.
-PORTRAITS = dict.fromkeys(("cow", "lihua", "black", "calico", "white"), (300, 1, 1))
-PORTRAITS.update(orange=(300, 1.08, 1), siamese=(300, .95, 1.2),
-                 blue=(300, 1.1, .85), maine=(320, 1.05, 1.15), sphynx=(300, .94, 1.3))
+# Scene coordinates: keep head (cx, cy, width), ear (x, y, width, rotate),
+# optional left-ear pivot (x, y), and shape scales in sync with coats.js.
+PORTRAITS = {
+    "cow": {}, "lihua": {}, "black": {}, "calico": {}, "white": {},
+    "orange": {"headSX": 1.08},
+    "blue": {"headSX": 1.1, "ear_scale": .85},
+    "siamese": {"head": (399.9, 173.4, 241.8), "ear": (272, 22, 110, 12), "ear_scale": 1.08},
+    "maine": {"head": (400.4, 178.1, 322.3), "ear": (278, 14, 110, 0), "ear_scale": 1.15},
+    "sphynx": {"head": (400.1, 169.1, 255.3), "ear": (268, 34, 110, 16), "ear_scale": 1.18},
+}
 
 
 def publish(path, data):
@@ -48,7 +54,7 @@ def prepare(source):
     return image
 
 
-def portrait_image(directory, key, width, x, y=None):
+def portrait_image(directory, key, width, x, y=None, cy=176):
     with Image.open(directory / f"{key}.webp") as image:
         height = width * image.height / image.width
         image.thumbnail((256, 256), Image.Resampling.LANCZOS)
@@ -57,7 +63,7 @@ def portrait_image(directory, key, width, x, y=None):
     return ET.Element("image", {
         "href": "data:image/webp;base64," + base64.b64encode(buffer.getvalue()).decode(),
         "width": str(width), "height": f"{height:.3f}", "x": str(x),
-        "y": str(y) if y is not None else f"{176 - height / 2:.3f}",
+        "y": str(y) if y is not None else f"{cy - height / 2:.3f}",
     })
 
 
@@ -78,26 +84,34 @@ def avatar(cat, sizes):
     defs = ET.SubElement(root, "defs")
     for side in ("l", "r"):
         defs.append(scene.find(f".//*[@id='clip-eye-{side}']"))
-    width, head_scale, ear_scale = PORTRAITS[cat]
+    config = PORTRAITS[cat]
+    cx, cy, width = config.get("head", (400, 176, 300))
+    x, y, ear_width, angle = config.get("ear", (278, 24, 110, 0))
+    head_scale, ear_scale = config.get("headSX", 1), config.get("ear_scale", 1)
     pose = ET.SubElement(root, "g", {"id": "scene", "transform":
         f"rotate(-4 400 262) translate(400 262) scale({head_scale} 1) translate(-400 -262)"})
     directory = PROTOTYPE / "art" / cat
     for side, pivot in (("l", 322), ("r", 478)):
         ear = ET.SubElement(pose, "g", {"transform":
             f"translate({pivot} 110) scale({ear_scale}) translate({-pivot} -110)"})
-        if side == "r" and "ear-r" in sizes:
-            ear.append(portrait_image(directory, "ear-r", 110, 412, 24))
-        elif "ear" not in sizes:
+        key = "ear-r" if side == "r" and "ear-r" in sizes else "ear"
+        if key not in sizes:
             ear.append(head.find(f"./g[@id='ear-{side}']"))
-        elif side == "l":
-            image = portrait_image(directory, "ear", 110, 278, 24)
-            image.set("id", "portrait-ear")
-            ear.append(image)
-        else:
+        elif side == "r" and key == "ear":
             ET.SubElement(ear, "use", {"href": "#portrait-ear",
                                         "transform": "translate(800 0) scale(-1 1)"})
+        else:
+            right = key == "ear-r"
+            image = portrait_image(directory, key, ear_width, 800 - x - ear_width if right else x, y)
+            if not right:
+                image.set("id", "portrait-ear")
+            if angle:
+                w, h = sizes[key]
+                px, py = config.get("pivot", (x + ear_width / 2, y + ear_width * h / w))
+                image.set("transform", f"rotate({angle if right else -angle} {800 - px if right else px} {py})")
+            ear.append(image)
     if "head" in sizes:
-        pose.append(portrait_image(directory, "head", width, 400 - width / 2))
+        pose.append(portrait_image(directory, "head", width, cx - width / 2, cy=cy))
     else:
         for key in ("head-fill", "head-line"):
             pose.append(head.find(f"./path[@id='{key}']"))

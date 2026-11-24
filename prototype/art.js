@@ -4,7 +4,8 @@
   const manifests = new Map();
   const $ = id => document.getElementById(id);
   const added = [], replaced = [];
-  let active, head, tailStrip;
+  let active, head, tailStrip, backClipDefault, imprintOffset;
+  const frontClip = () => $('clip-head-path');
   const arms = new Map();
 
   function element(tag, attrs, parent, before = null) {
@@ -88,6 +89,25 @@
 
   function apply(coat) {
     if (active === coat) return;
+    const clip = frontClip();
+    const backClip = $('clip-back-head').firstElementChild;
+    backClipDefault ??= backClip.getAttribute('d');
+    if (coat.art?.headPath || active?.art?.headPath) {
+      clip.setAttribute('d', coat.art?.headPath ?? $('head-fill').getAttribute('d'));
+      clip.removeAttribute('transform');
+      backClip.setAttribute('d', coat.art?.headPath ?? backClipDefault);
+    }
+    if (imprintOffset) {
+      imprintOffset.replaceWith(...imprintOffset.childNodes);
+      imprintOffset = null;
+    }
+    const offset = coat.art?.imprint;
+    if (offset && (offset.dx || offset.dy)) {
+      const imprint = $('imprint');
+      const contents = [...imprint.childNodes];
+      imprintOffset = element('g', { transform: `translate(${offset.dx} ${offset.dy})` }, imprint);
+      imprintOffset.append(...contents);
+    }
     active = coat;
     for (const node of added.splice(0)) node.remove();
     for (const node of replaced.splice(0)) node.classList.remove('art-replaced');
@@ -109,23 +129,34 @@
 
     head = place('head', cfg.head, $('cat-head'), ['head-fill', 'coat-head-patterns', 'head-line'].map($));
     const back = $('strike-head-shape');
-    place('back-head', cfg.head, back, back.querySelectorAll(':scope > path, :scope > #coat-back-head-patterns'));
+    place('back-head', cfg.backHead ?? cfg.head, back, back.querySelectorAll(':scope > path, :scope > #coat-back-head-patterns'));
     place('body', cfg.body, $('cat-body'));
     place('back-body', cfg.body, $('strike-body'));
     for (const side of ['l', 'r']) {
       function placeEar(key, parent) {
-        if (side === 'r' && sizes[key + '-r']) {
-          const right = { ...cfg.ear, x: 800 - cfg.ear.x - cfg.ear.width };
-          place(key + '-r', right, parent);
-        } else {
-          place(key, cfg.ear, parent, undefined, side === 'r' ? 'translate(800 0) scale(-1 1)' : '');
+        const ear = cfg.ear;
+        const rightArt = side === 'r' && sizes[key + '-r'];
+        const asset = rightArt ? key + '-r' : key;
+        if (!sizes[asset]) return;
+        const mirror = side === 'r' && !rightArt;
+        const transforms = mirror ? ['translate(800 0) scale(-1 1)'] : [];
+        if (ear.rotate) {
+          const [w, h] = sizes[asset];
+          const { x, y } = ear.pivot ?? { x: ear.x + ear.width / 2, y: ear.y + ear.width * h / w };
+          transforms.push(rightArt ? `rotate(${ear.rotate} ${800 - x} ${y})` : `rotate(${-ear.rotate} ${x} ${y})`);
         }
+        const box = rightArt ? { ...ear, x: 800 - ear.x - ear.width } : ear;
+        place(asset, box, parent, undefined, transforms.join(' '));
       }
       placeEar('ear', document.querySelector('#ear-' + side + ' .ear-shape-' + side));
       placeEar('ear-back', $('strike-ear-' + side));
       place('paw-' + side, cfg.paw, $('paw-' + side));
       const key = 'arm-' + side;
-      if (sizes[key]) arms.set(key, strip($(key), href(key), sizes[key], cfg.arm));
+      if (sizes[key]) {
+        const arm = strip($(key), href(key), sizes[key], cfg.arm);
+        if (cfg.arm.maskBody) arm.group.setAttribute('mask', 'url(#mask-tail-front)');
+        arms.set(key, arm);
+      }
     }
     if (sizes.tail) {
       tailStrip = strip($('tail'), href('tail'), sizes.tail, cfg.tail);
@@ -149,7 +180,9 @@
     register: (id, sizes) => manifests.set(id, sizes),
     apply,
     cheek(b) {
-      if (head) head.setAttribute('transform', `translate(400 205) scale(${1 + 0.0055 * b} ${1 + 0.0015 * b}) translate(-400 -205)`);
+      const transform = `translate(400 205) scale(${1 + 0.0055 * b} ${1 + 0.0015 * b}) translate(-400 -205)`;
+      if (head) head.setAttribute('transform', transform);
+      if (active?.art?.headPath) frontClip().setAttribute('transform', transform);
     },
     arm(key, shoulder, cx, cy, ex, ey) {
       const strip = arms.get(key);

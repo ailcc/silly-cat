@@ -58,6 +58,12 @@
 1. 在 `prototype/coats.js` 的列表登记 ID、名称、`art: art(id)` 和可选的 `shape`。在 `settings.js` 的 `CATS` 同位置加入 ID。网页下拉框从 `SillyCoats.list()` 读取列表。更新 README 的猫列表。
 2. 在 `style.css` 的头像调色区域添加该 ID 的基础毛色和四肢、尾巴、耳朵的回退色。左右眼皮用 `--coat-lid-l/r` 匹配眼周的毛色，闭眼弧线用 `--coat-eye-arc-l/r`。两只虹膜默认使用 `--coat-iris`，异瞳分别覆盖 `--coat-iris-l`、`--coat-iris-r`。胡须使用 `--coat-whisker` 和 `--coat-whisker-opacity`，眉毛使用 `--coat-brow`，浅色侧眉毛可用 `--coat-brow-l` 覆盖。按需设置鼻子、嘴线和腮红透明度。
 3. 将透明 PNG 放进同一输入目录，包括 `head`、`ear`、`body`、`arm-l`、`arm-r`、`paw-l`、`paw-r`、`tail`、`back-head`、`ear-back`、`back-body`。头图留出五官。前腿从肩到腕、尾巴从根到尖，都从上往下画成直条。正面和背面分别按观众左右命名：`ear` 和 `ear-back` 在画面左边；右耳默认镜像左耳。花色不对称时，再给出已朝右的 `ear-r.png`、`ear-back-r.png`，各自在对应视角的右边直接使用。
-4. 在 `tools/prepare_art.py` 的 `PORTRAITS` 登记头图宽度、`headSX` 和耳朵缩放，与 `coats.js` 同步。运行 `python3 tools/prepare_art.py --cat 猫ID --source 原图目录`（需要 Pillow 的 WebP 支持）。奶牛猫沿用脚本内的旧文件名映射。脚本清除 alpha < 32 的像素，裁切后留 6 px 透明边，缩到长边至多 768 px，导出质量 90 的 WebP 和尺寸清单到 `prototype/art/猫ID/`。头图和耳图齐备时同步生成 `prototype/cats/猫ID.svg`。头像内嵌长边至多 256 px 的图片，复用网页的矢量五官和配色。
+4. 在 `tools/prepare_art.py` 的 `PORTRAITS` 登记头图中心和宽度、耳图位置和角度、可选耳根支点，以及 `headSX` 和耳朵缩放，与 `coats.js` 同步。运行 `python3 tools/prepare_art.py --cat 猫ID --source 原图目录`（需要 Pillow 的 WebP 支持）。奶牛猫沿用脚本内的旧文件名映射。脚本清除 alpha < 32 的像素，裁切后留 6 px 透明边，缩到长边至多 768 px，导出质量 90 的 WebP 和尺寸清单到 `prototype/art/猫ID/`。头图和耳图齐备时同步生成 `prototype/cats/猫ID.svg`。头像内嵌长边至多 256 px 的图片，复用网页的矢量五官和配色。
 5. 在 `index.html` 的 `art.js` 与 `coats.js` 之间加载新清单。原图未齐时可先登记空清单 `SillyArt.register("猫ID", {});` 并提供矢量头像。已有的九只非奶牛猫均预留了清单入口，生成资源后刷新页面即可。
-6. 按 800 × 620 场景坐标调摆放。`art(id, { headWidth, tailScale })` 可覆盖头图宽度和尾巴宽度倍数。前腿默认切 8 段，尾巴默认切 16 段，相邻切片按接点的角平分线斜切拼接。正面尾宽为（原直径 + 毛边）× `art.tail.scale`，鼠标上方复用这组切片。罢工尾宽为 31 × 同一倍数，路径和时序沿用原姿态。用 `?cat=猫ID&demo=tail-mouse` 和 `?cat=猫ID&demo=strike` 检查正背面、尾巴和耳朵，再在设置页检查头像与键盘选猫。
+6. 按 800 × 620 场景坐标调摆放。用 `art(id, opts)` 按部件浅合并字段，例如 `{ head: { cy: 166 }, arm: { width: 44 }, tail: { scale: 0.6 } }`。前腿默认切 8 段，尾巴默认切 16 段，相邻切片按接点的角平分线斜切拼接。正面尾宽为（原直径 + 毛边）× `art.tail.scale`，鼠标上方复用这组切片。罢工尾宽为 31 × 同一倍数，路径和时序沿用原姿态。用 `?cat=猫ID&demo=tail-mouse` 和 `?cat=猫ID&demo=strike` 检查正背面、尾巴和耳朵，再在设置页检查头像与键盘选猫。
+
+`head` 和 `paw` 默认用中心点 `cx, cy` 与 `width` 放置，爪子的坐标相对腕部组。罢工后脑勺 `backHead` 继承合并后的 `head`，可单独覆盖。图片高度按素材宽高比计算。`arm` 可覆盖 `width, top, bottom, segments` 和 `maskBody`（用随身体运动的遮罩挡住肩端），`tail` 可覆盖 `scale, fringe, segments`。
+
+`ear` 使用左耳图左上角 `x, y` 和 `width`。`rotate` 单位是度，正值让耳尖向画面外侧倾斜。`pivot: { x, y }` 使用左侧场景坐标，默认取当前耳图底边中点，右侧支点关于 x = 400 对称。正面、罢工背影和独立右耳图都使用此规则；耳图旋转后再应用 `shape.ear`。
+
+`headPath` 是场景坐标中的闭合 SVG 路径，供醒来压痕和背影头部花纹裁切。正面裁切随头图鼓腮，两面裁切均随所在头组缩放。`imprint: { dx, dy }` 平移裁切内的键帽印和红晕，默认都是 0。用 `?cat=猫ID&demo=wake-marks&at=1200` 检查键印是否完整。
