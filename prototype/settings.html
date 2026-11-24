@@ -73,6 +73,11 @@
   .hint { margin-top: 2px; color: var(--muted); font-size: 12px; }
   .err { margin-top: 2px; color: var(--error); font-size: 12px; }
   .err:empty { display: none; }
+  #autostart-login-items { margin-top: 4px; }
+  #about { margin-top: 8px; color: var(--muted); font-size: 12px; }
+  #about h2 { margin: 0 0 2px; font-size: inherit; }
+  #about-links { display: flex; gap: 12px; margin-top: 2px; }
+  #about-links a { color: inherit; }
   footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
   button {
     padding: 5px 14px;
@@ -183,12 +188,29 @@
       <span class="field"><input id="f-autoUpdate" type="checkbox" aria-describedby="update-hint"></span></div>
     <div class="hint" id="update-hint">每天从 GitHub 检查新版本，点击更新后才下载。</div>
   </div>
+  <div class="row" id="autostart" hidden>
+    <div class="head"><label for="f-autostart">开机时自动启动</label>
+      <span class="field"><input id="f-autostart" type="checkbox" aria-describedby="autostart-hint autostart-approval autostart-error" disabled></span></div>
+    <div class="hint" id="autostart-hint"></div>
+    <div class="hint" id="autostart-approval" aria-live="polite" hidden>需要在系统设置的登录项里允许 SillyCat</div>
+    <button id="autostart-login-items" type="button" hidden>打开登录项</button>
+    <div class="err" id="autostart-error" role="status"></div>
+  </div>
   <div class="row" data-size>
     <div class="head"><label for="f-size">猫的大小</label>
       <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
     <div id="size-hint" class="hint">可调 50%–200%，改大小时猫的右下角不动。</div>
   </div>
 </form>
+<section id="about" class="row" aria-labelledby="about-title">
+  <h2 id="about-title">关于</h2>
+  <div>捣蛋猫 SillyCat<span id="app-version"></span> · 免费开源（MIT 许可）</div>
+  <div id="about-links">
+    <a data-link="github" href="https://github.com/S0u1/silly-cat" target="_blank" rel="noopener">GitHub</a>
+    <a data-link="douyin" href="https://www.douyin.com/user/MS4wLjABAAAAgiL6r1k59SPVX7I3Hu2RImPW3Vs5RR2UUEjduDIP3jM" target="_blank" rel="noopener">作者的抖音</a>
+  </div>
+  <div class="err" id="about-error" role="status"></div>
+</section>
 <footer>
   <button id="reset" type="button">恢复默认</button>
   <span id="status"></span>
@@ -239,6 +261,7 @@
   for (const k of S.BOOLS) bools[k] = document.getElementById(`f-${k}`);
   const sizeInput = document.getElementById('f-size');
   const sizePercent = document.getElementById('size-percent');
+  const autostartInput = document.getElementById('f-autostart');
   sizeInput.min = String(Math.round(S.SIZE.min * 100));
   sizeInput.max = String(Math.round(S.SIZE.max * 100));
   sizeInput.step = String(Math.round(S.SIZE.step * 100));
@@ -318,7 +341,9 @@
     onEdit(true);
   });
   form.addEventListener('input', (e) => {
-    if (e.target.name !== 'cat' && e.target !== artStyleInput) onEdit(e.target === bools.autoUpdate);
+    if (e.target.name !== 'cat' && e.target !== artStyleInput && e.target !== autostartInput) {
+      onEdit(e.target === bools.autoUpdate);
+    }
   });
   form.addEventListener('submit', (e) => e.preventDefault());
   document.getElementById('reset').addEventListener('click', () => { fill(S.DEFAULTS); onEdit(); });
@@ -347,6 +372,69 @@
       document.getElementById('update-hint').textContent = '未配置更新密钥';
     }).catch(() => {});
     invoke('load_settings').then((raw) => { if (raw) fill(S.sanitize(raw)); }).catch(() => {});
+
+    const autostartRow = document.getElementById('autostart');
+    const autostartHint = document.getElementById('autostart-hint');
+    const autostartApproval = document.getElementById('autostart-approval');
+    const autostartError = document.getElementById('autostart-error');
+    const loginItems = document.getElementById('autostart-login-items');
+    let autostartEnabled = false;
+    function renderAutostart(state) {
+      const mac = state.platform === 'macos';
+      autostartRow.hidden = !mac && state.platform !== 'windows';
+      if (autostartRow.hidden) return;
+      autostartHint.textContent = mac
+        ? '可在「系统设置 → 通用 → 登录项」中查看。'
+        : '可在任务管理器的「启动」中查看（Windows 7 用 msconfig）。';
+      autostartEnabled = state.enabled;
+      autostartInput.checked = autostartEnabled;
+      autostartApproval.hidden = loginItems.hidden = !mac || !state.needs_approval;
+    }
+    invoke('autostart_status').then((state) => {
+      renderAutostart(state);
+      autostartInput.disabled = autostartRow.hidden;
+    }).catch((err) => {
+      autostartRow.hidden = false;
+      autostartError.textContent = '读取开机启动状态失败：' + err;
+    });
+    autostartInput.addEventListener('change', async () => {
+      autostartInput.disabled = true;
+      autostartError.textContent = '';
+      try {
+        renderAutostart(await invoke('set_autostart', { enabled: autostartInput.checked }));
+      } catch (err) {
+        autostartInput.checked = autostartEnabled;
+        autostartError.textContent = '修改开机启动失败：' + err;
+      } finally {
+        autostartInput.disabled = autostartRow.hidden;
+      }
+    });
+    loginItems.addEventListener('click', () => {
+      autostartError.textContent = '';
+      invoke('open_login_items').catch((err) => {
+        autostartError.textContent = '打开登录项失败：' + err;
+      });
+    });
+
+    invoke('app_version').then((version) => {
+      document.getElementById('app-version').textContent = ' v' + version;
+    }).catch(() => {});
+    const aboutError = document.getElementById('about-error');
+    for (const link of document.querySelectorAll('#about-links a')) {
+      link.href = '#about';
+      link.removeAttribute('target');
+      const open = (e) => {
+        e.preventDefault();
+        aboutError.textContent = '';
+        invoke('open_link', { target: link.dataset.link }).catch((err) => {
+          aboutError.textContent = '打开链接失败：' + err;
+        });
+      };
+      link.addEventListener('click', open);
+      link.addEventListener('auxclick', (e) => {
+        if (e.button === 1) open(e);
+      });
+    }
   }
   setTimeout(() => rows.sleep.input.focus(), 50);
 
@@ -354,7 +442,7 @@
   // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
   // 展开授权区时加高，收起时回到基础高度；两者都为屏幕工作区留 40 px，内容超出时可滚动。
   // BASE_H 和 main.rs 的 SETTINGS_HEIGHT 一致。
-  const BASE_W = 400, BASE_H = 1008;
+  const BASE_W = 400, BASE_H = 1208;
   const perm = document.getElementById('perm');
   const permMsg = document.getElementById('perm-msg');
   function setPermMsg(text, bad) { permMsg.textContent = text; permMsg.className = bad ? 'bad' : ''; }

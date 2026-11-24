@@ -4,6 +4,7 @@
 // 「键盘输入收不到、要提示授权」只有 macOS 有（tap::keyboard_state），见 input_status。
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod autostart;
 mod updater;
 
 #[cfg(target_os = "macos")]
@@ -284,6 +285,21 @@ fn open_settings(app: AppHandle) {
     show_settings(&app);
 }
 
+#[tauri::command]
+fn app_version(app: AppHandle) -> String {
+    app.package_info().version.to_string()
+}
+
+#[tauri::command]
+fn open_link(target: String) -> Result<(), String> {
+    let url = match target.as_str() {
+        "github" => "https://github.com/S0u1/silly-cat",
+        "douyin" => "https://www.douyin.com/user/MS4wLjABAAAAgiL6r1k59SPVX7I3Hu2RImPW3Vs5RR2UUEjduDIP3jM",
+        _ => return Err("未知链接".into()),
+    };
+    updater::open_in_browser(url).map_err(|err| err.to_string())
+}
+
 struct PositionLock {
     locked: AtomicBool,
     tray_item: CheckMenuItem<tauri::Wry>,
@@ -411,7 +427,7 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
 }
 
 /// 设置窗口的默认高度，和 settings.html 的 BASE_H 一致。留一点字体换行余量，授权提示显示时由页面加高。
-const SETTINGS_HEIGHT: f64 = 1008.0;
+const SETTINGS_HEIGHT: f64 = 1208.0;
 
 fn show_settings(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {
@@ -583,6 +599,12 @@ fn main() {
             preview_cat_size,
             save_settings,
             open_settings,
+            app_version,
+            open_link,
+            autostart::autostart_status,
+            autostart::set_autostart,
+            #[cfg(target_os = "macos")]
+            autostart::open_login_items,
             position_locked,
             show_context_menu,
             updater::install_update,

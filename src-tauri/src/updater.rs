@@ -220,18 +220,18 @@ fn probe_install_dir(exe: &Path) -> io::Result<()> {
     tempfile::tempfile_in(dir).map(drop)
 }
 
-fn open_releases() -> io::Result<()> {
+pub(crate) fn open_in_browser(url: &str) -> io::Result<()> {
     #[cfg(target_os = "macos")]
     let mut cmd = Command::new("/usr/bin/open");
     #[cfg(target_os = "windows")]
     let mut cmd = Command::new("explorer.exe");
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     let mut cmd = Command::new("xdg-open");
-    cmd.arg(RELEASES).spawn().map(|_| ())
+    cmd.arg(url).spawn().map(|_| ())
 }
 
 fn fallback(app: &AppHandle) {
-    let detail = if open_releases().is_ok() {
+    let detail = if open_in_browser(RELEASES).is_ok() {
         "请到发布页下载安装包"
     } else {
         RELEASES
