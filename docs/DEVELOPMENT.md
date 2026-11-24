@@ -40,8 +40,8 @@
   - 判断方法：不看 `CGPreflightListenEventAccess`（结果在进程里有缓存），看 WindowServer 让不让键盘 tap 打开——没授权、或授权记录绑的是别的签名时，`CGEventTapCreate` 照样返回 tap，但 `CGEventTapIsEnabled` 为 false、开不起来。SillyCat 自己在前台（设置窗口在前面）时系统会放行它的 tap，这时不重新判断，沿用它上次在后台时的结论。
   - ad-hoc 签名随构建变化。首个证书签名的版本需要重新授权一次，之后同一证书签名的版本会保留授权。授权绑在旧签名上时（例如先给本地构建授过权，再装了 CI 构建的版本），系统设置里的开关看起来是开的，但收不到按键，系统也不再弹授权窗口，系统日志里有 `Failed to match existing code requirement for subject com.drew.sillycat and service kTCCServiceListenEvent`。处理：设置窗口里点「重置授权」（应用自己执行 `/usr/bin/tccutil reset ListenEvent com.drew.sillycat`，只清本应用的这一条记录，再申请一次授权并打开输入监控设置），然后在列表里重新打开 SillyCat；打开后系统提示「退出并重新打开」就点它，没提示、或列表里没有 SillyCat，就点「重新启动 SillyCat」。
 - 按住头是摸头；按住身体、键盘、鼠标等其他地方拖动窗口，位置记在 `~/Library/Application Support/com.drew.sillycat/window-position.json`（Windows 在 `%APPDATA%\com.drew.sillycat\`，记的是物理像素）。
-- 菜单栏（托盘）图标：设置…、检查更新…、显示/隐藏猫、重置位置、打开输入监控设置（仅 macOS）、退出。
-- 右键猫、键盘、鼠标等有画面的地方，在指针位置弹出菜单：设置…、退出。
+- 点击菜单栏（托盘）图标，或右键猫、键盘、鼠标等有画面的地方，打开同一套菜单：设置…、检查更新…、显示/隐藏猫、锁定位置、重置位置、打开输入监控设置（仅 macOS）、分隔线、退出。右键菜单在指针位置弹出。
+- 勾选「锁定位置」后拖不动，摸头和右键照常。「重置位置」仍可把猫放回默认位置，锁定状态保持不变。锁定状态存在应用配置目录的 `window-lock.json`（布尔字段 `locked`），启动时读取，缺失或损坏时默认解锁。
 - 设置窗口：从右键菜单或菜单栏图标里的「设置…」打开（已经开着就带到前面，Esc 关闭；关掉不会退出应用）。页面是 `prototype/settings.html`，字段表和校验在 `prototype/settings.js`。时间参数都按秒填：入睡时间（默认 20，5–3600）；开始流口水、趴到键盘上的时刻（从最后一次操作算起，6/7–10800，留空 = 自动，即入睡时间 × 2、× 3.5；必须入睡 < 流口水 < 趴下）；连续打字多久发飙（默认 90，15–36000）；罢工后歇多久消气（默认 20，5–3600）；大约多久推一次东西（默认 600，60–36000）。「显示状态条」和「推东西」默认开启。改出合法值后立即生效并写入 `~/Library/Application Support/com.drew.sillycat/settings.json`，下次启动自动读取；「恢复默认」回到上面的默认值。
 - 设置窗口的基础高度由 `SETTINGS_HEIGHT` 和 `BASE_H` 一起定义。创建时按猫所在显示器的工作区逻辑高度减 40 px 封顶，取不到所在显示器时用主显示器，两者都取不到时用基础高度。页面展开或收起授权区时按 `screen.availHeight - 40` 封顶，内容超出时可上下滚动。
 - `settings.json` 的 `cat` 字段可填 `settings.js` 的 `CATS` 中的任一 ID，缺失或无效时用 `cow`。桌面版启动时等 `load_settings` 返回再显示选中的猫，读取失败时显示奶牛猫。设置页点头像后立即保存，主窗口收到 `silly:settings` 就切换。
@@ -57,7 +57,7 @@
 
 ## 更新机制
 
-桌面版使用 Tauri 2 updater。启动约 10 秒后检查一次，之后每 24 小时检查。设置文件中的布尔字段 `autoUpdate` 默认是 `true`，缺失或类型错误时也按开启处理。关闭后停止后台检查，托盘「检查更新…」仍可手动使用。检查只请求本项目的 GitHub Release，不上传输入或设置。只有用户点击安装才下载更新。
+桌面版使用 Tauri 2 updater。启动约 10 秒后检查一次，之后每 24 小时检查。设置文件中的布尔字段 `autoUpdate` 默认是 `true`，缺失或类型错误时也按开启处理。关闭后停止后台检查，右键菜单和托盘里的「检查更新…」仍可手动使用。检查只请求本项目的 GitHub Release，不上传输入或设置。只有用户点击安装才下载更新。
 
 生产端点为 `https://github.com/S0u1/silly-cat/releases/latest/download/latest.json`，指向已发布的最新 Release。Rust 插件根据清单、当前平台和 semver 决定是否提示更新，下载后校验签名，并要求签名中的版本与清单一致。macOS 使用通用 `.app.tar.gz`，Windows 使用 NSIS 安装包和 passive 安装模式。安装位置不可写时转到 Releases 页面手动下载。
 

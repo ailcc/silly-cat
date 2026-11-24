@@ -32,9 +32,9 @@ mod input {
 
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
@@ -284,7 +284,74 @@ fn open_settings(app: AppHandle) {
     show_settings(&app);
 }
 
-/// 右键猫（或键盘、鼠标等有画面的地方）：在指针位置弹出原生右键菜单「设置… / 退出」。
+struct PositionLock {
+    locked: AtomicBool,
+    tray_item: CheckMenuItem<tauri::Wry>,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct SavedLock {
+    locked: bool,
+}
+
+fn lock_file(app: &AppHandle) -> Option<PathBuf> {
+    app.path().app_config_dir().ok().map(|dir| dir.join("window-lock.json"))
+}
+
+fn load_lock(app: &AppHandle) -> Option<SavedLock> {
+    let data = std::fs::read(lock_file(app)?).ok()?;
+    serde_json::from_slice(&data).ok()
+}
+
+fn save_lock(app: &AppHandle, locked: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let path = lock_file(app).ok_or("找不到配置目录")?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let temp = path.with_extension("json.tmp");
+    std::fs::write(&temp, serde_json::to_vec(&SavedLock { locked })?)?;
+    std::fs::rename(temp, path)?;
+    Ok(())
+}
+
+#[tauri::command]
+fn position_locked(app: AppHandle) -> bool {
+    app.state::<PositionLock>().locked.load(Ordering::SeqCst)
+}
+
+/// 托盘和右键共用菜单内容，前缀区分两个原生菜单里的项目。
+fn build_cat_menu(
+    app: &AppHandle,
+    prefix: &str,
+    locked: bool,
+) -> tauri::Result<(Menu<tauri::Wry>, CheckMenuItem<tauri::Wry>)> {
+    let item = |id, label| MenuItem::with_id(app, format!("{prefix}{id}"), label, true, None::<&str>);
+    let lock = CheckMenuItem::with_id(
+        app,
+        format!("{prefix}lock"),
+        "锁定位置",
+        true,
+        locked,
+        None::<&str>,
+    )?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &item("prefs", "设置…")?,
+            &item("check-update", "检查更新…")?,
+            &item("toggle", "显示/隐藏猫")?,
+            &lock,
+            &item("reset", "重置位置")?,
+        ],
+    )?;
+    #[cfg(target_os = "macos")]
+    menu.append(&item("settings", "打开输入监控设置")?)?;
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
+    menu.append(&item("quit", "退出")?)?;
+    Ok((menu, lock))
+}
+
+/// 右键猫（或键盘、鼠标等有画面的地方）：在指针位置弹出和托盘内容相同的原生菜单。
 ///
 /// 写成 async command：在后台线程里跑，Tauri 的 `popup_menu` 自己把弹出动作派到主线程的事件循环里执行
 /// （macOS 的 NSMenu、Windows 的 TrackPopupMenu 都是模态的，会一直等到菜单关掉才返回）。
@@ -294,24 +361,31 @@ fn open_settings(app: AppHandle) {
 /// 菜单项的 id 带 `ctx-` 前缀；Tauri 的菜单事件是全局的，统一在 `handle_menu_event` 里处理，和托盘菜单共用一套逻辑。
 #[tauri::command]
 async fn show_context_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
-    let prefs = MenuItem::with_id(&app, MENU_CTX_PREFS, "设置…", true, None::<&str>).map_err(|e| e.to_string())?;
-    let quit = MenuItem::with_id(&app, MENU_CTX_QUIT, "退出", true, None::<&str>).map_err(|e| e.to_string())?;
-    let menu = Menu::with_items(&app, &[&prefs, &quit]).map_err(|e| e.to_string())?;
+    let locked = position_locked(app.clone());
+    let (menu, _) = build_cat_menu(&app, "ctx-", locked).map_err(|e| e.to_string())?;
     window.popup_menu(&menu).map_err(|e| e.to_string())
 }
 
-const MENU_CTX_PREFS: &str = "ctx-prefs";
-const MENU_CTX_QUIT: &str = "ctx-quit";
-
 /// 所有菜单（托盘菜单 + 右键菜单）的事件都走这里：Tauri 的菜单事件是应用级的，托盘的 on_menu_event 也会收到右键菜单的事件
 fn handle_menu_event(app: &AppHandle, id: &str) {
+    let id = id.strip_prefix("ctx-").unwrap_or(id);
     match id {
-        "prefs" | MENU_CTX_PREFS => show_settings(app),
+        "prefs" => show_settings(app),
         "check-update" => {
             show_settings(app);
             updater::manual_check(app.clone());
         }
-        "quit" | MENU_CTX_QUIT => app.exit(0),
+        "lock" => {
+            let state = app.state::<PositionLock>();
+            let locked = !state.locked.fetch_xor(true, Ordering::SeqCst);
+            if let Err(e) = save_lock(app, locked) {
+                eprintln!("[silly-cat] 保存位置锁定失败：{e}");
+            }
+            // 原生菜单可能自行切换勾选，以 Rust 状态为准。右键菜单会在下次打开时重建。
+            let _ = state.tray_item.set_checked(locked);
+            let _ = app.emit_to("main", "silly:lock", locked);
+        }
+        "quit" => app.exit(0),
         _ => {
             let Some(win) = app.get_webview_window("main") else { return };
             match id {
@@ -509,6 +583,7 @@ fn main() {
             preview_cat_size,
             save_settings,
             open_settings,
+            position_locked,
             show_context_menu,
             updater::install_update,
             updater::updater_configured,
@@ -518,6 +593,13 @@ fn main() {
             updater::setup(app.handle());
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
+            let locked = load_lock(app.handle()).unwrap_or_default().locked;
+            let (menu, tray_item) = build_cat_menu(app.handle(), "", locked)?;
+            app.manage(PositionLock {
+                locked: AtomicBool::new(locked),
+                tray_item,
+            });
 
             let win = app.get_webview_window("main").expect("main window");
             // 先恢复大小，屏幕检查和默认位置才能用缩放后的尺寸。
@@ -548,20 +630,6 @@ fn main() {
             });
 
             // 托盘菜单
-            let prefs = MenuItem::with_id(app, "prefs", "设置…", true, None::<&str>)?;
-            let update = MenuItem::with_id(app, "check-update", "检查更新…", true, None::<&str>)?;
-            let toggle = MenuItem::with_id(app, "toggle", "显示/隐藏猫", true, None::<&str>)?;
-            let reset = MenuItem::with_id(app, "reset", "重置位置", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            let sep = PredefinedMenuItem::separator(app)?;
-            // 「打开输入监控设置」只有 macOS 有（Windows 不需要授权）
-            #[cfg(target_os = "macos")]
-            let menu = {
-                let settings = MenuItem::with_id(app, "settings", "打开输入监控设置", true, None::<&str>)?;
-                Menu::with_items(app, &[&prefs, &update, &toggle, &reset, &settings, &sep, &quit])?
-            };
-            #[cfg(not(target_os = "macos"))]
-            let menu = Menu::with_items(app, &[&prefs, &update, &toggle, &reset, &sep, &quit])?;
             let mut tray = TrayIconBuilder::with_id("main")
                 .tooltip("捣蛋奶牛猫")
                 .menu(&menu)

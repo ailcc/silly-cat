@@ -7,8 +7,8 @@
 // - 鼠标移动：每 33ms 向 Rust 取一次全局指针位置（不需要输入监控权限），相邻两次的差值就是 pointerMove(dx, dy)。
 // - 鼠标按键：Rust 的鼠标 tap 发来；指针正在猫身上时这次点击交给页面（摸头 / 拖动），不算「点鼠标」。
 // - 点击穿透：用同一份指针位置做 document.elementFromPoint 命中判断，只有指在有画面的地方时窗口才接收鼠标。
-// - 摸头 vs 拖动：在头上按下 = 摸头（和网页版一样）；在身体、尾巴、键盘、鼠标等其他画面上按下 = 拖动窗口。
-// - 右键有画面的地方 = 在指针位置弹出原生右键菜单「设置… / 退出」（Rust 的 show_context_menu）。
+// - 在头上按下是摸头；位置解锁时，在身体、尾巴、键盘、鼠标等其他画面上按下是拖动窗口。
+// - 右键有画面的地方会在指针位置弹出和菜单栏（托盘）图标相同的原生菜单。锁定后拖不动，仍可用「重置位置」。
 // - 收不到键盘输入（只有 macOS：没授权「输入监控」，或授权记录和当前签名对不上）时，猫左上方冒一个小气泡，
 //   点它打开设置窗口（里面有处理办法）。状态每 2 秒向 Rust 问一次（input_status.needs_permission），
 //   连续两次「收不到」才显示，一旦正常就收起。Windows 上 Rust 永远报 false，不显示。
@@ -228,6 +228,7 @@
     }
 
     // ---------- 页面内：摸头、拖动 ----------
+    let positionLocked = null;
     function endPet() {
       if (!pet) return;
       pet = null;
@@ -253,7 +254,7 @@
       }
       if (inScene(e.target)) {
         e.preventDefault();
-        appWin.startDragging().catch(() => {});
+        if (positionLocked === false) appWin.startDragging().catch(() => {});
       }
     }
     function onPointerMove(e) { if (pet && e.pointerId === pet.id) sink.petMove(...rel(e)); }
@@ -280,6 +281,13 @@
     window.addEventListener('contextmenu', onContextMenu);
 
     const unlisten = [window.SillyUpdater.subscribe(onUpdate)];
+    let destroyed = false;
+    T.event.listen('silly:lock', (ev) => { positionLocked = ev.payload; }).then((u) => {
+      if (destroyed) { u(); return; }
+      unlisten.push(u);
+      // 先监听再读取，读取途中收到的切换事件优先。
+      return invoke('position_locked').then((locked) => { positionLocked ??= locked; });
+    }).catch(() => { positionLocked ??= false; }); // 读不到锁定状态时按解锁处理，免得猫永远拖不动
     T.event.listen('silly:key', (ev) => onKey(ev.payload)).then((u) => unlisten.push(u));
     T.event.listen('silly:button', (ev) => onButton(ev.payload)).then((u) => unlisten.push(u));
     const timer = setInterval(poll, POLL_MS);
@@ -306,6 +314,7 @@
         get held() { return [...heldKeys.keys()]; },
       }),
       destroy() {
+        destroyed = true;
         releaseAll();
         clearInterval(timer); clearInterval(statusTimer);
         if (permBubble) permBubble.remove();
