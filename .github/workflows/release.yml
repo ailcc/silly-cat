@@ -269,9 +269,11 @@ jobs:
   # Windows 7 / 8 / 8.1 版。Tauri 2.12 起和 Rust 1.78 起的标准库都不再支持这几个系统，
   # 所以这里单独用 Rust 1.77.2 + Tauri 2.11 再构建一个包，作为同一个 Release 的额外附件。
   # 更新走它自己的清单 latest-win7.json，不会被主线的 latest.json 带到普通 Windows 包上。
-  # 构建失败不影响上面的主线发布（continue-on-error），但该 Release 就不会有 win7 附件。
+  # 主线和 Win7 的构建失败互不阻塞。如果主线 Windows 构建也失败、没有创建草稿 Release，
+  # Win7 的上传步骤会报找不到 Release。
   win7:
     needs: build
+    if: ${{ !cancelled() }}
     runs-on: windows-latest
     continue-on-error: true
     permissions:
@@ -325,6 +327,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       # 命令行要和 Rust 端的 tauri 2.11 同一个小版本。
+      # 2.11 CLI 不在签名里写版本号，所以 Win7 关闭签名中的版本号要求，签名仍用同一把密钥校验。
       - name: 安装前端依赖，并换成 Tauri 2.11 的命令行
         shell: bash
         run: |

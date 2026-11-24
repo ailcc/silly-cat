@@ -334,8 +334,9 @@
       updateResult.hidden = !notice;
       if (!notice) return;
       document.getElementById('update-title').textContent = notice.title;
-      document.getElementById('update-detail').textContent = notice.installable ? '' : notice.detail;
+      document.getElementById('update-detail').textContent = notice.kind === 'offer' ? '' : notice.detail;
       install.hidden = !notice.installable;
+      install.textContent = notice.kind === 'failed' ? '重试' : '下载安装';
     };
     window.SillyUpdater.subscribe(renderUpdate);
     install.addEventListener('click', () => window.SillyUpdater.install(renderUpdate));

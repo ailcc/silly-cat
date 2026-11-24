@@ -10,7 +10,18 @@ use tokio::sync::{watch, Mutex as AsyncMutex};
 const RELEASES: &str = "https://github.com/S0u1/silly-cat/releases";
 
 #[derive(Clone, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum NoticeKind {
+    Checking,
+    Result,
+    Offer,
+    Progress,
+    Failed,
+}
+
+#[derive(Clone, Serialize)]
 pub struct Notice {
+    kind: NoticeKind,
     title: String,
     detail: String,
     installable: bool,
@@ -117,8 +128,15 @@ pub fn update_status(app: AppHandle) -> Option<Notice> {
     app.state::<Updates>().notice.lock().unwrap().clone()
 }
 
-fn notify(app: &AppHandle, title: impl Into<String>, detail: impl Into<String>, installable: bool) {
+fn notify(
+    app: &AppHandle,
+    kind: NoticeKind,
+    title: impl Into<String>,
+    detail: impl Into<String>,
+    installable: bool,
+) {
     let notice = Notice {
+        kind,
         title: title.into(),
         detail: detail.into(),
         installable,
@@ -147,13 +165,13 @@ async fn check(app: &AppHandle, manual: bool) {
     let state = app.state::<Updates>();
     if !state.configured {
         if manual {
-            notify(app, "检查失败", "未配置更新密钥", false);
+            notify(app, NoticeKind::Result, "检查失败", "未配置更新密钥", false);
         }
         return;
     }
     let mut candidate = state.candidate.lock().await;
     if manual {
-        notify(app, "正在检查更新…", "", false);
+        notify(app, NoticeKind::Checking, "正在检查更新…", "", false);
     } else if !*state.auto.borrow() {
         return;
     }
@@ -171,17 +189,17 @@ async fn check(app: &AppHandle, manual: bool) {
             update.timeout = Some(Duration::from_secs(10 * 60));
             let title = format!("有新版本 v{}", update.version);
             *candidate = Some(Offer { update, manual });
-            notify(app, title, "点这里更新", true);
+            notify(app, NoticeKind::Offer, title, "点这里更新", true);
         }
         Ok(None) => {
             let had_update = candidate.take().is_some();
             if manual || had_update {
-                notify(app, "已是最新版本", "", false);
+                notify(app, NoticeKind::Result, "已是最新版本", "", false);
             }
         }
         Err(e) if manual => {
             *candidate = None;
-            notify(app, "检查失败", reason(&e), false);
+            notify(app, NoticeKind::Result, "检查失败", reason(&e), false);
         }
         Err(_) => {}
     }
@@ -218,7 +236,7 @@ fn fallback(app: &AppHandle) {
     } else {
         RELEASES
     };
-    notify(app, "安装目录不可写", detail, false);
+    notify(app, NoticeKind::Failed, "安装目录不可写", detail, false);
 }
 
 fn unwritable(e: &io::Error) -> bool {
@@ -243,11 +261,24 @@ pub async fn install_update(app: AppHandle) {
         if unwritable(&e) {
             fallback(&app);
         } else {
-            notify(&app, "无法开始安装", e.to_string(), false);
+            *candidate = Some(Offer { update, manual });
+            notify(
+                &app,
+                NoticeKind::Failed,
+                "无法开始安装",
+                e.to_string(),
+                true,
+            );
         }
         return;
     }
-    notify(&app, "正在下载更新", "准备下载…", false);
+    notify(
+        &app,
+        NoticeKind::Progress,
+        "正在下载更新",
+        "准备下载…",
+        false,
+    );
     let mut received = 0u64;
     let mut last_progress = None;
     let result = update
@@ -260,17 +291,28 @@ pub async fn install_update(app: AppHandle) {
                     format!("{} KiB", (received / 65536) * 64)
                 };
                 if last_progress.as_ref() != Some(&progress) {
-                    notify(&app, "正在下载更新", &progress, false);
+                    notify(&app, NoticeKind::Progress, "正在下载更新", &progress, false);
                     last_progress = Some(progress);
                 }
             },
-            || notify(&app, "正在校验并安装", "完成后自动重启", false),
+            || {
+                notify(
+                    &app,
+                    NoticeKind::Progress,
+                    "正在校验并安装",
+                    "完成后自动重启",
+                    false,
+                )
+            },
         )
         .await;
     match result {
         Ok(()) => app.restart(),
         Err(Error::Io(e)) if unwritable(&e) => fallback(&app),
-        Err(e) => notify(&app, "更新失败", reason(&e), false),
+        Err(e) => {
+            *candidate = Some(Offer { update, manual });
+            notify(&app, NoticeKind::Failed, "更新失败", reason(&e), true);
+        }
     }
 }
 

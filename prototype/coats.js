@@ -131,7 +131,8 @@
         <stop offset="100%" class="coat-stop-base" stop-opacity="0"/>
       </radialGradient>`,
       head: '<ellipse fill="url(#coat-siamese-mask)" cx="400" cy="200" rx="96" ry="84"/>',
-      shape: { bodySX: 0.86, headSX: 1, ear: 1 }, // 身材细长、脸窄一点、耳朵大
+      shape: { bodySX: 0.86, headSX: 1, ear: 1 }, // 毛绒版体型按图片调整
+      lineShape: { bodySX: 0.9, headSX: 0.95, ear: 1.2 }, // 线条版脸窄、耳朵大
     },
     { id: 'black', name: '黑猫', art: art('black') },
     { id: 'calico', name: '三花猫', art: art('calico', {
@@ -175,7 +176,9 @@
       shape: { bodySX: 0.96, headSX: 1, ear: 1.18 } },
   ];
 
-  const lineCoats = new Map(coats.map(({ art, ...coat }) => [coat.id, coat]));
+  const lineCoats = new Map(coats.map(({ art, lineShape, ...coat }) => [
+    coat.id, lineShape ? { ...coat, shape: lineShape } : coat,
+  ]));
   const root = document.documentElement;
   let artStyle = 'fur';
   let selected = coats[0];

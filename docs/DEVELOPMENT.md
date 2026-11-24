@@ -80,7 +80,7 @@ Tauri 2.12 起不再支持 Win7，Rust 1.78 起的标准库也要求 Win10。所
 构建细节（都只发生在 CI 工作区，不改仓库里的 `Cargo.toml` 和 `Cargo.lock`）：
 
 - 给 `Cargo.toml` 加 `rust-version = "1.77.2"`，把 `tauri-plugin-updater` 放宽到 `"2"`（2.14 要求的 Tauri 2.12 在 Win7 上不能用），再用 stable 的 cargo 设 `CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback` 重新生成 `Cargo.lock`，选出 1.77.2 能编的版本（2026-11-24 解析为 tauri 2.11.6、tauri-plugin-updater 2.12.0）。
-- `@tauri-apps/cli` 临时换成 2.11.5，要和 Rust 端的 Tauri 小版本一致。
+- `@tauri-apps/cli` 临时换成 2.11.5，要和 Rust 端的 Tauri 小版本一致。2.11 CLI 不在更新签名里写版本号，所以 Win7 版把 `requireSignedVersion` 设为 `false`，更新包的签名仍用同一把密钥校验。
 - `src-tauri/tauri.win7.conf.json` 叠加在主配置上：只打 NSIS；`webviewInstallMode` 设为 `skip`（微软最新的引导程序在 Win7 上崩，WebView2 109 由用户按 README 常见问题自己装）；更新地址改成 `.../releases/latest/download/latest-win7.json`。这样 Win7 版不会被主线 `latest.json` 更新到普通 Windows 包。
 - `tools/make-win7-manifest.mjs` 用同一把更新私钥签出的 `.sig` 生成 `latest-win7.json`，发布草稿后它才会出现在 `releases/latest/download/`。
 - `tools/win7-check-imports.py` 检查 `silly-cat.exe` 的导入表，发现 Win8 以上才有的系统接口就让任务失败。它只看链接时写进导入表的接口，运行时动态获取的看不到。

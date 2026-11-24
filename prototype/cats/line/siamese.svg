@@ -237,15 +237,15 @@ svg:not([data-cat="maine"][data-art-style="line"]) #scene [data-coat-pattern="ma
       <stop offset="100%" class="coat-stop-base" stop-opacity="0" />
     </radialGradient>
   </defs>
-  <g id="scene" transform="rotate(-4 400 262) translate(400 262) scale(1 1) translate(-400 -262)">
+  <g id="scene" transform="rotate(-4 400 262) translate(400 262) scale(0.95 1) translate(-400 -262)">
     <g id="ear-l">
-      <g class="ear-shape-l">
+      <g class="ear-shape-l" transform="translate(322 110) scale(1.2) translate(-322 -110)">
         <path class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 L 380 150 L 300 160 Z" />
         <path class="coat-inner-ear" d="M 302 108 L 304 58 L 341 86 Z" />
       </g>
     </g>
     <g id="ear-r">
-      <g class="ear-shape-r">
+      <g class="ear-shape-r" transform="translate(478 110) scale(1.2) translate(-478 -110)">
         <path class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 L 420 150 L 500 160 Z" />
         <path class="coat-inner-ear" d="M 498 108 L 496 58 L 459 86 Z" />
       </g>

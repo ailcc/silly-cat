@@ -21,9 +21,10 @@ use windows_sys::Win32::Foundation::{LPARAM, LRESULT, POINT, WPARAM};
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, MapVirtualKeyW, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON, MAPVK_VK_TO_VSC_EX};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, DispatchMessageW, GetCursorPos, GetMessageW, SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx,
-    HC_ACTION, KBDLLHOOKSTRUCT, LLKHF_EXTENDED, MSG, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN,
-    WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_SYSKEYDOWN, WM_SYSKEYUP,
+    CallNextHookEx, DispatchMessageW, GetCursorPos, GetMessageW, GetSystemMetrics, SetWindowsHookExW, TranslateMessage,
+    UnhookWindowsHookEx, HC_ACTION, KBDLLHOOKSTRUCT, LLKHF_EXTENDED, MSG, SM_SWAPBUTTON, WH_KEYBOARD_LL, WH_MOUSE_LL,
+    WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP,
+    WM_SYSKEYDOWN, WM_SYSKEYUP,
 };
 
 pub static KEY_TAP_ACTIVE: AtomicBool = AtomicBool::new(false);
@@ -57,9 +58,17 @@ pub(super) fn held_state(keys: Vec<super::HeldKey>, mut buttons: Vec<u8>) -> Res
         false
     }).map(|key| key.code).collect();
     drop(down);
+    let swapped = unsafe { GetSystemMetrics(SM_SWAPBUTTON) } != 0;
     buttons.retain(|button| {
-        let vk = match button { 0 => VK_LBUTTON, 1 => VK_MBUTTON, 2 => VK_RBUTTON, _ => return true };
-        (unsafe { GetAsyncKeyState(i32::from(vk)) }) < 0
+        let pressed = |vk| (unsafe { GetAsyncKeyState(i32::from(vk)) }) < 0;
+        // GetAsyncKeyState 查物理键，互换后两侧都松开才判定抬起，避免和钩子的键位对应不一致。
+        match button {
+            0 | 2 if swapped => pressed(VK_LBUTTON) || pressed(VK_RBUTTON),
+            0 => pressed(VK_LBUTTON),
+            1 => pressed(VK_MBUTTON),
+            2 => pressed(VK_RBUTTON),
+            _ => true,
+        }
     });
     Ok(super::HeldState { keys: Some(keys), buttons })
 }

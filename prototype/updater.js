@@ -24,7 +24,7 @@
   function install(render) {
     const T = window.__TAURI__;
     if (T) T.core.invoke('install_update').catch((error) => {
-      render({ title: '更新失败', detail: String(error), installable: false });
+      render({ kind: 'failed', title: '更新失败', detail: String(error), installable: false });
     });
   }
 

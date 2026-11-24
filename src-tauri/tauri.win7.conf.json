@@ -8,6 +8,7 @@
   },
   "plugins": {
     "updater": {
+      "requireSignedVersion": false,
       "endpoints": [
         "https://github.com/S0u1/silly-cat/releases/latest/download/latest-win7.json"
       ]

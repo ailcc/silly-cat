@@ -41,6 +41,7 @@
   // 桌面窗口里把画面四周放宽：发飙举鼠标过头顶、Zzz、浮起的键名、散落的键帽都不被窗口边缘裁掉
   const DESKTOP_VIEWBOX = '-20 -50 840 690';
   const STATUS_MS = 2000;
+  const UPDATE_FAILURE_MS = 10000;
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   // 「我看不到你打字」气泡：画在猫的左上方（viewBox 坐标 x 6–278、y -34–66），尾巴指向左耳外侧，不挡脸
@@ -84,7 +85,9 @@
     const permBubble = sceneEl ? buildPermBubble(sceneEl) : null;
     let blockedStreak = 0;
     let updateNotice = null;
+    let updateFailureTimer;
     let visibleNotice = null;
+    let destroyed = false;
     const permissionNotice = { title: '我看不到你打字', detail: '点这里处理 ›' };
     function refreshBubble() {
       const notice = blockedStreak >= 2 ? permissionNotice : updateNotice;
@@ -108,7 +111,13 @@
       });
     }
     function onUpdate(notice) {
-      updateNotice = notice;
+      if (destroyed) return;
+      clearTimeout(updateFailureTimer);
+      const kind = notice?.kind;
+      updateNotice = kind === 'offer' || kind === 'progress' || kind === 'failed' ? notice : null;
+      if (kind === 'failed') {
+        updateFailureTimer = setTimeout(() => onUpdate(null), UPDATE_FAILURE_MS);
+      }
       refreshBubble();
     }
     function updatePermBubble(s) {
@@ -281,7 +290,6 @@
     window.addEventListener('contextmenu', onContextMenu);
 
     const unlisten = [window.SillyUpdater.subscribe(onUpdate)];
-    let destroyed = false;
     T.event.listen('silly:lock', (ev) => { positionLocked = ev.payload; }).then((u) => {
       if (destroyed) { u(); return; }
       unlisten.push(u);
@@ -317,6 +325,7 @@
         destroyed = true;
         releaseAll();
         clearInterval(timer); clearInterval(statusTimer);
+        clearTimeout(updateFailureTimer);
         if (permBubble) permBubble.remove();
         for (const u of unlisten) u();
         window.removeEventListener('pointerdown', onPointerDown);
