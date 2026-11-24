@@ -19,10 +19,11 @@ COW = {
 # Scene coordinates: keep head (cx, cy, width), ear (x, y, width, rotate),
 # optional left-ear pivot (x, y), and shape scales in sync with coats.js.
 PORTRAITS = {
-    "cow": {}, "lihua": {}, "black": {}, "calico": {}, "white": {},
+    "cow": {}, "lihua": {}, "black": {}, "white": {},
+    "calico": {"head": (400, 173.1, 266)},
     "orange": {"headSX": 1.08},
-    "blue": {"headSX": 1.1, "ear_scale": .85},
-    "siamese": {"head": (399.9, 173.4, 241.8), "ear": (272, 22, 110, 12), "ear_scale": 1.08},
+    "blue": {"head": (400.1, 181.3, 275.3), "ear": (276.3, 62.3, 75.5, 0)},
+    "siamese": {"head": (400.1, 168.9, 241.3), "ear": (272, 22, 110, 12)},
     "maine": {"head": (400.4, 178.1, 322.3), "ear": (278, 14, 110, 0), "ear_scale": 1.15},
     "sphynx": {"head": (400.1, 169.1, 255.3), "ear": (268, 34, 110, 16), "ear_scale": 1.18},
 }

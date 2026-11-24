@@ -82,8 +82,10 @@ html[data-cat="siamese"] {
   --coat-transition: #a8876c;
   --coat-ear: var(--coat-point);
   --coat-inner-ear: #b98080;
-  --coat-lid-l: var(--coat-transition);
-  --coat-lid-r: var(--coat-transition);
+  --coat-lid-l: #5d4333; /* 眼周面罩色，取自 head.png */
+  --coat-lid-r: #5d4333;
+  --coat-eye-arc-l: var(--coat-mouth-line);
+  --coat-eye-arc-r: var(--coat-mouth-line);
   --coat-paw-l: var(--coat-point);
   --coat-paw-r: var(--coat-point);
   --coat-toe-l: var(--coat-mouth-line);
@@ -119,7 +121,8 @@ html[data-cat="black"] {
 }
 html[data-cat="calico"] {
   --coat-base: #fffdf8;
-  --coat-lid-l: #26232b;
+  --coat-lid-l: #26232b; /* 左眼在黑块里、右眼在橘块里，取自 head.png */
+  --coat-lid-r: #e68b40;
   --coat-eye-arc-l: #e8e2ec;
   --coat-iris: #e0a63a;
   --coat-blush-opacity: 0.4;
@@ -251,6 +254,9 @@ html:not([data-cat="siamese"]) #scene [data-coat-pattern="siamese"] { display: n
 #scene .lid-l { fill: var(--coat-lid-l); }
 #scene .lid-r { fill: var(--coat-lid-r); }
 #scene .lid-line { stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+/* 眼皮下沿和闭眼弧线同色：深色毛上用浅色线，眼皮往下落时还看得出是在闭眼 */
+#scene #lidline-l { stroke: var(--coat-eye-arc-l); }
+#scene #lidline-r { stroke: var(--coat-eye-arc-r); }
 #scene .eye-ring { fill: none; stroke: var(--ink); stroke-width: 5; }
 #scene .eye-arc-l, #scene .eye-arc-r { fill: none; stroke-width: 5; stroke-linecap: round; }
 #scene .eye-arc-l { stroke: var(--coat-eye-arc-l); }
