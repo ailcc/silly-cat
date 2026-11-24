@@ -21,7 +21,18 @@
     <path class="coat-solid-stripe" transform="translate(800 0) scale(-1 1)" d="${d}"/>`;
 
   const coats = [
-    { id: 'cow', name: '奶牛猫' },
+    {
+      id: 'cow', name: '奶牛猫',
+      art: {
+        base: 'art/cow/',
+        head: { cx: 400, cy: 176, width: 300 },
+        ear: { x: 278, y: 24, width: 110 },
+        body: { cx: 400, y: 246, width: 240 },
+        paw: { cx: 0, cy: -2, width: 66 },
+        arm: { width: 54, top: 18, bottom: 12, segments: 8 },
+        tail: { fringe: 6, segments: 16 },
+      },
+    },
     {
       id: 'orange', name: '橘猫',
       head: `
@@ -141,6 +152,7 @@
       document.getElementById('scene').setAttribute('aria-label', '坐在键盘后面的' + next.name);
       root.dataset.cat = next.id;
     }
+    SillyArt.apply(next);
     selected = next;
     applyShape(next.shape || {});
     applyStrikeRings(next.tail && next.tail.rings);

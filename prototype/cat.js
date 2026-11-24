@@ -280,7 +280,7 @@
       const s = side === 'L' ? 'r' : 'l'; // SVG 元素按画面左右命名
       const rest = restPoint(side);
       return {
-        side, held: [], releaseAt: 0, lastCode: null,
+        side, artSlot: 'arm-' + s, held: [], releaseAt: 0, lastCode: null,
         x: rest.x, y: rest.y, press: 0, lift: 0,
         els: { armOutline: $('arm-' + s + '-outline'), armFill: $('arm-' + s + '-fill'), armStripes: $('arm-' + s + '-stripes'), paw: $('paw-' + s) },
       };
@@ -529,6 +529,7 @@
         const bend = clamp(70 - len * 0.25, 8, 45);
         const cx = sh.x + vx * 0.5 + nx * bend, cy = sh.y + vy * 0.5 + ny * bend;
         const d = `M ${f1(sh.x)} ${f1(sh.y)} Q ${f1(cx)} ${f1(cy)} ${f1(ex)} ${f1(ey)}`;
+        SillyArt.arm(paw.artSlot, sh, cx, cy, ex, ey);
         paw.els.armOutline.setAttribute('d', d);
         paw.els.armFill.setAttribute('d', d);
         paw.els.armStripes.setAttribute('d', d);
@@ -561,6 +562,7 @@
       S.headTf = { tx, ty, rot, sx: hsx, sy: hsy };
       // 鼓腮帮：改头部轮廓本身
       S.cheek = approach(S.cheek, P.cheek, dt, 90);
+      SillyArt.cheek(S.cheek);
       if (Math.abs(S.cheek - S.cheekDrawn) > 0.05) {
         S.cheekDrawn = S.cheek;
         const d = headPathD(S.cheek);
@@ -717,6 +719,9 @@
       } else S.tailLag = null;
 
       const press = S.tailPress * r;
+      if (SillyArt.tailSegments) {
+        SillyArt.tail(resample(pts, SillyArt.tailSegments + 1), s => 2 * tailWidth(s, press));
+      }
       const bodyD = ribbonD(pts, 0, 1, 0, press, false);
       for (const n of el.tail.body) n.setAttribute('d', bodyD);
       const markings = window.SillyCoats?.current()?.tail;
