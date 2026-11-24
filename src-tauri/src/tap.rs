@@ -51,6 +51,9 @@ extern "C" {
     fn CGEventTapEnable(tap: CFMachPortRef, enable: bool);
     fn CGEventTapIsEnabled(tap: CFMachPortRef) -> bool;
     fn CGEventGetIntegerValueField(event: CGEventRef, field: u32) -> i64;
+    fn CGEventSourceKeyState(state: i32, key: u16) -> bool;
+    fn CGEventSourceButtonState(state: i32, button: u32) -> bool;
+    fn CGEventSourceFlagsState(state: i32) -> u64;
     fn CGEventGetFlags(event: CGEventRef) -> u64;
     fn CGEventCreate(source: *mut c_void) -> CGEventRef;
     fn CGEventGetLocation(event: CGEventRef) -> CGPoint;
@@ -149,6 +152,31 @@ fn modifier_bit(kc: i64) -> Option<u64> {
         57 => 0x0001_0000, // CapsLock（锁定状态，前端按「按一下」处理）
         _ => return None,
     })
+}
+
+#[link(name = "Carbon", kind = "framework")]
+extern "C" {
+    fn IsSecureEventInputEnabled() -> u8;
+}
+
+pub(super) fn held_state(keys: Vec<super::HeldKey>, mut buttons: Vec<u8>) -> Result<super::HeldState, &'static str> {
+    const HID: i32 = 1; // kCGEventSourceStateHIDSystemState
+    let keys = unsafe {
+        if IsSecureEventInputEnabled() != 0 {
+            None
+        } else {
+            let flags = CGEventSourceFlagsState(HID);
+            Some(keys.into_iter().filter(|key| match modifier_bit(i64::from(key.kc)) {
+                Some(bit) => flags & bit != 0,
+                None => CGEventSourceKeyState(HID, key.kc),
+            }).map(|key| key.code).collect())
+        }
+    };
+    buttons.retain(|button| {
+        let cg_button = match button { 0 => 0, 1 => 2, 2 => 1, _ => return true };
+        unsafe { CGEventSourceButtonState(HID, cg_button) }
+    });
+    Ok(super::HeldState { keys, buttons })
 }
 
 fn reenable(slot: &AtomicPtr<c_void>) {

@@ -11,16 +11,15 @@
 //!   普通权限进程的低级钩子，这时猫看不到按键。
 
 use serde::Serialize;
-use std::cell::RefCell;
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
-use std::sync::OnceLock;
+use std::sync::{LazyLock, Mutex, OnceLock};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, POINT, WPARAM};
 use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::{MapVirtualKeyW, MAPVK_VK_TO_VSC_EX};
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, MapVirtualKeyW, VK_LBUTTON, VK_MBUTTON, VK_RBUTTON, MAPVK_VK_TO_VSC_EX};
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, DispatchMessageW, GetCursorPos, GetMessageW, SetWindowsHookExW, TranslateMessage, UnhookWindowsHookEx,
     HC_ACTION, KBDLLHOOKSTRUCT, LLKHF_EXTENDED, MSG, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN,
@@ -37,9 +36,28 @@ enum Evt {
 
 static TX: OnceLock<Sender<Evt>> = OnceLock::new();
 
-thread_local! {
-    /// 正按着的键（只在钩子线程里读写）：用来过滤长按自动重复——低级钩子不标记重复，重复的按下会连续到来
-    static DOWN: RefCell<HashSet<&'static str>> = RefCell::new(HashSet::new());
+// 保留钩子用来生成 code 的实际 vk，兼容非美式布局、NumLock 和左右修饰键。
+static DOWN: LazyLock<Mutex<HashMap<&'static str, u32>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+
+pub(super) fn held_state(keys: Vec<super::HeldKey>, mut buttons: Vec<u8>) -> Result<super::HeldState, &'static str> {
+    // 锁屏 / UAC 时当前桌面不可读，GetAsyncKeyState 返回的零不能当作抬起。
+    cursor_physical().ok_or("input desktop unavailable")?;
+    let mut down = DOWN.lock().unwrap_or_else(|err| err.into_inner());
+    let keys = keys.into_iter().filter(|key| {
+        let Some(&vk) = down.get(key.code.as_str()) else { return false };
+        if unsafe { GetAsyncKeyState(vk as i32) } < 0 {
+            return true;
+        }
+        // 钩子的自动重复过滤也必须重置，否则同一个键下次按下会被吞掉。
+        down.remove(key.code.as_str());
+        false
+    }).map(|key| key.code).collect();
+    drop(down);
+    buttons.retain(|button| {
+        let vk = match button { 0 => VK_LBUTTON, 1 => VK_MBUTTON, 2 => VK_RBUTTON, _ => return true };
+        (unsafe { GetAsyncKeyState(i32::from(vk)) }) < 0
+    });
+    Ok(super::HeldState { keys: Some(keys), buttons })
 }
 
 #[derive(Clone, Serialize)]
@@ -261,10 +279,17 @@ unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARA
             let k = &*(lparam as *const KBDLLHOOKSTRUCT);
             if let Some(c) = key_code(k) {
                 // 长按自动重复：同一个键没抬起又来按下，丢掉
-                let fresh = DOWN.with(|s| {
-                    let mut s = s.borrow_mut();
-                    if down { s.insert(c) } else { s.remove(c); true }
-                });
+                let fresh = {
+                    let mut held = DOWN.lock().unwrap_or_else(|err| err.into_inner());
+                    if down {
+                        // 回调发生在系统更新异步键态之前。即使上次 keyup 丢失且查询一直失败，
+                        // 真正重新按下时，先前的物理键态也已抬起。
+                        held.insert(c, k.vkCode).is_none() || GetAsyncKeyState(k.vkCode as i32) >= 0
+                    } else {
+                        held.remove(c);
+                        true
+                    }
+                };
                 if fresh {
                     send(Evt::Key(c, down));
                 }

@@ -35,6 +35,8 @@
     124: 'ArrowRight', 125: 'ArrowDown', 126: 'ArrowUp',
   };
   const CAPS_LOCK_KC = 57;
+  const HELD_CHECK_MS = 1000;
+  const IDLE_RELEASE_MS = 60000;
   const POLL_MS = 33;
   // 桌面窗口里把画面四周放宽：发飙举鼠标过头顶、Zzz、浮起的键名、散落的键帽都不被窗口边缘裁掉
   const DESKTOP_VIEWBOX = '-20 -50 840 690';
@@ -69,8 +71,11 @@
 
     if (sceneEl) sceneEl.setAttribute('viewBox', DESKTOP_VIEWBOX);
 
-    const heldKeys = new Set();
-    const heldButtons = new Set();
+    const heldKeys = new Map();
+    const heldButtons = new Map();
+    let lastActivity = performance.now();
+    let nextHeldCheck = 0;
+    let checkingHeld = false;
     let pet = null;           // { id }
     let over = false;         // 指针此刻是否在有画面的地方
     let ignoring = null;      // 窗口当前是否点击穿透
@@ -124,17 +129,18 @@
 
     // ---------- 键盘 ----------
     function onKey({ kc, code: winCode, down }) {
+      lastActivity = performance.now();
       const code = winCode || KEYCODES[kc];
       if (!code) return;
       if (!winCode && kc === CAPS_LOCK_KC) { // macOS 的大写锁定只有切换时的一次事件：当作按一下（Windows 有正常的按下 / 抬起）
         if (heldKeys.has(code)) return;
-        heldKeys.add(code); sink.keyDown(code);
+        heldKeys.set(code, { since: lastActivity, kc }); sink.keyDown(code);
         setTimeout(() => { if (heldKeys.delete(code)) sink.keyUp(code); }, 120);
         return;
       }
       if (down) {
         if (heldKeys.has(code)) return;
-        heldKeys.add(code); sink.keyDown(code);
+        heldKeys.set(code, { since: lastActivity, kc }); sink.keyDown(code);
       } else {
         if (!heldKeys.has(code)) return;
         heldKeys.delete(code); sink.keyUp(code);
@@ -143,10 +149,11 @@
 
     // ---------- 鼠标按键（全局） ----------
     function onButton({ button, down }) {
+      lastActivity = performance.now();
       if (down) {
         if (over || pet) return; // 点在猫身上：交给页面（摸头 / 拖动）
         if (heldButtons.has(button)) return;
-        heldButtons.add(button); sink.pointerDown(button);
+        heldButtons.set(button, { since: lastActivity }); sink.pointerDown(button);
       } else {
         if (button === 0) endPet(); // 指针跑出窗口后松开也能结束摸头
         if (!heldButtons.has(button)) return;
@@ -164,6 +171,41 @@
       ignoring = v;
       appWin.setIgnoreCursorEvents(v).catch(() => { ignoring = null; });
     }
+    async function checkHeld() {
+      const now = performance.now();
+      if (checkingHeld || now < nextHeldCheck || !(heldKeys.size || heldButtons.size)) return;
+      const oldEnough = ([, press]) => now - press.since >= HELD_CHECK_MS;
+      const keys = [...heldKeys].filter((entry) => entry[1].kc !== CAPS_LOCK_KC && oldEnough(entry));
+      const buttons = [...heldButtons].filter(oldEnough);
+      if (!(keys.length || buttons.length)) return;
+      nextHeldCheck = now + HELD_CHECK_MS;
+      checkingHeld = true;
+      let state;
+      try {
+        state = await invoke('held_input_state', {
+          keys: keys.map(([code, { kc }]) => ({ code, kc })),
+          buttons: buttons.map(([button]) => button),
+        });
+      } catch (_) { /* 旧版后端或系统状态不可读时，只使用空闲兜底 */ }
+      finally { checkingHeld = false; }
+
+      function reconcile(entries, held, physical, release) {
+        for (const [id, press] of entries) {
+          // IPC 往返期间可能松开后又按下同一个键。旧快照只能结束当时的那次按下。
+          if (held.get(id) !== press) continue;
+          const up = Array.isArray(physical)
+            ? !physical.includes(id)
+            : performance.now() - lastActivity >= IDLE_RELEASE_MS;
+          if (up) {
+            held.delete(id);
+            release(id);
+          }
+        }
+      }
+      reconcile(keys, heldKeys, state?.keys, (key) => sink.keyUp(key));
+      reconcile(buttons, heldButtons, state?.buttons, (button) => sink.pointerUp(button));
+    }
+
     let polling = false;
     async function poll() {
       if (polling) return;
@@ -171,15 +213,18 @@
       try {
         const c = await invoke('cursor_local');
         if (c) {
-          if (lastG && !pet) {
+          if (lastG) {
             const dx = c.gx - lastG.x, dy = c.gy - lastG.y;
-            if (dx || dy) sink.pointerMove(dx, dy);
+            if (dx || dy) {
+              lastActivity = performance.now();
+              if (!pet) sink.pointerMove(dx, dy);
+            }
           }
           lastG = { x: c.gx, y: c.gy };
           over = hitAt(c.x, c.y);
           setIgnore(!(over || pet));
         }
-      } catch (_) { /* 窗口关闭中等 */ } finally { polling = false; }
+      } catch (_) { /* 窗口关闭中等 */ } finally { polling = false; void checkHeld(); }
     }
 
     // ---------- 页面内：摸头、拖动 ----------
@@ -246,8 +291,8 @@
     const statusTimer = setInterval(refreshStatus, STATUS_MS);
 
     function releaseAll() {
-      for (const c of [...heldKeys]) { heldKeys.delete(c); sink.keyUp(c); }
-      for (const b of [...heldButtons]) { heldButtons.delete(b); sink.pointerUp(b); }
+      for (const c of heldKeys.keys()) { heldKeys.delete(c); sink.keyUp(c); }
+      for (const b of heldButtons.keys()) { heldButtons.delete(b); sink.pointerUp(b); }
       endPet();
     }
 
@@ -258,7 +303,7 @@
         get ignoring() { return ignoring; },
         get input() { return { ...status }; },
         get permBubble() { return !!permBubble && visibleNotice === permissionNotice; },
-        get held() { return [...heldKeys]; },
+        get held() { return [...heldKeys.keys()]; },
       }),
       destroy() {
         releaseAll();

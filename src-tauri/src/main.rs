@@ -76,6 +76,31 @@ struct InputStatus {
     needs_permission: bool,
 }
 
+#[derive(Deserialize)]
+struct HeldKey {
+    code: String,
+    #[cfg(target_os = "macos")]
+    kc: u16,
+}
+
+#[derive(Serialize)]
+struct HeldState {
+    // None 表示这一类状态暂不可读。
+    keys: Option<Vec<String>>,
+    buttons: Vec<u8>,
+}
+
+#[tauri::command]
+fn held_input_state(keys: Vec<HeldKey>, buttons: Vec<u8>) -> Result<HeldState, &'static str> {
+    #[cfg(any(target_os = "macos", target_os = "windows"))]
+    { input::held_state(keys, buttons) }
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    {
+        let _ = (keys, buttons);
+        Err("unsupported platform")
+    }
+}
+
 /// 前端每 ~33ms 调一次：取全局指针位置并换算到窗口内，用来做命中判断和「移动鼠标」。不需要输入监控权限。
 #[cfg(target_os = "macos")]
 #[tauri::command]
@@ -475,6 +500,7 @@ fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             cursor_local,
+            held_input_state,
             input_status,
             open_input_monitoring,
             reset_input_monitoring,
