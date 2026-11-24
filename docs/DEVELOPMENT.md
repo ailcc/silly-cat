@@ -32,7 +32,7 @@
 
 ## 桌面版（Tauri 2，macOS / Windows；Windows 版只做过编译检查，没在 Windows 上运行过）
 
-- 开发运行：`npm install` 后 `npm run desktop`。打包：`npm run desktop:build`。macOS 出 `src-tauri/target/release/bundle/macos/SillyCat.app` 和 `bundle/dmg/*.dmg`；Windows 出 `bundle/nsis/*-setup.exe`。本地 macOS 构建默认使用 ad-hoc 签名，配置证书的 CI 使用固定自签证书。macOS 首次打开仍要在「隐私与安全性」里放行，Windows 会被 SmartScreen 提示「未知发布者」。
+- 开发运行：`npm install` 后 `npm run desktop`。配置更新签名环境变量后用 `npm run desktop:build` 打包。只构建普通安装包可运行 `npm run desktop:build -- --config '{"bundle":{"createUpdaterArtifacts":false}}'`。macOS 出 `src-tauri/target/release/bundle/macos/SillyCat.app` 和 `bundle/dmg/*.dmg`；Windows 出 `bundle/nsis/*-setup.exe`。本地 macOS 构建默认使用 ad-hoc 签名，配置证书的 CI 使用固定自签证书。macOS 首次打开仍要在「隐私与安全性」里放行，Windows 会被 SmartScreen 提示「未知发布者」。
 - 外壳在 `src-tauri/`，页面直接用 `prototype/`，没有打包步骤。页面在 Tauri 里会给 `<html>` 加 `desktop` class：隐藏标题和滑块、背景透明，输入来源从 `input.js` 换成 `input-desktop.js`。网页版不受影响。
 - 窗口默认 420×345，透明、无边框、置顶、不进 Dock。窗口随「猫的大小」按比例缩放（50%–200%），启动时先恢复大小再定位，之后缩放保持右下角不动。拖动滑块时，设置页每帧最多调用一次 `preview_cat_size` 来缩放窗口。预览只调整窗口，`save_settings` 写入文件并广播 `silly:settings`，滑块松手时立即保存。透明的地方点击会穿透到后面的应用（每 33ms 取一次全局指针位置做命中判断）。
 - 全局键鼠：两边都只取键位驱动动画，不记录、不落盘。Windows 用低级键鼠钩子（`src-tauri/src/win_input.rs`），不需要授权，但收不到以管理员身份运行的窗口、UAC 和锁屏界面里的按键。macOS 用只读的 CGEventTap（`src-tauri/src/tap.rs`），需要在「系统设置 → 隐私与安全性 → 输入监控」里勾选 SillyCat（键盘和鼠标按键都要这一项）；没授权时猫照常显示，只是不跟着打字。
@@ -40,7 +40,7 @@
   - 判断方法：不看 `CGPreflightListenEventAccess`（结果在进程里有缓存），看 WindowServer 让不让键盘 tap 打开——没授权、或授权记录绑的是别的签名时，`CGEventTapCreate` 照样返回 tap，但 `CGEventTapIsEnabled` 为 false、开不起来。SillyCat 自己在前台（设置窗口在前面）时系统会放行它的 tap，这时不重新判断，沿用它上次在后台时的结论。
   - ad-hoc 签名随构建变化。首个证书签名的版本需要重新授权一次，之后同一证书签名的版本会保留授权。授权绑在旧签名上时（例如先给本地构建授过权，再装了 CI 构建的版本），系统设置里的开关看起来是开的，但收不到按键，系统也不再弹授权窗口，系统日志里有 `Failed to match existing code requirement for subject com.drew.sillycat and service kTCCServiceListenEvent`。处理：设置窗口里点「重置授权」（应用自己执行 `/usr/bin/tccutil reset ListenEvent com.drew.sillycat`，只清本应用的这一条记录，再申请一次授权并打开输入监控设置），然后在列表里重新打开 SillyCat；打开后系统提示「退出并重新打开」就点它，没提示、或列表里没有 SillyCat，就点「重新启动 SillyCat」。
 - 按住头是摸头；按住身体、键盘、鼠标等其他地方拖动窗口，位置记在 `~/Library/Application Support/com.drew.sillycat/window-position.json`（Windows 在 `%APPDATA%\com.drew.sillycat\`，记的是物理像素）。
-- 菜单栏（托盘）图标：设置…、显示/隐藏猫、重置位置、打开输入监控设置（仅 macOS）、退出。
+- 菜单栏（托盘）图标：设置…、检查更新…、显示/隐藏猫、重置位置、打开输入监控设置（仅 macOS）、退出。
 - 右键猫、键盘、鼠标等有画面的地方，在指针位置弹出菜单：设置…、退出。
 - 设置窗口：从右键菜单或菜单栏图标里的「设置…」打开（已经开着就带到前面，Esc 关闭；关掉不会退出应用）。页面是 `prototype/settings.html`，字段表和校验在 `prototype/settings.js`。时间参数都按秒填：入睡时间（默认 20，5–3600）；开始流口水、趴到键盘上的时刻（从最后一次操作算起，6/7–10800，留空 = 自动，即入睡时间 × 2、× 3.5；必须入睡 < 流口水 < 趴下）；连续打字多久发飙（默认 90，15–36000）；罢工后歇多久消气（默认 20，5–3600）；大约多久推一次东西（默认 600，60–36000）。「显示状态条」和「推东西」默认开启。改出合法值后立即生效并写入 `~/Library/Application Support/com.drew.sillycat/settings.json`，下次启动自动读取；「恢复默认」回到上面的默认值。
 - 设置窗口的基础高度由 `SETTINGS_HEIGHT` 和 `BASE_H` 一起定义。创建时按猫所在显示器的工作区逻辑高度减 40 px 封顶，取不到所在显示器时用主显示器，两者都取不到时用基础高度。页面展开或收起授权区时按 `screen.availHeight - 40` 封顶，内容超出时可上下滚动。
@@ -52,6 +52,22 @@
   - 用 `tools/make-signing-cert.sh <仓库外的输出目录>` 生成一次固定证书。按脚本输出把 `.p12.base64` 和密码文件分别写入 Secrets `MACOS_SIGNING_CERT_P12_BASE64`、`MACOS_SIGNING_CERT_PASSWORD`，把证书 SHA-1 写入 Variable `MACOS_SIGNING_CERT_SHA1`。两个 Secrets 都没有时用 ad-hoc 签名。
   - 将 `.p12` 和密码备份到密码管理器或离线介质。换证书，或丢失证书且无法从备份恢复时，所有用户都要重新授权。发布首个证书签名的版本时，在草稿 Release 说明里提醒用户重置一次输入监控授权。
   - 本地验签时，把 `.p12.base64` 和密码从文件读入上述同名环境变量，运行 `tools/macos-sign.sh sign <SillyCat.app>`，再用 `tools/verify-mac-signing.sh <产物路径> <证书SHA-1>` 检查 `.app`、`.dmg` 或 `.app.tar.gz`。单架构本地测试包可在产物路径前加 `--allow-single-arch`。
+
+## 更新机制
+
+桌面版使用 Tauri 2 updater。启动约 10 秒后检查一次，之后每 24 小时检查。设置文件中的布尔字段 `autoUpdate` 默认是 `true`，缺失或类型错误时也按开启处理。关闭后停止后台检查，托盘「检查更新…」仍可手动使用。检查只请求本项目的 GitHub Release，不上传输入或设置。只有用户点击安装才下载更新。
+
+生产端点为 `https://github.com/S0u1/silly-cat/releases/latest/download/latest.json`，指向已发布的最新 Release。Rust 插件根据清单、当前平台和 semver 决定是否提示更新，下载后校验签名，并要求签名中的版本与清单一致。macOS 使用通用 `.app.tar.gz`，Windows 使用 NSIS 安装包和 passive 安装模式。安装位置不可写时转到 Releases 页面手动下载。
+
+更新公钥嵌入 `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`。将对应私钥内容和密码分别保存到仓库 Secrets `TAURI_SIGNING_PRIVATE_KEY` 和 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`，并在本地安全备份。这对密钥和 macOS 代码签名证书各有用途。换用新私钥后，旧客户端仍可能发现版本，但会拒绝安装由新密钥签署的包。丢失旧私钥时，需要用户手动安装包含新公钥的版本。
+
+标签构建要求两个更新 Secrets 均已配置。手动运行 release 工作流时，缺少任一项会告警并跳过更新产物签名。默认的 `tauri` 路径在标签构建中由 tauri-action 将安装包、更新归档、签名和合并后的 `latest.json` 上传到同一个草稿。发布草稿前检查清单中 macOS 两种架构和 Windows x64 的下载地址、签名及版本。`script` 试跑路径重新签署最终的 macOS 归档；如采用该路径发布，需要手工将最终归档的下载 URL 和新签名写入清单的 macOS 平台项，保留 Windows 平台项。
+
+在 macOS 上运行 `cd src-tauri && cargo test --offline updater:: -- --ignored`，可无界面验证回环下载、正确签名替换临时 .app、错签或签名缺少版本或归档被篡改时保留旧版，以及安装目录不可写时的权限探测；更新后的重启和输入监控授权保留情况仍需真机验证。
+
+在 macOS worktree 根目录运行 `tools/test-updater.sh`，按终端提示完成本机更新和错误签名测试。脚本使用独立测试标识符、一次性密钥及回环端点。验证关闭自动检查时，保存设置并重新启动旧版，等待超过 10 秒，确认服务日志没有新的清单请求，再手动检查并确认有请求。升级成功后再手动检查应显示已是最新版本，按脚本提示临时移走清单后，手动检查应显示失败。要一并验证输入监控授权是否保留，可将环境变量 `UPDATER_TEST_IDENTITY` 设为本机已有的固定证书签名身份，再运行同一脚本。
+
+无界面测试可运行 `cargo test --manifest-path src-tauri/Cargo.toml`。允许绑定回环端口的环境还可运行 `cargo test --manifest-path src-tauri/Cargo.toml check_loopback_manifest -- --ignored`，用真实插件检查本地清单中的新版和当前版本。
 
 ## 手绘毛发部件
 

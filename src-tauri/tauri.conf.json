@@ -36,6 +36,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["app", "dmg", "nsis"],
     "icon": [
       "icons/32x32.png",
@@ -52,6 +53,18 @@
       "nsis": {
         "installMode": "currentUser",
         "languages": ["SimpChinese", "English"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "requireSignedVersion": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgxOEI0MjRENTA0NjIyRUYKUldUdklrWlFUVUtMZ1M5dGkvcW1KSmoxdmg5VEJ0OHhMa0t5dDN1Q1o0SUJLRCtEQWtkN2NLRTYK",
+      "endpoints": [
+        "https://github.com/S0u1/silly-cat/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

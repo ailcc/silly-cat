@@ -26,10 +26,13 @@ jobs:
     permissions:
       contents: write # 创建 Release、上传安装包
     env:
+      HAS_UPDATE_KEYS: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
       MACOS_HAS_CERTIFICATE: ${{ matrix.platform == 'macos-latest' && secrets.MACOS_SIGNING_CERT_P12_BASE64 != '' }}
       MACOS_HAS_CERTIFICATE_PASSWORD: ${{ matrix.platform == 'macos-latest' && secrets.MACOS_SIGNING_CERT_PASSWORD != '' }}
       MACOS_SIGNING_CERT_SHA1: ${{ matrix.platform == 'macos-latest' && vars.MACOS_SIGNING_CERT_SHA1 || '' }}
     strategy:
+      # 两个 runner 依次创建/更新同一草稿和 latest.json，避免同时读写时覆盖平台条目。
+      max-parallel: ${{ github.event_name == 'push' && 1 || 2 }}
       fail-fast: false
       matrix:
         include:
@@ -84,10 +87,28 @@ jobs:
             exit 1
           fi
 
+      - name: 检查更新签名配置
+        id: updater
+        shell: bash
+        run: |
+          # script 模式只对最终归档签名；缺密钥的手动试跑只构建普通安装包。
+          echo '{"bundle":{"createUpdaterArtifacts":false}}' > ci-no-updater.json
+          if [[ $HAS_UPDATE_KEYS != true ]]; then
+            message='请同时配置 TAURI_SIGNING_PRIVATE_KEY 和 TAURI_SIGNING_PRIVATE_KEY_PASSWORD。'
+            if [[ $GITHUB_EVENT_NAME == push ]]; then
+              echo "::error::$message"
+              exit 1
+            fi
+            echo "::warning::${message}本次手动构建跳过更新签名及更新清单。"
+            echo 'args=--config ci-no-updater.json' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 用 Tauri 构建并上传
         if: matrix.platform != 'macos-latest' || inputs.signing_mode != 'script'
         uses: tauri-apps/tauri-action@v1
         env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_CERTIFICATE: ${{ env.MACOS_HAS_CERTIFICATE == 'true' && secrets.MACOS_SIGNING_CERT_P12_BASE64 || '' }}
           APPLE_CERTIFICATE_PASSWORD: ${{ env.MACOS_HAS_CERTIFICATE_PASSWORD == 'true' && secrets.MACOS_SIGNING_CERT_PASSWORD || '' }}
@@ -100,7 +121,9 @@ jobs:
           releaseDraft: true
           prerelease: false
           uploadWorkflowArtifacts: ${{ github.event_name == 'workflow_dispatch' }}
-          args: ${{ matrix.args }}
+          uploadUpdaterJson: true
+          uploadUpdaterSignatures: true
+          args: ${{ matrix.args }} ${{ steps.updater.outputs.args }}
 
       # 方案 B：--bundles app → macos-sign.sh → hdiutil 和 tar 打包 → 验签。
       # 手动运行上传 workflow artifact。若 B 验收通过并切为标签发布路径，
@@ -109,7 +132,7 @@ jobs:
         if: matrix.platform == 'macos-latest' && inputs.signing_mode == 'script'
         env:
           APPLE_SIGNING_IDENTITY: '-'
-        run: npm run desktop:build -- --target universal-apple-darwin --bundles app
+        run: npm run desktop:build -- --target universal-apple-darwin --bundles app --config ci-no-updater.json
 
       - name: 用签名脚本签名并打包
         if: matrix.platform == 'macos-latest' && inputs.signing_mode == 'script'
@@ -131,6 +154,18 @@ jobs:
             "$bundle/dmg/SillyCat_${version}_universal.dmg"
           tar -czf "$bundle/macos/SillyCat_${version}_universal.app.tar.gz" -C "$bundle/macos" SillyCat.app
 
+      # script 模式重新签过 .app，只能签最终 tar.gz；该模式的 latest.json 暂需手动拼。
+      - name: 为最终的 script 归档生成更新签名
+        if: matrix.platform == 'macos-latest' && inputs.signing_mode == 'script' && env.HAS_UPDATE_KEYS == 'true'
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          archive="src-tauri/target/universal-apple-darwin/release/bundle/macos/SillyCat_${version}_universal.app.tar.gz"
+          npm run tauri -- signer sign --app-version "$version" "$archive"
+
       - name: 验证 macOS 安装包签名
         id: verify-mac
         if: matrix.platform == 'macos-latest'
@@ -144,6 +179,10 @@ jobs:
           archive="$bundle/macos/SillyCat.app.tar.gz"
           if [[ $SIGNING_MODE == script ]]; then
             archive="$bundle/macos/SillyCat_${version}_universal.app.tar.gz"
+          fi
+
+          if [[ $HAS_UPDATE_KEYS == true ]]; then
+            test -s "$archive.sig"
           fi
 
           verify() {
@@ -161,13 +200,32 @@ jobs:
           done
           printf 'dmg=%s\narchive=%s\n' "$dmg" "$archive" >> "$GITHUB_OUTPUT"
 
-      # tauri-action v1 上传 workflow artifacts 后才生成 .app.tar.gz。
+      # 带更新签名时 CLI 已生成归档；没有更新密钥时 action 会另行压缩 .app。
       - name: 上传 macOS 应用归档
         if: matrix.platform == 'macos-latest' && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
           name: SillyCat-universal-app-archive
-          path: ${{ steps.verify-mac.outputs.archive }}
+          path: |
+            ${{ steps.verify-mac.outputs.archive }}
+            ${{ steps.verify-mac.outputs.archive }}.sig
+          if-no-files-found: error
+
+      - name: 验证 Windows NSIS 更新产物
+        if: matrix.platform == 'windows-latest' && env.HAS_UPDATE_KEYS == 'true'
+        shell: bash
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          installer="src-tauri/target/release/bundle/nsis/SillyCat_${version}_x64-setup.exe"
+          test -s "$installer"
+          test -s "$installer.sig"
+
+      - name: 上传手动构建的 Windows 更新签名
+        if: matrix.platform == 'windows-latest' && github.event_name == 'workflow_dispatch' && env.HAS_UPDATE_KEYS == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: SillyCat-windows-nsis-signature
+          path: src-tauri/target/release/bundle/nsis/*-setup.exe.sig
           if-no-files-found: error
 
       - name: 上传签名脚本生成的 DMG

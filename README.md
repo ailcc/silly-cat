@@ -57,7 +57,7 @@
 
 ## 隐私
 
-SillyCat 只读取按键位置和鼠标事件来驱动动画，不记录或保存输入，也不联网。macOS 使用只读 CGEventTap，Windows 使用低级键鼠钩子。
+SillyCat 只读取按键位置和鼠标事件来驱动动画，不记录或保存输入。桌面版默认只访问 GitHub 上本项目的 Release 检查新版本，点击更新后才下载并安装，不上传任何数据。在「设置…」里关闭「自动检查更新」即可停止后台联网，仍可从托盘菜单手动检查。macOS 使用只读 CGEventTap，Windows 使用低级键鼠钩子。
 
 ## 常见问题
 
@@ -77,7 +77,7 @@ SillyCat 只读取按键位置和鼠标事件来驱动动画，不记录或保�
 ## 从源码运行
 
 - 网页版运行 `npm start`，然后打开 <http://localhost:4317/>。
-- 桌面版先运行 `npm install`，再运行 `npm run desktop`。打包用 `npm run desktop:build`。
+- 桌面版先运行 `npm install`，再运行 `npm run desktop`。本地普通安装包和带更新签名的发布包分别按[开发说明](docs/DEVELOPMENT.md#更新机制)构建。
 
 更多见[开发说明](docs/DEVELOPMENT.md)。
 
