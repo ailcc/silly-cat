@@ -14,7 +14,7 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{channel, Sender};
-use std::sync::{LazyLock, Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, POINT, WPARAM};
@@ -37,12 +37,16 @@ enum Evt {
 static TX: OnceLock<Sender<Evt>> = OnceLock::new();
 
 // 保留钩子用来生成 code 的实际 vk，兼容非美式布局、NumLock 和左右修饰键。
-static DOWN: LazyLock<Mutex<HashMap<&'static str, u32>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+// 不用 LazyLock（Rust 1.80 才稳定）：Win7 版用 Rust 1.77.2 构建。
+fn down_keys() -> &'static Mutex<HashMap<&'static str, u32>> {
+    static DOWN: OnceLock<Mutex<HashMap<&'static str, u32>>> = OnceLock::new();
+    DOWN.get_or_init(|| Mutex::new(HashMap::new()))
+}
 
 pub(super) fn held_state(keys: Vec<super::HeldKey>, mut buttons: Vec<u8>) -> Result<super::HeldState, &'static str> {
     // 锁屏 / UAC 时当前桌面不可读，GetAsyncKeyState 返回的零不能当作抬起。
     cursor_physical().ok_or("input desktop unavailable")?;
-    let mut down = DOWN.lock().unwrap_or_else(|err| err.into_inner());
+    let mut down = down_keys().lock().unwrap_or_else(|err| err.into_inner());
     let keys = keys.into_iter().filter(|key| {
         let Some(&vk) = down.get(key.code.as_str()) else { return false };
         if unsafe { GetAsyncKeyState(vk as i32) } < 0 {
@@ -280,7 +284,7 @@ unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARA
             if let Some(c) = key_code(k) {
                 // 长按自动重复：同一个键没抬起又来按下，丢掉
                 let fresh = {
-                    let mut held = DOWN.lock().unwrap_or_else(|err| err.into_inner());
+                    let mut held = down_keys().lock().unwrap_or_else(|err| err.into_inner());
                     if down {
                         // 回调发生在系统更新异步键态之前。即使上次 keyup 丢失且查询一直失败，
                         // 真正重新按下时，先前的物理键态也已抬起。

@@ -222,10 +222,10 @@ fn fallback(app: &AppHandle) {
 }
 
 fn unwritable(e: &io::Error) -> bool {
-    matches!(
-        e.kind(),
-        io::ErrorKind::PermissionDenied | io::ErrorKind::ReadOnlyFilesystem
-    )
+    // ErrorKind::ReadOnlyFilesystem 要 Rust 1.83 才稳定，Win7 版用 Rust 1.77.2 构建，
+    // 所以直接比对 EROFS（macOS 和 Linux 上都是 30）。
+    let read_only = cfg!(unix) && e.raw_os_error() == Some(30);
+    read_only || e.kind() == io::ErrorKind::PermissionDenied
 }
 
 #[tauri::command]

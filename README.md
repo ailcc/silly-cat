@@ -16,6 +16,7 @@
 
 - macOS 下载 `SillyCat_x.y.z_universal.dmg`，Intel 和 Apple 芯片通用。
 - Windows 下载 `SillyCat_x.y.z_x64-setup.exe`。
+- Windows 7、8、8.1 下载 `SillyCat_x.y.z_win7_x64-setup.exe`，并先装好 WebView2 109（见下面的常见问题）。它是单独构建的包，更新也只会更新到同一类的包。
 
 应用没有正式签名。
 

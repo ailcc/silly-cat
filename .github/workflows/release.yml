@@ -147,7 +147,7 @@ jobs:
           # tauri-action 将空字符串视为未配置 Release。
           tagName: ${{ github.event_name == 'push' && github.ref_name || '' }}
           releaseName: ${{ github.event_name == 'push' && format('SillyCat {0}', github.ref_name) || '' }}
-          releaseBody: '捣蛋奶牛猫桌宠。macOS 下载 .dmg（Intel 和 Apple Silicon 通用），Windows 下载 -setup.exe。首次打开需要手动放行。'
+          releaseBody: '捣蛋奶牛猫桌宠。macOS 下载 .dmg（Intel 和 Apple Silicon 通用），Windows 下载 -setup.exe。Windows 7、8、8.1 下载文件名带 win7 的 -setup.exe，并先按 README 常见问题装好 WebView2 109。首次打开需要手动放行。'
           releaseDraft: true
           prerelease: false
           uploadWorkflowArtifacts: ${{ github.event_name == 'workflow_dispatch' }}
@@ -265,3 +265,163 @@ jobs:
           name: SillyCat-universal-script-dmg
           path: ${{ steps.verify-mac.outputs.dmg }}
           if-no-files-found: error
+
+  # Windows 7 / 8 / 8.1 版。Tauri 2.12 起和 Rust 1.78 起的标准库都不再支持这几个系统，
+  # 所以这里单独用 Rust 1.77.2 + Tauri 2.11 再构建一个包，作为同一个 Release 的额外附件。
+  # 更新走它自己的清单 latest-win7.json，不会被主线的 latest.json 带到普通 Windows 包上。
+  # 构建失败不影响上面的主线发布（continue-on-error），但该 Release 就不会有 win7 附件。
+  win7:
+    needs: build
+    runs-on: windows-latest
+    continue-on-error: true
+    permissions:
+      contents: write # 把 win7 安装包上传到草稿 Release
+    env:
+      HAS_UPDATE_KEYS: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+          cache: npm
+
+      # 默认工具链设为 1.77.2（构建用）；stable 只用来解析依赖，因为按 rust-version 回退选版本要新版 cargo。
+      - name: 安装 Rust 1.77.2
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.77.2
+
+      - name: 安装 stable（只用来解析依赖）
+        run: rustup toolchain install stable --profile minimal
+
+      - name: Rust 缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          key: win7
+
+      # 只改本次构建的工作区，不会进仓库：给清单加 rust-version，把更新插件放宽到 2.x 里能配 Tauri 2.11 的版本，
+      # 再让 cargo 按 rust-version 重新选依赖版本，得到 1.77.2 能编的 Cargo.lock。
+      - name: 生成适配 Rust 1.77.2 的依赖锁
+        shell: bash
+        working-directory: src-tauri
+        run: |
+          set -euo pipefail
+          sed -i 's/^edition = "2021"$/&\nrust-version = "1.77.2"/' Cargo.toml
+          sed -i 's/^tauri-plugin-updater = ".*"$/tauri-plugin-updater = "2"/' Cargo.toml
+          grep -q '^rust-version = "1.77.2"$' Cargo.toml
+          grep -q '^tauri-plugin-updater = "2"$' Cargo.toml
+          rm Cargo.lock
+          CARGO_RESOLVER_INCOMPATIBLE_RUST_VERSIONS=fallback cargo +stable generate-lockfile
+          {
+            echo '### Win7 构建解析出的依赖版本'
+            echo '```text'
+            for p in tauri tauri-plugin-updater tauri-runtime-wry wry webview2-com; do
+              awk -v p="$p" '$0=="name = \""p"\""{getline v; print p, v}' Cargo.lock
+            done
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # 命令行要和 Rust 端的 tauri 2.11 同一个小版本。
+      - name: 安装前端依赖，并换成 Tauri 2.11 的命令行
+        shell: bash
+        run: |
+          npm ci
+          npm install --no-save @tauri-apps/cli@2.11.5
+          npx tauri --version
+
+      - name: 检查更新签名配置
+        id: updater
+        shell: bash
+        run: |
+          echo '{"bundle":{"createUpdaterArtifacts":false}}' > ci-no-updater.json
+          if [[ $HAS_UPDATE_KEYS != true ]]; then
+            message='请同时配置 TAURI_SIGNING_PRIVATE_KEY 和 TAURI_SIGNING_PRIVATE_KEY_PASSWORD。'
+            if [[ $GITHUB_EVENT_NAME == push ]]; then
+              echo "::error::$message"
+              exit 1
+            fi
+            echo "::warning::${message}本次手动构建跳过更新签名及更新清单。"
+            echo 'args=--config ci-no-updater.json' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 构建 Win7 版 NSIS 安装包
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          UPDATER_ARGS: ${{ steps.updater.outputs.args }}
+        run: |
+          rustc --version
+          # shellcheck disable=SC2086
+          npx tauri build --bundles nsis --ci --config src-tauri/tauri.win7.conf.json $UPDATER_ARGS
+
+      # 导入表里有 Win8 以上才有的接口就让这一步失败，免得发出一个在 Win7 上打不开的包。
+      - name: 检查导入表
+        shell: bash
+        env:
+          PYTHONUTF8: '1'
+        run: |
+          python -m pip install pefile
+          python tools/win7-check-imports.py src-tauri/target/release/silly-cat.exe | tee win7-imports-report.txt
+          {
+            echo '### Win7 导入表检查'
+            echo '```text'
+            cat win7-imports-report.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 整理产物
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          src="src-tauri/target/release/bundle/nsis/SillyCat_${version}_x64-setup.exe"
+          name="SillyCat_${version}_win7_x64-setup.exe"
+          test -s "$src"
+          mkdir -p out
+          cp "$src" "out/$name"
+          cp win7-imports-report.txt out/
+          if [[ $HAS_UPDATE_KEYS == true ]]; then
+            test -s "$src.sig"
+            cp "$src.sig" "out/$name.sig"
+            tag=v$version
+            if [[ $GITHUB_EVENT_NAME == push ]]; then tag=$GITHUB_REF_NAME; fi
+            node tools/make-win7-manifest.mjs "$version" "$tag" "$name" "out/$name.sig" out/latest-win7.json
+          fi
+          ls -la out
+
+      # 草稿 Release 按标签查不到，所以先列出 Release 找到编号，再用上传接口直接传。重跑时先删同名旧附件。
+      - name: 上传到草稿 Release
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --jq "map(select(.tag_name==\"$GITHUB_REF_NAME\"))[0].id")
+          if [[ -z $id || $id == null ]]; then
+            echo "::error::找不到标签 $GITHUB_REF_NAME 对应的 Release"
+            exit 1
+          fi
+          for f in out/SillyCat_*_win7_x64-setup.exe out/SillyCat_*_win7_x64-setup.exe.sig out/latest-win7.json; do
+            n=$(basename "$f")
+            old=$(gh api "repos/$GITHUB_REPOSITORY/releases/$id/assets?per_page=100" --jq ".[] | select(.name==\"$n\") | .id")
+            if [[ -n $old ]]; then gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$old"; fi
+            curl -sS --fail -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$f" \
+              "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$id/assets?name=$n" > /dev/null
+            echo "已上传 $n"
+          done
+
+      - name: 上传 workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: SillyCat-win7
+          path: out/*
+          if-no-files-found: warn

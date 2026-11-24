@@ -1,0 +1,16 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "bundle": {
+    "targets": ["nsis"],
+    "windows": {
+      "webviewInstallMode": { "type": "skip" }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/S0u1/silly-cat/releases/latest/download/latest-win7.json"
+      ]
+    }
+  }
+}
