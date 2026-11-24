@@ -137,6 +137,10 @@ html[data-cat="blue"] {
   --coat-nose: #6b6f7c;
   --coat-blush-opacity: 0.2;
 }
+html[data-cat="blue"]:not([data-art-style="line"]) {
+  --coat-lid-l: #868c93; /* 眼周毛色，取自 head.webp */
+  --coat-lid-r: #868c93;
+}
 html[data-cat="white"] {
   --coat-base: #fffdf8;
   --coat-iris-l: #6cb8ec;
