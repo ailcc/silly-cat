@@ -459,11 +459,23 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p updates
-          sed 's#https://github.com/ailcc/silly-cat/releases/download/#https://gitee.com/ailcc/silly-cat/releases/download/#g' \
-            assets/latest.json > updates/latest.json
+          # tauri-action 在草稿阶段生成的 latest.json 用的是 api.github.com 资产地址
+          # （发布后才可匿名下载），不能只按 download 前缀替换；统一按资产文件名
+          # 映射成 Gitee 下载地址（2026-11-25 v1.2.1 实测：api 地址形态 sed 匹配不上，
+          # Gitee 清单差点仍指向 GitHub）
+          cat > /tmp/gitee-manifest.mjs <<'NODE'
+            import fs from 'node:fs';
+            const [src, dst, tag] = process.argv.slice(2);
+            const m = JSON.parse(fs.readFileSync(src, 'utf8'));
+            for (const v of Object.values(m.platforms || {})) {
+              const name = decodeURIComponent(new URL(v.url).pathname.split('/').pop());
+              v.url = `https://gitee.com/ailcc/silly-cat/releases/download/${tag}/${name}`;
+            }
+            fs.writeFileSync(dst, JSON.stringify(m, null, 2));
+          NODE
+          node /tmp/gitee-manifest.mjs assets/latest.json updates/latest.json "$GITHUB_REF_NAME"
           if [[ -f assets/latest-win7.json ]]; then
-            sed 's#https://github.com/ailcc/silly-cat/releases/download/#https://gitee.com/ailcc/silly-cat/releases/download/#g' \
-              assets/latest-win7.json > updates/latest-win7.json
+            node /tmp/gitee-manifest.mjs assets/latest-win7.json updates/latest-win7.json "$GITHUB_REF_NAME"
           else
             echo "::warning::没有 latest-win7.json（Win7 构建可能失败了），本次跳过 Win7 清单"
           fi
