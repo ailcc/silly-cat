@@ -29,6 +29,7 @@ jobs:
           set -euo pipefail
           url="https://oauth2:${GITEE_TOKEN}@gitee.com/ailcc/silly-cat.git"
           # 不用 --mirror：它会把本地的远端跟踪引用（refs/remotes/*）也推过去，被 Gitee 拒绝
-          git push --force "$url" "refs/heads/main:refs/heads/main"
+          # 源引用用 refs/remotes/origin/main：按标签触发时 checkout 出来的是游离 HEAD，本地没有 refs/heads/main
+          git push --force "$url" "refs/remotes/origin/main:refs/heads/main"
           git push --force "$url" "refs/tags/*:refs/tags/*"
           echo "已镜像到 Gitee：main + 全部标签"
