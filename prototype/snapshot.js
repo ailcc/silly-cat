@@ -16,46 +16,70 @@
       fx.spawn(msg || '截猫失败了', 400, 84, 'angry', performance.now());
     }
 
-    // 把场景 SVG 连同外部 CSS 的计算样式一起内联，再画到画布上导 PNG
-    function capture() {
-      const svg = document.getElementById('scene');
-      const clone = svg.cloneNode(true);
-      const src = svg.querySelectorAll('*'), dst = clone.querySelectorAll('*');
-      const PROPS = ['fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray',
-        'opacity', 'font-family', 'font-size', 'font-weight', 'letter-spacing', 'text-anchor', 'display', 'visibility'];
-      for (let i = 0; i < src.length; i++) {
-        const cs = getComputedStyle(src[i]);
-        for (const p of PROPS) {
-          const v = cs.getPropertyValue(p);
-          if (v) dst[i].style.setProperty(p, v);
-        }
-      }
-      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-      const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' }));
-      const img = new Image();
-      img.onload = () => {
-        const cv = document.createElement('canvas');
-        cv.width = 800; cv.height = 620;
-        cv.getContext('2d').drawImage(img, 0, 0);
-        URL.revokeObjectURL(url);
-        cv.toBlob(async (blob) => {
-          if (!blob) return fail();
-          try {
-            if (typeof ClipboardItem === 'undefined') throw new Error('no ClipboardItem');
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-            fx.spawn('表情包已复制！', 400, 84, 'hot', performance.now());
-          } catch {
-            const a = document.createElement('a');
-            a.download = 'sillycat.png';
-            a.href = URL.createObjectURL(blob);
-            a.click();
-            URL.revokeObjectURL(a.href);
-            fx.spawn('表情包已保存！', 400, 84, 'hot', performance.now());
+    // 把场景 SVG 连同外部 CSS 的计算样式一起内联，再画到画布上导 PNG。
+    // 高清贴图（art.js）是外链 webp：序列化成独立 SVG 后相对路径加载不出来，
+    // 必须先把每张 <image> 抓下来转成内嵌 dataURI，否则身体头爪会变成透明。
+    async function capture() {
+      try {
+        const svg = document.getElementById('scene');
+        const clone = svg.cloneNode(true);
+        const src = svg.querySelectorAll('*'), dst = clone.querySelectorAll('*');
+        const PROPS = ['fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-dasharray',
+          'opacity', 'font-family', 'font-size', 'font-weight', 'letter-spacing', 'text-anchor', 'display', 'visibility'];
+        for (let i = 0; i < src.length; i++) {
+          const cs = getComputedStyle(src[i]);
+          for (const p of PROPS) {
+            const v = cs.getPropertyValue(p);
+            if (v) dst[i].style.setProperty(p, v);
           }
-        }, 'image/png');
-      };
-      img.onerror = () => { URL.revokeObjectURL(url); fail(); };
-      img.src = url;
+        }
+        const simgs = svg.querySelectorAll('image'), cimgs = clone.querySelectorAll('image');
+        for (let i = 0; i < simgs.length; i++) {
+          const href = simgs[i].getAttribute('href') || simgs[i].getAttribute('xlink:href') || '';
+          if (!href || href.startsWith('data:')) continue;
+          const res = await fetch(href);
+          if (!res.ok) throw new Error('抓不到贴图 ' + href);
+          const blob = await res.blob();
+          const dataURI = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(r.result);
+            r.onerror = () => reject(r.error);
+            r.readAsDataURL(blob);
+          });
+          cimgs[i].setAttribute('href', dataURI);
+          cimgs[i].setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', dataURI);
+        }
+        clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+        const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' }));
+        const img = new Image();
+        img.onload = () => {
+          const cv = document.createElement('canvas');
+          cv.width = 800; cv.height = 620;
+          cv.getContext('2d').drawImage(img, 0, 0);
+          URL.revokeObjectURL(url);
+          cv.toBlob(async (blob) => {
+            if (!blob) return fail();
+            try {
+              if (typeof ClipboardItem === 'undefined') throw new Error('no ClipboardItem');
+              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+              fx.spawn('表情包已复制！', 400, 84, 'hot', performance.now());
+            } catch {
+              const a = document.createElement('a');
+              a.download = 'sillycat.png';
+              a.href = URL.createObjectURL(blob);
+              a.click();
+              URL.revokeObjectURL(a.href);
+              fx.spawn('表情包已保存！', 400, 84, 'hot', performance.now());
+            }
+          }, 'image/png');
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); fail(); };
+        img.src = url;
+      } catch (err) {
+        console.warn('截猫失败：', err);
+        fail();
+      }
     }
 
     function afterKeyDown(code, now) {
