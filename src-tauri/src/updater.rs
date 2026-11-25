@@ -8,6 +8,7 @@ use tauri_plugin_updater::{Error, Update, UpdaterExt};
 use tokio::sync::{watch, Mutex as AsyncMutex};
 
 const RELEASES: &str = "https://github.com/ailcc/silly-cat/releases";
+const RELEASES_GITEE: &str = "https://gitee.com/ailcc/silly-cat/releases";
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -30,6 +31,7 @@ pub struct Notice {
 struct Offer {
     update: Update,
     manual: bool,
+    source: &'static str,
 }
 
 struct Updates {
@@ -149,6 +151,20 @@ pub fn manual_check(app: AppHandle) {
     tauri::async_runtime::spawn(async move { check(&app, true).await });
 }
 
+// 更新走哪个源：清单从哪个端点拿到，下载地址就写在哪个清单里，
+// 看下载地址的域名就能知道这次检测和下载用的是 GitHub 还是 Gitee
+fn source_of(update: &Update) -> &'static str {
+    if update
+        .download_url
+        .host_str()
+        .is_some_and(|h| h.contains("gitee.com"))
+    {
+        "Gitee"
+    } else {
+        "GitHub"
+    }
+}
+
 fn reason(error: &Error) -> String {
     match error {
         Error::ReleaseNotFound => "未找到更新清单".into(),
@@ -187,9 +203,10 @@ async fn check(app: &AppHandle, manual: bool) {
         Ok(Some(mut update)) => {
             // The archive may be much larger than its manifest.
             update.timeout = Some(Duration::from_secs(10 * 60));
+            let source = source_of(&update);
             let title = format!("有新版本 v{}", update.version);
-            *candidate = Some(Offer { update, manual });
-            notify(app, NoticeKind::Offer, title, "点这里更新", true);
+            *candidate = Some(Offer { update, manual, source });
+            notify(app, NoticeKind::Offer, title, format!("来源 {source} · 点这里更新"), true);
         }
         Ok(None) => {
             let had_update = candidate.take().is_some();
@@ -230,11 +247,12 @@ pub(crate) fn open_in_browser(url: &str) -> io::Result<()> {
     cmd.arg(url).spawn().map(|_| ())
 }
 
-fn fallback(app: &AppHandle) {
-    let detail = if open_in_browser(RELEASES).is_ok() {
+fn fallback(app: &AppHandle, source: &str) {
+    let url = if source == "Gitee" { RELEASES_GITEE } else { RELEASES };
+    let detail = if open_in_browser(url).is_ok() {
         "请到发布页下载安装包"
     } else {
-        RELEASES
+        url
     };
     notify(app, NoticeKind::Failed, "安装目录不可写", detail, false);
 }
@@ -250,7 +268,7 @@ fn unwritable(e: &io::Error) -> bool {
 pub async fn install_update(app: AppHandle) {
     let state = app.state::<Updates>();
     let mut candidate = state.candidate.lock().await;
-    let Some(Offer { update, manual }) = candidate.take() else {
+    let Some(Offer { update, manual, source }) = candidate.take() else {
         return;
     };
     if !manual && !*state.auto.borrow() {
@@ -259,9 +277,9 @@ pub async fn install_update(app: AppHandle) {
     }
     if let Err(e) = std::env::current_exe().and_then(|path| probe_install_dir(&path)) {
         if unwritable(&e) {
-            fallback(&app);
+            fallback(&app, source);
         } else {
-            *candidate = Some(Offer { update, manual });
+            *candidate = Some(Offer { update, manual, source });
             notify(
                 &app,
                 NoticeKind::Failed,
@@ -275,7 +293,7 @@ pub async fn install_update(app: AppHandle) {
     notify(
         &app,
         NoticeKind::Progress,
-        "正在下载更新",
+        &format!("正在从{source}下载更新"),
         "准备下载…",
         false,
     );
@@ -291,7 +309,7 @@ pub async fn install_update(app: AppHandle) {
                     format!("{} KiB", (received / 65536) * 64)
                 };
                 if last_progress.as_ref() != Some(&progress) {
-                    notify(&app, NoticeKind::Progress, "正在下载更新", &progress, false);
+                    notify(&app, NoticeKind::Progress, &format!("正在从{source}下载更新"), &progress, false);
                     last_progress = Some(progress);
                 }
             },
@@ -308,9 +326,9 @@ pub async fn install_update(app: AppHandle) {
         .await;
     match result {
         Ok(()) => app.restart(),
-        Err(Error::Io(e)) if unwritable(&e) => fallback(&app),
+        Err(Error::Io(e)) if unwritable(&e) => fallback(&app, source),
         Err(e) => {
-            *candidate = Some(Offer { update, manual });
+            *candidate = Some(Offer { update, manual, source });
             notify(&app, NoticeKind::Failed, "更新失败", reason(&e), true);
         }
     }
