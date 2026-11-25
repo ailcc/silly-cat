@@ -312,6 +312,10 @@
 <script src="water.js"></script>
 <script src="pomodoro.js"></script>
 <script src="holidays.js"></script>
+<script src="bosskey.js"></script>
+<script src="growth.js"></script>
+<script src="snapshot.js"></script>
+<script src="visitor.js"></script>
 <script src="poke.js"></script>
 <script src="pull-tail.js"></script>
 <script src="coffee.js"></script>
@@ -391,6 +395,10 @@
       (ctx) => SillyWater.create(ctx, { demo }),
       (ctx) => (pomo = SillyPomodoro.create(ctx, { demo })),
       (ctx) => (holiday = SillyHolidays.create(ctx, { demo })),
+      (ctx) => SillyBossKey.create(ctx, { demo }),
+      (ctx) => SillyGrowth.create(ctx, { demo }),
+      (ctx) => SillySnapshot.create(ctx, { demo }),
+      (ctx) => SillyVisitor.create(ctx, { demo }),
       (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, enabled: statusBarParam ?? true })),
       SillyCoats.shapeModule,
     ],

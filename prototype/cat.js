@@ -387,6 +387,7 @@
         if (i >= 0) paw.held.splice(i, 1);
         if (paw.held.length === 0) { paw.releaseAt = now + RELEASE_MS; paw.lastCode = code; }
         kb.setDown(code, false);
+        call('afterKeyUp', code, now);
       },
       pointerAt(x, y) {
         S.pointer = { x, y, at: performance.now() };

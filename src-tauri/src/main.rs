@@ -292,9 +292,10 @@ fn app_version(app: AppHandle) -> String {
 
 #[tauri::command]
 fn open_link(target: String) -> Result<(), String> {
+    // 和 settings.html 的 #about-links 对应：github = 本项目（增强版仓库），origin = 原作者仓库
     let url = match target.as_str() {
-        "github" => "https://github.com/S0u1/silly-cat",
-        "douyin" => "https://www.douyin.com/user/MS4wLjABAAAAgiL6r1k59SPVX7I3Hu2RImPW3Vs5RR2UUEjduDIP3jM",
+        "github" => "https://github.com/ailcc/silly-cat",
+        "origin" => "https://github.com/S0u1/silly-cat",
         _ => return Err("未知链接".into()),
     };
     updater::open_in_browser(url).map_err(|err| err.to_string())
@@ -588,6 +589,14 @@ fn open_input_monitoring_settings() {
 
 fn main() {
     tauri::Builder::default()
+        // 单实例必须最先注册：第二个进程启动时立即退出，并把参数转给第一个实例
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            // 再次启动时把已有的猫带出来（可能被「显示/隐藏猫」藏起来了）
+            if let Some(win) = app.get_webview_window("main") {
+                let _ = win.show();
+                let _ = win.set_focus();
+            }
+        }))
         .invoke_handler(tauri::generate_handler![
             cursor_local,
             held_input_state,

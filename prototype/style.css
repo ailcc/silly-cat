@@ -339,6 +339,18 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .wand-ball circle { fill: var(--coral); stroke: var(--ink); stroke-width: 4; }
 #scene .wand-ball .wand-yarn { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; opacity: 0.65; }
 
+/* 小奶猫串门 */
+#scene .visitor-shadow { fill: rgba(0, 0, 0, 0.12); }
+#scene .visitor-body, #scene .visitor-head, #scene .visitor-ear { stroke-width: 3; stroke-linejoin: round; }
+#scene .visitor-tail { fill: none; stroke-width: 7; stroke-linecap: round; }
+#scene .visitor-eye { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+
+/* 成长等级：小红围巾 + 小皇冠 */
+#scene .growth-scarf-band { fill: #d9534f; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+#scene .growth-scarf-tail { fill: #c24541; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+#scene .growth-crown-base { fill: #f2c14e; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+#scene .growth-crown-jewel { fill: #e0574f; stroke: var(--ink); stroke-width: 2; }
+
 /* 小鱼干零食 */
 #scene .snack-fish .snack-body { fill: var(--coral); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
 #scene .snack-fish .snack-tail { fill: var(--coral); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }

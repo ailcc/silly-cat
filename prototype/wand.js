@@ -9,6 +9,7 @@
   const SWAT_MS = 700;      // 两次拍击的间隔
   const HITS_JOY = 3;       // 拍到这么多下开始打滚
   const COOLDOWN = 12000;
+  const MAX_MS = 6000;      // 球最多在场这么久：防止 keyup 丢失时球赖着不走
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const $ = (id) => document.getElementById(id);
@@ -49,7 +50,7 @@
     function activate(now) {
       W.active = true; W.fading = false;
       W.start = now;
-      W.until = now + 1e12; // 由 keyup / demo 结束
+      W.until = now + MAX_MS; // 到时自动收走（正常由 keyup 提前收）
       W.nextSwat = now + 500;
       W.swatPaw = Math.random() < 0.5 ? 'L' : 'R';
       W.hits = 0; W.joyed = false; W.joyUntil = -1e9;
@@ -67,6 +68,8 @@
 
     function afterKeyDown(code, now) {
       if (demo) return;
+      // 球在场时按了别的键 → 你在打字，立刻收球（F 本身除外，那是逗猫棒）
+      if (W.active && code !== 'KeyF') { deactivate(now, true); return; }
       if (code === 'KeyF' && !W.active && now >= W.cooldownUntil && S.state === STATES.AWAKE && !S.pet) {
         W.holdStart = now; W.otherKey = false;
       } else if (W.holdStart > 0) {
@@ -122,6 +125,8 @@
       } else if (W.holdStart > 0 && !W.active && now - W.holdStart >= HOLD_MS && !W.otherKey && S.state === STATES.AWAKE && !S.pet) {
         activate(now);
       }
+      // 兜底：球在场超时（比如 keyup 没送到）自动收走
+      if (W.active && now >= W.until) deactivate(now, true);
 
       // 打滚姿态
       if (W.joyed && now < W.joyUntil) {
