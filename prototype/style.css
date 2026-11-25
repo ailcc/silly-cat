@@ -385,9 +385,24 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .hh-pompom { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3.5; }
 #scene .hh-brim { fill: var(--fur-white); stroke: var(--ink); stroke-width: 4; }
 
-/* 春节红围巾 */
+/* 春节红围巾（旧版，已换成马褂，样式保留防外部引用） */
 #scene .hs-band { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
 #scene .hs-tail { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+
+/* 春节红色小马褂 */
+#scene .hco-panel { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+#scene .hco-collar { fill: #c4443c; stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
+#scene .hco-knot { fill: #f6c445; stroke: var(--ink); stroke-width: 2.5; }
+
+/* 国庆国旗披风（红底黄星，国旗配色） */
+#scene .hca-band { fill: #de2910; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+#scene .hca-drape { fill: #de2910; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+#scene .hca-star { fill: #ffde00; stroke: var(--ink); stroke-width: 2.5; stroke-linejoin: round; }
+
+/* 生日尖角帽 */
+#scene .hbd-cone { fill: #4f8fd7; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+#scene .hbd-stripe { stroke: #f6c445; stroke-width: 7; stroke-linecap: round; }
+#scene .hbd-pom { fill: #f6c445; stroke: var(--ink); stroke-width: 3.5; }
 
 #scene .mug-body, #scene .mug-handle, #scene .mug-rim {
   stroke: var(--ink);
