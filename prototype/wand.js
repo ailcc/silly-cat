@@ -1,6 +1,7 @@
 // 逗猫棒：按住 F 键不放（约 0.7 秒，期间没按别的键——打字带 F 不算），屏幕上方垂下一条
 // 晃来晃去的毛线球，猫眼睛盯着看、伸爪去拍；拍到 3 下就开心打滚涨好感。
-// 松开 F 毛线球收回。冷却 12 秒，避免打字误触。
+// 松开 F 球不收回，留着让猫再玩 5–10 秒（随机）；期间一打字（按任何非 F 键）立刻收走。
+// 冷却 12 秒，避免打字误触。
 // 调试：?demo=wand&loop=1（自动演：举 3.5 秒收 2.5 秒）或 &at=毫秒 冻结在拍击瞬间
 (function () {
   'use strict';
@@ -9,7 +10,8 @@
   const SWAT_MS = 700;      // 两次拍击的间隔
   const HITS_JOY = 3;       // 拍到这么多下开始打滚
   const COOLDOWN = 12000;
-  const MAX_MS = 6000;      // 球最多在场这么久：防止 keyup 丢失时球赖着不走
+  const PLAY_MIN = 5000, PLAY_MAX = 10000; // 松手后猫接着玩多久（随机）
+  const MAX_MS = 20000;     // 球最多在场这么久：防止 keyup 丢失时球赖着不走
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const $ = (id) => document.getElementById(id);
@@ -50,7 +52,7 @@
     function activate(now) {
       W.active = true; W.fading = false;
       W.start = now;
-      W.until = now + MAX_MS; // 到时自动收走（正常由 keyup 提前收）
+      W.until = now + MAX_MS; // 兜底：按住 F 期间球最多在场这么久（正常由「打字收球」或兜底计时收走）
       W.nextSwat = now + 500;
       W.swatPaw = Math.random() < 0.5 ? 'L' : 'R';
       W.hits = 0; W.joyed = false; W.joyUntil = -1e9;
@@ -78,8 +80,13 @@
     }
     function afterKeyUp(code) {
       if (demo || code !== 'KeyF') return;
+      const now = performance.now();
       if (W.holdStart > 0) {
-        if (performance.now() - W.holdStart >= HOLD_MS && !W.otherKey) deactivate(performance.now(), true);
+        // 正常松手（举满时长、没混别的键）：球不收回，留 5–10 秒让猫接着玩；
+        // 期间按任何别的键照旧立刻收走（afterKeyDown 的打字收球）。球若已被兜底收走就什么都不做。
+        if (now - W.holdStart >= HOLD_MS && !W.otherKey && W.active) {
+          W.until = now + rand(PLAY_MIN, PLAY_MAX);
+        }
         W.holdStart = -1;
       }
     }
