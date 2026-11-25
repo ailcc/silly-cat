@@ -181,7 +181,7 @@
 
       // 姿态加成
       if (mode === 'birthday' || mode === 'valentine') {
-        if (idle || demo) P.eyesHappy = true;
+        P.eyesHappy = true; // 全程爱心眼：文档承诺了「全程」，打字时也眯眯眼
       } else if (mode === 'christmas' || mode === 'spring' || mode === 'national') {
         P.earDroop -= 2; // 戴帽子/马褂/披风，精神一点
       } else if (mode === 'halloween') {
