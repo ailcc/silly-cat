@@ -5,35 +5,35 @@
   "platforms": {
     "darwin-aarch64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclNpT1plYkJGb05uMGVZbXFDTWgrTW5zVEV2MG16Y0cxaWdrY3FiL1VHWFk4TWNoVU9TQnAxL3h1Rk5FcHFTVEhudTlEd0VwWG1adW14QkYzSFBZZkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1MjI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4xCkNDdkxsSFUrT2FNVmJobHFXTUw2RjVOcVgvWStZMG9nUGVudUJMNEY4SjNLUDN5UEFBK09wbkZVVEVGWHgvSjl5WXpJclIwdHNLUjZqZElJZHVqR0JBPT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790711021"
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_universal.app.tar.gz"
     },
     "darwin-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclNpT1plYkJGb05uMGVZbXFDTWgrTW5zVEV2MG16Y0cxaWdrY3FiL1VHWFk4TWNoVU9TQnAxL3h1Rk5FcHFTVEhudTlEd0VwWG1adW14QkYzSFBZZkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1MjI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4xCkNDdkxsSFUrT2FNVmJobHFXTUw2RjVOcVgvWStZMG9nUGVudUJMNEY4SjNLUDN5UEFBK09wbkZVVEVGWHgvSjl5WXpJclIwdHNLUjZqZElJZHVqR0JBPT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790711021"
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_universal.app.tar.gz"
     },
     "darwin-universal": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclNpT1plYkJGb05uMGVZbXFDTWgrTW5zVEV2MG16Y0cxaWdrY3FiL1VHWFk4TWNoVU9TQnAxL3h1Rk5FcHFTVEhudTlEd0VwWG1adW14QkYzSFBZZkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1MjI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4xCkNDdkxsSFUrT2FNVmJobHFXTUw2RjVOcVgvWStZMG9nUGVudUJMNEY4SjNLUDN5UEFBK09wbkZVVEVGWHgvSjl5WXpJclIwdHNLUjZqZElJZHVqR0JBPT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790711021"
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_universal.app.tar.gz"
     },
     "darwin-aarch64-app": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclNpT1plYkJGb05uMGVZbXFDTWgrTW5zVEV2MG16Y0cxaWdrY3FiL1VHWFk4TWNoVU9TQnAxL3h1Rk5FcHFTVEhudTlEd0VwWG1adW14QkYzSFBZZkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1MjI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4xCkNDdkxsSFUrT2FNVmJobHFXTUw2RjVOcVgvWStZMG9nUGVudUJMNEY4SjNLUDN5UEFBK09wbkZVVEVGWHgvSjl5WXpJclIwdHNLUjZqZElJZHVqR0JBPT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790711021"
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_universal.app.tar.gz"
     },
     "darwin-x86_64-app": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclNpT1plYkJGb05uMGVZbXFDTWgrTW5zVEV2MG16Y0cxaWdrY3FiL1VHWFk4TWNoVU9TQnAxL3h1Rk5FcHFTVEhudTlEd0VwWG1adW14QkYzSFBZZkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1MjI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4xCkNDdkxsSFUrT2FNVmJobHFXTUw2RjVOcVgvWStZMG9nUGVudUJMNEY4SjNLUDN5UEFBK09wbkZVVEVGWHgvSjl5WXpJclIwdHNLUjZqZElJZHVqR0JBPT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790711021"
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_universal.app.tar.gz"
     },
     "darwin-universal-app": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclNpT1plYkJGb05uMGVZbXFDTWgrTW5zVEV2MG16Y0cxaWdrY3FiL1VHWFk4TWNoVU9TQnAxL3h1Rk5FcHFTVEhudTlEd0VwWG1adW14QkYzSFBZZkEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1MjI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4xCkNDdkxsSFUrT2FNVmJobHFXTUw2RjVOcVgvWStZMG9nUGVudUJMNEY4SjNLUDN5UEFBK09wbkZVVEVGWHgvSjl5WXpJclIwdHNLUjZqZElJZHVqR0JBPT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790711021"
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_universal.app.tar.gz"
     },
     "windows-x86_64": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclhseGhlVHFJclhRQXVmVWt1TWxKZko0blJueHd5RDFLak0vOTFqWlkrWlJ4aDRlSGJKYTNtbzdpSmNnUTJSeDdoMEVqbGlHTmQxOWJvdFcxazJwaFFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1NTI0CWZpbGU6U2lsbHlDYXRfMS4yLjFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMi4xCk05aENCYjFaNjJ0enJkaUhBKzMxbGFCZVpmSjRjbno1L3lzaW1oc2Eyd2pKUGs3MnZwc2pLdUpoNjBnV1VFdzZuVzZQVERPSXZTNkpIVTNsazlFaEJnPT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790726661"
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_x64-setup.exe"
     },
     "windows-x86_64-nsis": {
       "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclhseGhlVHFJclhRQXVmVWt1TWxKZko0blJueHd5RDFLak0vOTFqWlkrWlJ4aDRlSGJKYTNtbzdpSmNnUTJSeDdoMEVqbGlHTmQxOWJvdFcxazJwaFFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1NTI0CWZpbGU6U2lsbHlDYXRfMS4yLjFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMi4xCk05aENCYjFaNjJ0enJkaUhBKzMxbGFCZVpmSjRjbno1L3lzaW1oc2Eyd2pKUGs3MnZwc2pLdUpoNjBnV1VFdzZuVzZQVERPSXZTNkpIVTNsazlFaEJnPT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790726661"
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_x64-setup.exe"
     }
   }
 }
