@@ -502,10 +502,24 @@ jobs:
             -d "$payload" "$api/releases?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.id){process.stderr.write(s);process.exit(1)}console.log(r.id)})')
           echo "Gitee Release 创建成功，编号 $rid"
           # 上传全部安装包和两份清单；Gitee 的下载地址形如 /releases/download/<tag>/<文件名>
+          # Gitee 上传偶发卡死（2026-11-25 v1.2.0 实测：单文件挂 600 秒 0 字节响应），
+          # 所以：已传过的文件跳过（重跑/续传），每个文件最多试 3 次
+          have=$(curl -sS --max-time 30 "$api/releases/$rid/attach-files?access_token=$GITEE_TOKEN" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);console.log(r.map(a=>a.name).join("\n"))}catch{console.log("")}})' || true)
           for f in assets/* updates/*; do
             n=$(basename "$f")
-            curl -sS --fail --max-time 600 -X POST -F "file=@$f" \
-              "$api/releases/$rid/attach-files?access_token=$GITEE_TOKEN" > /dev/null
-            echo "已上传 $n"
+            if printf '%s\n' "$have" | grep -qxF "$n"; then
+              echo "已存在，跳过 $n"
+              continue
+            fi
+            ok=""
+            for try in 1 2 3; do
+              if curl -sS --fail --connect-timeout 30 --max-time 900 -X POST -F "file=@$f" \
+                "$api/releases/$rid/attach-files?access_token=$GITEE_TOKEN" > /dev/null; then
+                ok=1; echo "已上传 $n（第 $try 次）"; break
+              fi
+              echo "第 $try 次上传 $n 失败，重试"; sleep 15
+            done
+            [[ -n $ok ]] || { echo "##[error]$n 三次都没传上去"; exit 1; }
           done
           echo "Gitee 同步完成：https://gitee.com/$GITEE_REPO/releases"
