@@ -504,8 +504,9 @@ jobs:
           # 上传全部安装包和两份清单；Gitee 的下载地址形如 /releases/download/<tag>/<文件名>
           # Gitee 上传偶发卡死（2026-11-25 v1.2.0 实测：单文件挂 600 秒 0 字节响应），
           # 所以：已传过的文件跳过（重跑/续传），每个文件最多试 3 次
-          have=$(curl -sS --max-time 30 "$api/releases/$rid/attach-files?access_token=$GITEE_TOKEN" \
-            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);console.log(r.map(a=>a.name).join("\n"))}catch{console.log("")}})' || true)
+          # 已传清单从 Release 详情拿（GET attach-files 返回的是 HTML 不是 JSON）
+          have=$(curl -sS --max-time 30 "$api/releases/$rid?access_token=$GITEE_TOKEN" \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);console.log((r.assets||[]).map(a=>a.name).join("\n"))}catch{console.log("")}})' || true)
           for f in assets/* updates/*; do
             n=$(basename "$f")
             if printf '%s\n' "$have" | grep -qxF "$n"; then
