@@ -33,9 +33,9 @@
     // 左上角的小倒计时
     $('bubble-layer').insertAdjacentHTML('beforebegin', `
       <g id="pomo-timer" style="opacity:0">
-        <rect class="pomo-chip" x="18" y="20" width="118" height="44" rx="22"/>
-        <text id="pomo-text" class="pomo-text" x="77" y="49">25:00</text>
-        <circle id="pomo-dot" class="pomo-dot" cx="42" cy="42" r="7"/>
+        <rect class="pomo-chip" x="14" y="20" width="140" height="44" rx="22"/>
+        <text id="pomo-text" class="pomo-text" x="92" y="49">25:00</text>
+        <circle id="pomo-dot" class="pomo-dot" cx="34" cy="42" r="7"/>
       </g>`);
     const E = { chip: $('pomo-timer'), text: $('pomo-text'), dot: $('pomo-dot') };
 
