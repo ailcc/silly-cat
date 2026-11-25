@@ -1,11 +1,11 @@
 {
-  "version": "1.2.1",
-  "notes": "SillyCat 1.2.1（Windows 7 / 8 / 8.1 版）",
-  "pub_date": "2026-11-25T08:37:53.486Z",
+  "version": "1.2.2",
+  "notes": "SillyCat 1.2.2（Windows 7 / 8 / 8.1 版）",
+  "pub_date": "2026-11-25T12:55:09.591Z",
   "platforms": {
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclpGcGVpZU5vRmxHSE1iZlcxUU1pUlRwS0xoMjk0UGRlMytzNWxUdWFHdCtPOEVyU0s5NkV5ekowSjhYUUw2eEFCdkZVdzlXRk9uRnUzL3ZmR1J3dXcwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTk1ODY2CWZpbGU6U2lsbHlDYXRfMS4yLjFfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMi4xClJMYUw3a0JlMzJla2tUMERMbkVMYURNclZVdkxoQytyRFpkbkMwSDVUdDlUKy9DK3Y2b0JKTENxdVlLTnR1YUZncG5TaVFWU2g3YTRleVJha016WENBPT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.1/SillyCat_1.2.1_win7_x64-setup.exe"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmJoRjVYcnNtRFZKZzhrSFhjSUZEWGtNTllhZnZGby9RT3hQejVCSWU2ZHZGOEYrdUdaN1lzSHZjYlI5ckZ2R3lDSHpSRWRlRkV5d3lpRXVFa3ZOcVF3PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjExMzAxCWZpbGU6U2lsbHlDYXRfMS4yLjJfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMi4yCk9raHVFQ0dneDFadXBvT2xoTWFTb1Y5dmtJQUhWa0VpVll3ZWlBRHhIYjVQNWxrbzhTanNLYi9uMVlISzVXYS9iZDhDRHJuMU4vMEROK1k1TzZIRERRPT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.2.2/SillyCat_1.2.2_win7_x64-setup.exe"
     }
   }
 }
