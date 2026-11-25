@@ -7,7 +7,7 @@ use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_updater::{Error, Update, UpdaterExt};
 use tokio::sync::{watch, Mutex as AsyncMutex};
 
-const RELEASES: &str = "https://github.com/S0u1/silly-cat/releases";
+const RELEASES: &str = "https://github.com/ailcc/silly-cat/releases";
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "lowercase")]

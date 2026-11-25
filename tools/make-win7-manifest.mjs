@@ -12,7 +12,7 @@ if (!version || !tag || !installer || !sigFile || !out) {
   process.exit(2);
 }
 
-const repo = process.env.GITHUB_REPOSITORY || 'S0u1/silly-cat';
+const repo = process.env.GITHUB_REPOSITORY || 'ailcc/silly-cat';
 const url = `https://github.com/${repo}/releases/download/${tag}/${installer}`;
 // 清单里的 signature 是 .sig 文件的完整文本，原样放进去
 const signature = readFileSync(sigFile, 'utf8').trim();

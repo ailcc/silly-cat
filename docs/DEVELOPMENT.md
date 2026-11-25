@@ -56,14 +56,14 @@
   - CI 里不把证书交给 tauri：tauri 收到 `APPLE_CERTIFICATE` 时只认通用名带 Apple 前缀（如 `Developer ID Application:`）的证书，自签证书会报 `failed to resolve signing identity`。工作流在签名前自己把证书导入临时钥匙串并设为「代码签名受信任」，只把证书 SHA-1 作为 `APPLE_SIGNING_IDENTITY` 交给 tauri。2026-11-24 在 CI 实测，`signing_mode=tauri` 和 `script` 两种方式产出的 DMG、应用归档签名要求一致：`identifier "com.drew.sillycat" and certificate leaf = H"<SHA-1>"`，均为 universal。
   - 将 `.p12` 和密码备份到密码管理器或离线介质。换证书，或丢失证书且无法从备份恢复时，所有用户都要重新授权。发布首个证书签名的版本时，在草稿 Release 说明里提醒用户重置一次输入监控授权。
   - 本地验签时，把 `.p12.base64` 和密码从文件读入上述同名环境变量，运行 `tools/macos-sign.sh sign <SillyCat.app>`，再用 `tools/verify-mac-signing.sh <产物路径> <证书SHA-1>` 检查 `.app`、`.dmg` 或 `.app.tar.gz`。单架构本地测试包可在产物路径前加 `--allow-single-arch`。
-- Windows 的 WebView2：`bundle.windows.webviewInstallMode` 保持默认的 `downloadBootstrapper`：安装时先查注册表，已装就跳过，没装才联网下载微软的引导程序。不用 `offlineInstaller`：它把完整运行库打进安装包，2026-11-24 实测微软独立安装包 `MicrosoftEdgeWebView2RuntimeInstallerX64.exe` 为 294,099,168 字节（约 280MB，Tauri 文档写的 127MB 已过时），而且 Windows 自更新直接下载 `-setup.exe`，每次更新都要下这么大。联网下载失败的用户，靠 `src-tauri/installer/` 里的两个语言文件覆盖的安装器报错文字找到出路：文字只指向 https://github.com/S0u1/silly-cat 的「常见问题」，具体下载方法写在 README，这样以后要改（比如决定在 GitHub 托管运行库）只改 README，不用重发安装器。语言文件由 `bundle.windows.nsis.customLanguageFiles` 引用，是 Tauri 内置语言文件的完整副本，只改了 `webview2AbortError` 和 `webview2DownloadError` 两行；升级 Tauri CLI 后要对照内置文件检查条目是否有增减。
+- Windows 的 WebView2：`bundle.windows.webviewInstallMode` 保持默认的 `downloadBootstrapper`：安装时先查注册表，已装就跳过，没装才联网下载微软的引导程序。不用 `offlineInstaller`：它把完整运行库打进安装包，2026-11-24 实测微软独立安装包 `MicrosoftEdgeWebView2RuntimeInstallerX64.exe` 为 294,099,168 字节（约 280MB，Tauri 文档写的 127MB 已过时），而且 Windows 自更新直接下载 `-setup.exe`，每次更新都要下这么大。联网下载失败的用户，靠 `src-tauri/installer/` 里的两个语言文件覆盖的安装器报错文字找到出路：文字只指向 https://github.com/ailcc/silly-cat 的「常见问题」，具体下载方法写在 README，这样以后要改（比如决定在 GitHub 托管运行库）只改 README，不用重发安装器。语言文件由 `bundle.windows.nsis.customLanguageFiles` 引用，是 Tauri 内置语言文件的完整副本，只改了 `webview2AbortError` 和 `webview2DownloadError` 两行；升级 Tauri CLI 后要对照内置文件检查条目是否有增减。
 - Win7/8/8.1 的 WebView2：微软最新版运行库和引导程序在这些系统上崩（报缺 `PackageIdFromFullName`），最后支持的是 109。README 常见问题里给的是微软更新目录的直链（x64 109.0.1518.140，150,552,536 字节，SHA-256 `eac95c80…119b`，2026-11-24 下载核对过哈希，没在 Win7 真机装过），链接失效时走目录搜索页。注意：这只解决 WebView2；主线版本用较新的 Rust/Tauri 构建，Win7 上能否运行 SillyCat 本身另说。`exp/win7` 分支（Rust 1.77.2 + Tauri 2.11，CI 手动触发）出的安装包导入表检查通过，同样没在真机运行过。
 
 ## 更新机制
 
 桌面版使用 Tauri 2 updater。启动约 10 秒后检查一次，之后每 24 小时检查。设置文件中的布尔字段 `autoUpdate` 默认是 `true`，缺失或类型错误时也按开启处理。关闭后停止后台检查，右键菜单和托盘里的「检查更新…」仍可手动使用。检查只请求本项目的 GitHub Release，不上传输入或设置。只有用户点击安装才下载更新。
 
-生产端点为 `https://github.com/S0u1/silly-cat/releases/latest/download/latest.json`，指向已发布的最新 Release。Rust 插件根据清单、当前平台和 semver 决定是否提示更新，下载后校验签名，并要求签名中的版本与清单一致。macOS 使用通用 `.app.tar.gz`，Windows 使用 NSIS 安装包和 passive 安装模式。安装位置不可写时转到 Releases 页面手动下载。
+生产端点为 `https://github.com/ailcc/silly-cat/releases/latest/download/latest.json`（GitHub，首选；Gitee 镜像 `https://gitee.com/ailcc/silly-cat/raw/main/updates/latest.json` 兜底），指向已发布的最新 Release。Rust 插件根据清单、当前平台和 semver 决定是否提示更新，下载后校验签名，并要求签名中的版本与清单一致。macOS 使用通用 `.app.tar.gz`，Windows 使用 NSIS 安装包和 passive 安装模式。安装位置不可写时转到 Releases 页面手动下载。
 
 更新公钥嵌入 `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`。将对应私钥内容和密码分别保存到仓库 Secrets `TAURI_SIGNING_PRIVATE_KEY` 和 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`，并在本地安全备份。这对密钥和 macOS 代码签名证书各有用途。换用新私钥后，旧客户端仍可能发现版本，但会拒绝安装由新密钥签署的包。丢失旧私钥时，需要用户手动安装包含新公钥的版本。
 

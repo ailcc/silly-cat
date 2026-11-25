@@ -1,0 +1,34 @@
+# 把本仓库的代码和标签镜像到 Gitee（gitee.com/ailcc/silly-cat）。
+# 推 main 或 v* 标签时自动执行；Gitee Release 的安装包由 release.yml 的 gitee job 负责。
+# 前置：GitHub 仓库 Secrets 里配置 GITEE_TOKEN（Gitee 私人令牌，projects 权限）。
+name: sync-gitee
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  mirror:
+    # fork 到别的仓库时不要误推别人的镜像
+    if: github.repository == 'ailcc/silly-cat'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # 要把 main 的完整历史和全部标签都推过去
+          fetch-depth: 0
+
+      - name: 推送 main 和全部标签到 Gitee
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -euo pipefail
+          url="https://oauth2:${GITEE_TOKEN}@gitee.com/ailcc/silly-cat.git"
+          # 不用 --mirror：它会把本地的远端跟踪引用（refs/remotes/*）也推过去，被 Gitee 拒绝
+          git push --force "$url" "refs/heads/main:refs/heads/main"
+          git push --force "$url" "refs/tags/*:refs/tags/*"
+          echo "已镜像到 Gitee：main + 全部标签"

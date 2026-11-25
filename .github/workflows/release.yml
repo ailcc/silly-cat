@@ -428,3 +428,83 @@ jobs:
           name: SillyCat-win7
           path: out/*
           if-no-files-found: warn
+
+  # 发布的同时同步到 Gitee（gitee.com/ailcc/silly-cat）：
+  # 1. 把草稿 Release 里的全部安装包上传到 Gitee 同名 Release；
+  # 2. 把清单里的 GitHub 下载地址换成 Gitee 地址，写进仓库 updates/ 目录并提交——
+  #    App 的备用更新端点读 gitee.com/ailcc/silly-cat/raw/main/updates/latest.json，
+  #    所以 Gitee 版清单必须以固定路径放进仓库（Gitee Release 没有固定 latest 下载地址）。
+  #    这次提交会触发 sync-gitee.yml 把 updates/ 镜像到 Gitee。
+  # 主线构建失败时不同步（免得 Gitee 上只有半套包）；Win7 构建失败只少一个包，照常同步。
+  gitee:
+    needs: [build, win7]
+    if: ${{ !cancelled() && github.repository == 'ailcc/silly-cat' && github.event_name == 'push' && needs.build.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # 提交 updates/ 下的 Gitee 版更新清单到 main
+    env:
+      GITEE_REPO: ailcc/silly-cat
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: 下载草稿 Release 的全部资产
+        run: |
+          gh release download "$GITHUB_REF_NAME" -R "$GITHUB_REPOSITORY" --dir assets --clobber
+          ls -la assets
+
+      - name: 生成 Gitee 版更新清单
+        run: |
+          set -euo pipefail
+          mkdir -p updates
+          sed 's#https://github.com/ailcc/silly-cat/releases/download/#https://gitee.com/ailcc/silly-cat/releases/download/#g' \
+            assets/latest.json > updates/latest.json
+          if [[ -f assets/latest-win7.json ]]; then
+            sed 's#https://github.com/ailcc/silly-cat/releases/download/#https://gitee.com/ailcc/silly-cat/releases/download/#g' \
+              assets/latest-win7.json > updates/latest-win7.json
+          else
+            echo "::warning::没有 latest-win7.json（Win7 构建可能失败了），本次跳过 Win7 清单"
+          fi
+          echo '--- latest.json ---'
+          cat updates/latest.json
+
+      - name: 提交更新清单到 main
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add updates
+          if git diff --cached --quiet; then
+            echo "清单没有变化，跳过提交"
+            exit 0
+          fi
+          git commit -m "更新清单：$GITHUB_REF_NAME 的 Gitee 镜像地址"
+          git push origin HEAD:main
+
+      - name: 同步到 Gitee Release
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -euo pipefail
+          api="https://gitee.com/api/v5/repos/$GITEE_REPO"
+          # Gitee 上如有同标签的旧 Release（重跑时），先删掉
+          old=$(curl -sS --max-time 30 "$api/releases/tags/$GITHUB_REF_NAME?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);console.log(r.id||"")}catch{console.log("")}})')
+          if [[ -n $old ]]; then
+            curl -sS --max-time 30 -X DELETE "$api/releases/$old?access_token=$GITEE_TOKEN"
+            echo "已删除 Gitee 上的旧 Release $old"
+          fi
+          body=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq 'map(select(.tag_name==env.GITHUB_REF_NAME))[0].body')
+          payload=$(node -e 'const [tag,name,body]=process.argv.slice(1);console.log(JSON.stringify({tag_name:tag,name,body,prerelease:false}))' "$GITHUB_REF_NAME" "SillyCat $GITHUB_REF_NAME" "$body")
+          rid=$(curl -sS --max-time 30 -X POST -H 'Content-Type: application/json' \
+            -d "$payload" "$api/releases?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.id){process.stderr.write(s);process.exit(1)}console.log(r.id)})')
+          echo "Gitee Release 创建成功，编号 $rid"
+          # 上传全部安装包和两份清单；Gitee 的下载地址形如 /releases/download/<tag>/<文件名>
+          for f in assets/* updates/*; do
+            n=$(basename "$f")
+            curl -sS --fail --max-time 600 -X POST -F "file=@$f" \
+              "$api/releases/$rid/attach-files?access_token=$GITEE_TOKEN" > /dev/null
+            echo "已上传 $n"
+          done
+          echo "Gitee 同步完成：https://gitee.com/$GITEE_REPO/releases"
