@@ -516,7 +516,7 @@ jobs:
             ok=""
             for try in 1 2 3; do
               if curl -sS --fail --connect-timeout 30 --max-time 900 -X POST -F "file=@$f" \
-                "$api/releases/$rid/attach-files?access_token=$GITEE_TOKEN" > /dev/null; then
+                "$api/releases/$rid/attach_files?access_token=$GITEE_TOKEN" > /dev/null; then
                 ok=1; echo "已上传 $n（第 $try 次）"; break
               fi
               echo "第 $try 次上传 $n 失败，重试"; sleep 15
