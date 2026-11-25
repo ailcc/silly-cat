@@ -1,0 +1,11 @@
+{
+  "version": "1.1.0",
+  "notes": "SillyCat 1.1.0（Windows 7 / 8 / 8.1 版）",
+  "pub_date": "2026-11-25T05:59:16.233Z",
+  "platforms": {
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclY0RktNSm1ZcFp0TkNVWHpNb0tOcm9xa0lJSFpqU1pTVEdnTHBHSk9BVTBiQ3pKTWpYUGVtTW9HTTBGdHd1bllQN2Y0a0J3c01Cb3B3RndpMlpIdkE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg2MzQ2CWZpbGU6U2lsbHlDYXRfMS4xLjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMS4wCmJEUW5SeGZhcm4zZGFJRU9MdktJYUFIVjJJY2I1RGVJTDZFS21ndWdsWGxYbjNXYklMNENQVVcyZytsL0RYUTJ0Ry8rOVZDVUZBM2J1VEJ3MWcxNkFRPT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.1.0/SillyCat_1.1.0_win7_x64-setup.exe"
+    }
+  }
+}
