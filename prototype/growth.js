@@ -17,7 +17,7 @@
     document.getElementById('cat-body').insertAdjacentHTML('beforeend', `
       <g id="growth-scarf" style="display:none">
         <path class="growth-scarf-band" d="M 322 296 Q 400 274 478 296 Q 486 308 478 318 Q 400 296 322 318 Q 314 308 322 296 Z"/>
-        <path class="growth-scarf-tail" d="M 392 314 Q 406 340 398 368 Q 386 376 374 370 Q 386 342 380 320 Z"/>
+        <path class="growth-scarf-tail" d="M 424 314 Q 438 340 430 368 Q 418 376 406 370 Q 418 342 412 320 Z"/>
       </g>`);
     document.getElementById('cat-head').insertAdjacentHTML('beforeend', `
       <g id="growth-crown" style="display:none" transform="translate(400 58)">
