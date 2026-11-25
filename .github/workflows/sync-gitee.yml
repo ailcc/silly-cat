@@ -11,6 +11,12 @@ on:
 
 permissions: {}
 
+# 推 main 和推标签经常几乎同时触发本工作流，两个任务并发强推 Gitee 会撞车
+# （Gitee 报 incorrect old value provided），用并发锁排队执行
+concurrency:
+  group: sync-gitee
+  cancel-in-progress: false
+
 jobs:
   mirror:
     # fork 到别的仓库时不要误推别人的镜像
