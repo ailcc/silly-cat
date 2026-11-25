@@ -44,34 +44,77 @@
   rebuildTimeline();
   const segOf = (name) => SEG.find((s) => s.name === name);
 
-  const COAT = [               // 小奶猫毛色：橘 / 灰 / 黑
+  const COAT = [               // 小奶猫毛色：橘 / 灰 / 黑（「奶猫随机花色」关掉时的三色）
     { fur: '#e8a25b', line: '#5c3a1e' },
     { fur: '#9aa0a6', line: '#3d4045' },
     { fur: '#3a3a3a', line: '#111' },
   ];
 
+  // 「奶猫随机花色」：底色从猫常见色系里抽一个，再随机叠斑点 / 虎斑条纹 / 白手套 / 白尾尖。
+  // 只改小奶猫自己的矢量绘制；大猫的毛绒 / 线条画风和三色随机完全不受影响。
+  const BASES = [
+    { h: 30,  s: 62, l: 64 },  // 奶橘
+    { h: 22,  s: 58, l: 52 },  // 深橘
+    { h: 36,  s: 48, l: 80 },  // 奶油
+    { h: 18,  s: 34, l: 40 },  // 棕
+    { h: 220, s: 8,  l: 68 },  // 浅灰
+    { h: 220, s: 6,  l: 46 },  // 蓝灰
+  ];
+  // 冻结帧演示用的固定花色：橘底 + 斑点 + 条纹 + 白手套 + 白尾尖，方便截图验收
+  const DEMO_COAT = { fur: '#e8a25b', line: '#5c3a1e', mark: '#b96f2a', spots: 3, stripes: true, gloves: true, tip: true, fancy: true };
+  function makeRandomCoat() {
+    const dark = Math.random() < 0.12; // 一成概率抽到纯黑（深色猫配浅色斑才看得见）
+    const b = BASES[Math.floor(Math.random() * BASES.length)];
+    const l = Math.max(30, Math.min(84, b.l + (Math.random() * 8 - 4)));
+    const fur = dark ? '#3a3a3a' : `hsl(${b.h} ${b.s}% ${l.toFixed(0)}%)`;
+    const line = dark ? '#111' : `hsl(${b.h} ${Math.min(60, b.s + 8)}% ${Math.max(14, Math.round(l * 0.32))}%)`;
+    const mark = (dark || l < 36)
+      ? `hsl(${b.h} ${b.s}% ${Math.min(70, Math.round(l * 2))}%)`   // 深色猫配浅色斑
+      : `hsl(${b.h} ${b.s + 6}% ${Math.round(l * 0.5)}%)`;          // 浅色猫配深色斑
+    return {
+      fur, line, mark,
+      spots: Math.random() < 0.6 ? 2 + Math.floor(Math.random() * 4) : 0, // 身上斑点数
+      stripes: Math.random() < 0.45,  // 虎斑条纹（背上 + 额头 + 尾巴环）
+      gloves: Math.random() < 0.4,    // 四只白手套
+      tip: Math.random() < 0.35,      // 白尾尖
+      fancy: true,
+    };
+  }
+
   function create(ctx, opts = {}) {
     const { S, STATES, fx, clamp } = ctx;
     const demo = opts.demo && opts.demo.name === 'visitor' ? opts.demo : null;
-    const V = { phase: null, start: -1e9, next: 20e3, coat: 0, purrTimer: null, flags: {}, tNow: 0 };
+    const V = { phase: null, start: -1e9, next: 20e3, coatObj: { ...COAT[0], fancy: false }, random: false, purrTimer: null, flags: {}, tNow: 0 };
 
     const rand = (a, b) => a + Math.random() * (b - a);
     const ease = (t) => 0.5 - 0.5 * Math.cos(Math.PI * clamp(t, 0, 1));
 
     // 局部坐标原点 = 脚底中心，前进方向 +x。腿旋转中心在髋部（y=-22）
+    // 花色叠加：body-marks / head-marks 裁剪在身体和头里；glove 是每条腿的白手套（腿转动时跟着转）；
+    // tail-tip / tail-rings 画在尾巴曲线上（由 pose 每帧跟着尾巴算位置）
     document.getElementById('fx-layer').insertAdjacentHTML('beforebegin', `
+      <defs>
+        <clipPath id="clip-visitor-body"><path d="M -34 -14 Q -41 -30 -27 -46 Q -9 -60 10 -58 Q 31 -56 37 -40 Q 43 -26 34 -14 Q 16 -8 0 -8 Q -17 -8 -34 -14 Z"/></clipPath>
+        <clipPath id="clip-visitor-head"><circle cx="0" cy="0" r="19"/></clipPath>
+      </defs>
       <g id="visitor-layer" style="display:none">
         <ellipse id="visitor-shadow" class="visitor-shadow" rx="38" ry="6"/>
         <g id="visitor-root">
           <path id="visitor-tail" class="visitor-tail" d=""/>
-          <rect id="visitor-leg-br" class="visitor-leg" x="-14.5" y="-22" width="9" height="22" rx="4.5"/>
-          <rect id="visitor-leg-bl" class="visitor-leg" x="-26.5" y="-22" width="9" height="22" rx="4.5"/>
-          <path id="visitor-body" class="visitor-body" d="M -34 -14 Q -41 -30 -27 -46 Q -9 -60 10 -58 Q 31 -56 37 -40 Q 43 -26 34 -14 Q 16 -8 0 -8 Q -17 -8 -34 -14 Z"/>
+          <g id="visitor-tail-rings"></g>
+          <path id="visitor-tail-tip" class="visitor-tail-tip" d=""/>
+          <g id="visitor-leg-br"><rect class="visitor-leg" x="-14.5" y="-22" width="9" height="22" rx="4.5"/><rect class="visitor-glove" x="-14.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
+          <g id="visitor-leg-bl"><rect class="visitor-leg" x="-26.5" y="-22" width="9" height="22" rx="4.5"/><rect class="visitor-glove" x="-26.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
+          <g id="visitor-body-wrap">
+            <path id="visitor-body" class="visitor-body" d="M -34 -14 Q -41 -30 -27 -46 Q -9 -60 10 -58 Q 31 -56 37 -40 Q 43 -26 34 -14 Q 16 -8 0 -8 Q -17 -8 -34 -14 Z"/>
+            <g id="visitor-body-marks" clip-path="url(#clip-visitor-body)"></g>
+          </g>
           <g id="visitor-upper">
             <g id="visitor-head">
               <path class="visitor-ear" d="M -17 -9 L -21 -29 L -3 -18 Z"/>
               <path class="visitor-ear" d="M 17 -9 L 21 -29 L 3 -18 Z"/>
               <circle class="visitor-head" cx="0" cy="0" r="19"/>
+              <g id="visitor-head-marks" clip-path="url(#clip-visitor-head)"></g>
               <g id="visitor-eyes-open">
                 <circle class="visitor-eye-dot" cx="-8" cy="-2" r="2.6"/>
                 <circle class="visitor-eye-dot" cx="8" cy="-2" r="2.6"/>
@@ -83,8 +126,8 @@
               <path class="visitor-nose" d="M -2.5 4 L 2.5 4 L 0 7 Z"/>
             </g>
           </g>
-          <rect id="visitor-leg-fr" class="visitor-leg" x="5.5" y="-22" width="9" height="22" rx="4.5"/>
-          <rect id="visitor-leg-fl" class="visitor-leg" x="17.5" y="-22" width="9" height="22" rx="4.5"/>
+          <g id="visitor-leg-fr"><rect class="visitor-leg" x="5.5" y="-22" width="9" height="22" rx="4.5"/><rect class="visitor-glove" x="5.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
+          <g id="visitor-leg-fl"><rect class="visitor-leg" x="17.5" y="-22" width="9" height="22" rx="4.5"/><rect class="visitor-glove" x="17.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
         </g>
       </g>`);
     const E = {
@@ -92,8 +135,12 @@
       root: document.getElementById('visitor-root'),
       upper: document.getElementById('visitor-upper'),
       head: document.getElementById('visitor-head'),
-      body: document.getElementById('visitor-body'),
+      body: document.getElementById('visitor-body-wrap'),
       tail: document.getElementById('visitor-tail'),
+      tailTip: document.getElementById('visitor-tail-tip'),
+      tailRings: document.getElementById('visitor-tail-rings'),
+      bodyMarks: document.getElementById('visitor-body-marks'),
+      headMarks: document.getElementById('visitor-head-marks'),
       shadow: document.getElementById('visitor-shadow'),
       legs: {
         fl: document.getElementById('visitor-leg-fl'), fr: document.getElementById('visitor-leg-fr'),
@@ -102,24 +149,83 @@
       eyesOpen: document.getElementById('visitor-eyes-open'),
       eyesClosed: document.getElementById('visitor-eyes-closed'),
     };
+    // 白手套图层：每条腿里的那只白爪（不戴手套时整只隐藏）
+    const GLOVES = {};
+    for (const k of Object.keys(E.legs)) GLOVES[k] = E.legs[k].querySelector('.visitor-glove');
     // 髋部位置（x）：腿绕这点旋转
     const HIP = { fl: 22, fr: 10, bl: -22, br: -10 };
 
     function coatEls() {
+      const c = V.coatObj;
       const els = [E.head.querySelector('.visitor-head'), ...E.head.querySelectorAll('.visitor-ear'), E.body, ...Object.values(E.legs)];
-      els.forEach((el) => { el.style.fill = COAT[V.coat].fur; el.style.stroke = COAT[V.coat].line; });
-      E.tail.style.stroke = COAT[V.coat].line;
+      els.forEach((el) => { el.style.fill = c.fur; el.style.stroke = c.line; });
+      E.tail.style.stroke = c.line;
+      paintMarks(c);
+      E.tailTip.style.stroke = '#f7f3ea';
+      for (const k of Object.keys(GLOVES)) GLOVES[k].style.display = c.gloves ? '' : 'none';
+    }
+
+    // 花色叠加层：斑点 / 背上虎斑 / 额头条纹。非随机花色（fancy=false）时清空
+    function paintMarks(c) {
+      E.bodyMarks.textContent = '';
+      E.headMarks.textContent = '';
+      if (!c.fancy) return;
+      for (let i = 0; i < c.spots; i++) {
+        E.bodyMarks.insertAdjacentHTML('beforeend',
+          `<ellipse cx="${rand(-26, 26).toFixed(1)}" cy="${rand(-22, -44).toFixed(1)}" rx="${rand(4, 8).toFixed(1)}" ry="${rand(3, 6).toFixed(1)}" fill="${c.mark}"/>`);
+      }
+      if (c.stripes) {
+        for (const x of [-16, -4, 8, 20]) {
+          E.bodyMarks.insertAdjacentHTML('beforeend',
+            `<path d="M ${x} -57 q 2.5 6 0.5 12" fill="none" stroke="${c.mark}" stroke-width="3" stroke-linecap="round"/>`);
+        }
+        for (const dx of [-5, 0, 5]) {
+          E.headMarks.insertAdjacentHTML('beforeend',
+            `<path d="M ${dx} -19 q 1 3 0 5" fill="none" stroke="${c.mark}" stroke-width="2.2" stroke-linecap="round"/>`);
+        }
+      }
+      if (c.spots) {
+        E.headMarks.insertAdjacentHTML('beforeend',
+          `<ellipse cx="${rand(-10, 10).toFixed(1)}" cy="${rand(-13, -17).toFixed(1)}" rx="${rand(3, 5).toFixed(1)}" ry="${rand(2.5, 4).toFixed(1)}" fill="${c.mark}"/>`);
+      }
+    }
+
+    // 二次贝塞尔 B(t)：尾巴曲线（P0 固定在尾根 -34,-36）上的点，白尾尖和虎斑环都跟着它走
+    function qp(t, mx, my, ex, ey) {
+      const u = 1 - t;
+      return [u * u * -34 + 2 * u * t * mx + t * t * ex, u * u * -36 + 2 * u * t * my + t * t * ey];
+    }
+    // 画尾巴主线；随机花色开启时再叠白尾尖（曲线末端一小段同弧度的线）和虎斑环（中段三个圆点）
+    function paintTail(mx, my, ex, ey) {
+      E.tail.setAttribute('d', `M -34 -36 Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+      const c = V.coatObj;
+      if (c.tip) {
+        const a = qp(0.7, mx, my, ex, ey), m = qp(0.85, mx, my, ex, ey);
+        E.tailTip.setAttribute('d', `M ${a[0].toFixed(1)} ${a[1].toFixed(1)} Q ${m[0].toFixed(1)} ${m[1].toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+      } else E.tailTip.setAttribute('d', '');
+      E.tailRings.textContent = '';
+      if (c.stripes) {
+        for (const t of [0.3, 0.5, 0.7]) {
+          const p = qp(t, mx, my, ex, ey);
+          E.tailRings.insertAdjacentHTML('beforeend',
+            `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.4" fill="${c.mark}"/>`);
+        }
+      }
     }
 
     function startVisit(now) {
       V.phase = 'play'; V.start = now; V.flags = {};
-      V.coat = Math.floor(Math.random() * COAT.length);
+      // 毛色：演示用固定花色；开关开 = 每次随机生成一套（底色 + 斑点 / 条纹 / 白手套 / 白尾尖）；关 = 原来的三色随机
+      V.coatObj = demo ? { ...DEMO_COAT }
+        : (V.random ? makeRandomCoat() : { ...COAT[Math.floor(Math.random() * COAT.length)], fancy: false });
       coatEls();
       // 趴下打盹的时长每次随机：没人动电脑就让它睡得久一点
       segOf('lie').t = rand(LIE_MIN, LIE_MAX) * 1000;
       // 死忠粉（好感 120+）面前它才敢撒欢：偶尔这一趟留下来当跟班——睡个够，打字也不跑
-      V.buddy = !!demo.buddy || (!demo && !!window.SillyAffection
-        && window.SillyAffection.get().v >= AFF_BUDDY && Math.random() < BUDDY_CHANCE);
+      // （演示局按 &buddy=1；真实串门看好感度，v1.2.2 起这里有个空指针 bug：非演示时 demo 是 null，
+      //  读取 demo.buddy 会崩，导致串门演出永远停在隐形状态——这次一并修掉）
+      V.buddy = demo ? !!demo.buddy
+        : (!!window.SillyAffection && window.SillyAffection.get().v >= AFF_BUDDY && Math.random() < BUDDY_CHANCE);
       if (V.buddy) segOf('lie').t = rand(BUDDY_LIE_MIN, BUDDY_LIE_MAX) * 1000;
       V.lookUntil = -1e9;
       rebuildTimeline();
@@ -162,12 +268,16 @@
       fx.spawn('喵！？', 400, 250, '', now);
     }
 
+    // 空闲判定：键盘和鼠标都要闲满 12 秒。以前这里读的是 S.lastInputAt——这个字段根本
+    // 不存在（undefined || 0 永远成立），等于只看键盘，光动鼠标不打字它也会溜达进来。
+    // 顺带让路：猫在听歌时别打扰，等它摘了耳机再说。
+    const listening = () => !!(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening());
     function afterState(now) {
       if (demo || V.phase) return;
       if (S.state !== STATES.AWAKE || S.pet) return;
       if (now < V.next) return;
-      const idle = (now - (S.lastKeyAt || 0) > 12000) && (now - (S.lastInputAt || 0) > 12000);
-      if (idle) startVisit(now);
+      const idle = (now - (S.lastKeyAt || 0) > 12000) && (now - S.lastInput > 12000);
+      if (idle && !listening()) startVisit(now);
     }
 
     // 小猫上了键盘之后（趴着 / 正要起身），一打字就吓到：随机被拍飞或自己跑掉。
@@ -232,7 +342,7 @@
       E.upper.setAttribute('transform', 'translate(0 0)');
       E.eyesOpen.style.display = '';
       E.eyesClosed.style.display = 'none';
-      E.tail.setAttribute('d', 'M -34 -36 Q -50 -52 -44 -68');
+      paintTail(-50, -52, -44, -68);
       E.shadow.setAttribute('cx', x.toFixed(1));
       E.shadow.setAttribute('cy', (Y_KEYS + 5).toFixed(1));
       if (t >= FLEE.end) { endVisit(now); return; }
@@ -247,7 +357,7 @@
         if (Number.isFinite(demo.at)) {
           // 冻结协议：每帧把时间轴重新锚定在 demo.at（和其他模块一致）
           if (!V.frozenInit) {
-            V.frozenInit = true; V.coat = 0; coatEls(); V.phase = 'play';
+            V.frozenInit = true; V.coatObj = { ...DEMO_COAT }; coatEls(); V.phase = 'play';
             // &buddy=1：演示跟班局，趴下段拉长到 150 秒，冻结时刻能稳定落在打盹里
             if (demo.buddy) { V.buddy = true; segOf('lie').t = 150000; rebuildTimeline(); }
             E.layer.style.display = '';
@@ -322,7 +432,7 @@
       const rad = tailAng * Math.PI / 180, tl = 30 + 12 * lieK; // 趴下时尾巴变长才够到地面
       const ex = -34 - tl * Math.cos(rad), ey = -36 - tl * Math.sin(rad);
       const mx = -34 - tl * 0.55 * Math.cos(rad), my = -36 - tl * 0.55 * Math.sin(rad) - 4;
-      E.tail.setAttribute('d', `M -34 -36 Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+      paintTail(mx, my, ex, ey);
 
       // 影子垫在脚下（趴下时略摊大）
       E.shadow.setAttribute('cx', x.toFixed(1));
@@ -335,8 +445,11 @@
       S.lastInput = now;
     }
 
+    // 「奶猫随机花色」开关：开启后每次串门随机生成一套花色；关闭沿用原来的三色随机（下次串门生效）
+    function setRandomCoat(on) { V.random = !!on; }
+
     return {
-      afterState, afterKeyDown, forcedPawTarget, pose,
+      afterState, afterKeyDown, forcedPawTarget, pose, setRandomCoat,
       debugProps: { visitor: () => (V.phase ? V.phase + '@' + Math.round(V.tNow) : null), buddy: () => !!V.buddy },
     };
   }

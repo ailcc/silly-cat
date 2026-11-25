@@ -66,7 +66,8 @@
       while (F.moves.length && now - F.moves[0].t > WINDOW) F.moves.shift();
       const speed = F.moves.reduce((s, e) => s + e.d, 0);
       if (speed >= THRESH && now >= F.nextPounce && !S.pet && !S.pressed.size && !S.mouseButtons.size &&
-          (S.state === STATES.AWAKE || S.state === STATES.DROWSY)) {
+          (S.state === STATES.AWAKE || S.state === STATES.DROWSY) &&
+          !(window.SillyTypeRhythm && window.SillyTypeRhythm.covering && window.SillyTypeRhythm.covering())) {
         trigger(now);
       }
     }

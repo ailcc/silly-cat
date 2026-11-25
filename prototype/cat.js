@@ -282,9 +282,27 @@
 
     // ---------- 扩展钩子 ----------
     const mods = [];
-    const call = (name, ...a) => { for (const m of mods) if (m[name]) m[name](...a); };
+    // 模块钩子兜底：任何一个模块在钩子里抛异常（空指针、DOM 缺失……）只禁用它自己的这个钩子，
+    // 渲染主循环照常跑——以前一崩整个 RAF 就不再排程，猫会永久僵死只能重启（v1.2.2 实测踩坑）。
+    const disable = (m, name, e) => {
+      console.error(`[silly-cat] 模块钩子 ${name} 抛异常，已禁用该模块的 ${name}`, e);
+      m[name] = null;
+    };
+    const call = (name, ...a) => {
+      for (const m of mods) {
+        const f = m[name];
+        if (!f) continue;
+        try { f(...a); } catch (e) { disable(m, name, e); }
+      }
+    };
     const ask = (name, ...a) => {
-      for (const m of mods) if (m[name]) { const r = m[name](...a); if (r) return r; }
+      for (const m of mods) {
+        const f = m[name];
+        if (!f) continue;
+        let r;
+        try { r = f(...a); } catch (e) { disable(m, name, e); continue; }
+        if (r) return r;
+      }
       return null;
     };
 
@@ -632,7 +650,7 @@
       }
       // 回正期间延续慢速，直到下一个明确的目标接管。
       if (pointerTarget || tau !== GAZE_SLOW_TAU) S.followingPointer = !!pointerTarget;
-      S.pupilR = approach(S.pupilR, S.excited ? 18 : 13, dt, 80);
+      S.pupilR = approach(S.pupilR, P.pupilR ?? (S.excited ? 18 : 13), dt, 80);
       // 瞳孔变大时，最大偏移随半径从 8 缩到 6，给虹膜留出边缘。
       const maxGaze = 8 - (S.pupilR - 13) * 0.4;
 
@@ -760,7 +778,10 @@
         }
       } else S.tailLag = null;
 
-      const press = S.tailPress * r;
+      // 扩展模块接管尾巴（尾巴拍键等演出）：从当前中线（静止或伸到鼠标那条）过渡到模块给的姿势
+      if (P.tailOverride) pts = resample(P.tailOverride(now, pts), TAIL_N);
+
+      const press = P.tailOverride ? 0 : S.tailPress * r;
       if (SillyArt.tailSegments) {
         SillyArt.tail(resample(pts, SillyArt.tailSegments + 1), s => 2 * tailWidth(s, press));
       }
@@ -784,7 +805,7 @@
       el.tail.front.setAttribute('transform', tf);
       // 前面那一份只在伸出来时画（不用半透明淡入：叠在键盘上会显出一块灰）。平时尾巴根部被键盘上沿挡住的那一小截，
       // 一开始甩就到了键盘上面，几帧之内整条就抬起来了
-      const frontOn = r > 0 && !P.hideCat;
+      const frontOn = (P.tailOverride || r > 0) && !P.hideCat;
       if (frontOn !== S.tailFrontOn) { S.tailFrontOn = frontOn; el.tail.front.style.display = frontOn ? '' : 'none'; }
     }
 
@@ -838,6 +859,8 @@
         pawTau: 1, pressBoost: 0, zzzDx: 0, zzzDy: 0, mouseX: 0, mouseY: 0, mouseRot: 0, hideCat: false,
         turnSX: 1, eyesClosed: false, eyesHappy: false, look: null, cheek: 0, mouseAbs: null, mouseHidden: false,
         headSX: 1, headSY: 1, bodySX: 1, bodySY: 1, // 乘法：头以 400,262、身体以 400,410 为基准缩放
+        tailOverride: null, // 扩展模块接管尾巴：function(now, basePts) 返回完整中线（画面坐标、TAIL_N 个点），用于尾巴拍键等演出
+        pupilR: null, // 瞳孔半径（画面单位），扩展模块可放大瞳孔（捕猎态）
       };
     }
     const catParts = ['cat-head', 'cat-body', 'tail', 'arm-l', 'arm-r', 'paw-l', 'paw-r'].map($);
@@ -889,7 +912,7 @@
     }
     const ctx = {
       S, STATES, el, kb, fx, paws, keycapText, keyPoint, mousePoint, mousePaw, mouseHome, restPoint, headToScene, sceneToHead,
-      releaseAll, reducedMotion, clamp, approach, f1,
+      releaseAll, reducedMotion, clamp, approach, f1, catmull, resample,
     };
     for (const make of modules) mods.push(make(ctx) || {});
 

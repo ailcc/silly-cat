@@ -30,6 +30,8 @@
     const pawSide = () => (cupDir() === 1 ? 'L' : 'R'); // 杯子在观众哪侧，就伸哪只爪
     const mugHome = (d) => ({ x: 400 + d * (HOME.x - 400), y: HOME.y });
 
+    const covering = () => !!(window.SillyTypeRhythm && window.SillyTypeRhythm.covering && window.SillyTypeRhythm.covering());
+    const listening = () => !!(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening());
     function cupOK() {
       // push.js 手里的杯子正被推 / 已经摔出去飞着，就先别碰
       return !pushMod || !pushMod.pushPhase || pushMod.pushPhase() === 'idle';
@@ -37,7 +39,7 @@
     function free(now) {
       return (S.state === STATES.AWAKE || S.state === STATES.DROWSY) && !S.pet &&
         (demo || now - S.lastInput >= IDLE_MIN) && !S.pressed.size && !S.mouseButtons.size &&
-        S.tailReach <= 0.05 && cupOK();
+        S.tailReach <= 0.05 && cupOK() && !covering() && !listening();
     }
 
     function start(now) {

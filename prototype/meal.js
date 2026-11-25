@@ -75,7 +75,9 @@
       const key = `${meal.key}@${mealNow().key}`;
       if (F.doneKey === key || now < F.nextCheck) return;
       if (S.state === STATES.AWAKE && !S.pet && !S.pressed.size && !S.mouseButtons.size &&
-          (demo || (now - S.lastKeyAt >= 6000 && now - S.lastInput >= 8000))) {
+          (demo || (now - S.lastKeyAt >= 6000 && now - S.lastInput >= 8000)) &&
+          !(window.SillyTypeRhythm && window.SillyTypeRhythm.covering && window.SillyTypeRhythm.covering()) &&
+          !(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening())) {
         startRun(now, meal);
       }
     }

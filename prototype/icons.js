@@ -140,7 +140,10 @@
       return d.pushPhase && d.pushPhase !== 'idle';
     }
 
-    const idleOK = (now) => !S.pressed.size && !S.mouseButtons.size &&
+    // 捂耳朵 / 听歌演出期间不启动：猫同时只做一件事（咖啡 / 喝水 / 催饭也做了同样的让路）
+    const covering = () => !!(window.SillyTypeRhythm && window.SillyTypeRhythm.covering && window.SillyTypeRhythm.covering());
+    const listening = () => !!(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening());
+    const idleOK = (now) => !covering() && !listening() && !S.pressed.size && !S.mouseButtons.size &&
       now - S.lastInput >= IDLE_MIN && !reducedMotion();
 
     function overrideState(now) {
@@ -259,7 +262,9 @@
       S.blinkUntil = 0;
       S.twitch.ear = null;
       S.lid = Math.max(0.18, P.lidMin);
-      if (S.eyeMode === 'happy' || !frame.acting) { S.pupilX = 0; S.pupilY = 1; }
+      if (S.eyeMode === 'happy' || !frame.acting) {
+        for (const offset of Object.values(S.pupil)) { offset.x = 0; offset.y = 1; }
+      }
       for (const paw of [paws.L, paws.R]) {
         const target = (paw === myPaw() && pawTarget(frame, now)) || restPoint(paw.side);
         paw.x = target.x; paw.y = target.y; paw.press = target.pressing ? 1 : 0; paw.lift = 0;

@@ -1,15 +1,54 @@
 // 打字节奏反应：你打字飞快时猫看得眼都圆了，冒一句「好快！」；
-// 连续狂敲 10 秒它会捂耳朵喊「耳朵要炸了！」，收手后松口气「呼…」。
+// 连续狂敲 10 秒它会捂住耳朵，头顶挂一个「吵死了 N」的倒数气泡——倒数到 0 就把爪子
+// 放回键盘，松口气「呼…」。倒数期间你继续打字它也不撒手（固定时长，不再看收手）。
 // 按键统计借用现有 S.excited 的口径（基础代码已经在高速时放大瞳孔），这里只补姿态和台词。
-// 调试：?demo=fasttype&loop=1&at=毫秒（假装你在疯狂输出）
+// 调试：?demo=fasttype&loop=1（假装你在疯狂输出，10 秒后捂耳朵、倒数 8 秒）
 (function () {
   'use strict';
 
   const FAST_KPS = 8;         // 每秒超过这几个键算「快」
   const FAST_MS = 1500;       // 持续这么久才冒「好快！」
   const POUND_MS = 10000;     // 快速持续这么久开始捂耳朵
-  const REST_GAP = 1500;      // 手停这么久算收手
+  const COVER_HOLD = 8000;    // 捂耳朵固定时长：倒数从这一秒开始，倒数完爪子放回键盘
+  const REST_GAP = 1500;      // 手停这么久算收手（只用于「好快」状态的复位）
   const CALM_DOWN = 30000;    // 捂耳朵之后冷却，短时间内不再表演
+
+  // 倒数气泡：常驻显示「吵死了 N」，每秒更新数字，捂完整个收掉。
+  // fx.spawn 的气泡会上浮淡出，不适合长驻，所以这里自管一个同款样式的节点。
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  let bubble = null, bubbleRect = null, bubbleText = null, bubbleSec = -1;
+
+  function hideBubble() {
+    if (bubble) { bubble.remove(); bubble = bubbleRect = bubbleText = null; bubbleSec = -1; }
+  }
+  function showBubble(sec) {
+    if (sec === bubbleSec) return;
+    if (!bubble) {
+      const layer = document.getElementById('fx-layer');
+      if (!layer) return;
+      bubble = document.createElementNS(SVG_NS, 'g');
+      bubble.setAttribute('class', 'keycap-fx angry');
+      bubble.setAttribute('transform', 'translate(400 88)');
+      bubbleRect = document.createElementNS(SVG_NS, 'rect');
+      bubbleRect.setAttribute('y', -13);
+      bubbleRect.setAttribute('height', 26);
+      bubbleRect.setAttribute('rx', 7);
+      bubbleText = document.createElementNS(SVG_NS, 'text');
+      bubbleText.setAttribute('y', 5);
+      bubble.appendChild(bubbleRect);
+      bubble.appendChild(bubbleText);
+      layer.appendChild(bubble);
+    }
+    const text = `吵死了 ${sec}`;
+    bubbleText.textContent = text;
+    let w = 12 + text.length * 9; // 兜底估算
+    try { w = bubbleText.getBBox().width; } catch { /* 量不出来就按估算 */ }
+    w = Math.max(26, w + 16);
+    bubbleRect.setAttribute('x', (-w / 2).toFixed(1));
+    bubbleRect.setAttribute('width', w.toFixed(1));
+    bubble.setAttribute('opacity', '1');
+    bubbleSec = sec;
+  }
 
   function create(ctx, opts = {}) {
     const { S, STATES, clamp } = ctx;
@@ -17,13 +56,17 @@
     const W = {
       keys: [],            // 最近按键的时间戳
       fastSince: -1,       // 连续达到 FAST_KPS 的起点
-      saidFast: false, saidCover: false, saidRelax: false,
+      saidFast: false, saidRelax: false,
       cover: false,        // 正在捂耳朵
+      coverUntil: 0,       // 捂到这一刻为止（倒数气泡跟它对表）
       cooldownUntil: -1e9,
       lastSynth: 0,        // demo 模式的假按键
     };
 
     const kps = (now) => W.keys.filter((t) => now - t <= 1000).length;
+    // 给其他模块查询「猫正捂着耳朵」：咖啡、喝水、催饭、玩图标、扑鼠标这些动作触发前先让路，
+    // 猫同时只做一件事（和 gamemode.js 暴露 SillyGameMode.active 是同一个约定）
+    window.SillyTypeRhythm.covering = () => W.cover;
 
     function afterKeyDown(code, now) {
       W.keys.push(now);
@@ -38,8 +81,8 @@
     // 捂耳朵要盖过打字爪位，所以用 forced（打字正欢时爪子都在键盘上，soft 抢不过基础行为）
     function forcedPawTarget(paw, now) {
       if (!W.cover) return null;
-      // 双爪按住耳朵：耳朵在头部两侧偏上
-      const p = ctx.headToScene(paw.side === 'L' ? 486 : 314, 152);
+      // 双爪按在耳朵正中（耳朵三角形的重心一带），配合 earDroop 让耳朵往爪子方向倒
+      const p = ctx.headToScene(paw.side === 'L' ? 470 : 330, 105);
       return { id: 'tr-cover', x: p.x, y: p.y, tau: 60, pressing: true };
     }
 
@@ -50,28 +93,32 @@
       }
       if (demo && Number.isFinite(demo.at)) {
         // 冻结 demo：把时间轴整体平移到 demo.at，制造「狂敲中」的假象
-        for (let i = 0; i < 14; i++) W.keys.push(now - i * 70);
+        // （整组重建而不是每帧 push：冻结页挂久了数组会一直涨）
+        W.keys = Array.from({ length: 14 }, (_, i) => now - i * 70);
       }
 
-      // 收手判定：距最后按键 REST_GAP 以上 → 松开耳朵、松口气、进入冷却
-      const lastKey = W.keys.length ? W.keys[W.keys.length - 1] : -1e9;
-      if (W.cover && now - lastKey >= REST_GAP) {
-        W.cover = false;
-        W.cooldownUntil = now + CALM_DOWN;
-        if (!W.saidRelax) { ctx.fx.spawn('呼…', 470, 108, '', performance.now()); W.saidRelax = true; }
-        W.fastSince = -1; W.saidFast = false; W.saidCover = false;
-        return;
-      }
-      // 平时清理过期按键
-      if (!demo) { while (W.keys.length && now - W.keys[0] > 4000) W.keys.shift(); }
-
+      // 收手判定改成固定时长：捂够 COVER_HOLD 倒数到 0 → 爪子放回键盘、松口气、进冷却。
+      // 以前是「等你停手才松开」，一直打字就一直捂，看起来像卡住了。
       if (W.cover) {
-        // 捂耳朵姿态：闭眼、耳朵压得更低、身子微抖
+        const left = W.coverUntil - now;
+        if (left <= 0) {
+          W.cover = false;
+          W.cooldownUntil = now + CALM_DOWN;
+          hideBubble();
+          if (!W.saidRelax) { ctx.fx.spawn('呼…', 470, 108, '', performance.now()); W.saidRelax = true; }
+          W.fastSince = -1; W.saidFast = false;
+          return;
+        }
+        showBubble(Math.max(1, Math.ceil(left / 1000)));
+        // 捂耳朵姿态：闭眼、耳朵往爪子的方向压低、身子微抖
         P.eyesClosed = true;
         P.earDroop += 8;
         P.bodyRot += 1.2 * Math.sin(now / 55);
         return;
       }
+      // 平时清理过期按键
+      if (!demo) { while (W.keys.length && now - W.keys[0] > 4000) W.keys.shift(); }
+      const lastKey = W.keys.length ? W.keys[W.keys.length - 1] : -1e9;
 
       const fast = W.fastSince > 0 && kps(now) >= FAST_KPS - 1;
       if (!fast) {
@@ -81,13 +128,12 @@
       const held = now - W.fastSince;
 
       if (held >= POUND_MS) {
-        if (!W.saidCover) {
-          W.saidCover = true;
-          W.cover = true;
-          ctx.fx.spawn('耳朵要炸了！', 400, 96, 'angry', performance.now());
-          if (window.SillySounds) window.SillySounds.play('hiss');
-          return;
-        }
+        W.cover = true;
+        W.coverUntil = now + COVER_HOLD;
+        bubbleSec = -1; // 强制气泡立刻按新时长刷新
+        W.saidRelax = false; // 每轮捂完都要松口气
+        if (window.SillySounds) window.SillySounds.play('hiss');
+        return;
       } else if (held >= FAST_MS && !W.saidFast) {
         W.saidFast = true;
         ctx.fx.spawn('好快！', 480 + (Math.random() * 2 - 1) * 20, 104, 'hot', performance.now());

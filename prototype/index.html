@@ -268,6 +268,7 @@
     <span id="sleep-label">20 秒</span>
   </label>
   <label class="ctl"><input id="mouse-left" type="checkbox"> 鼠标换到猫的左手边</label>
+  <label class="ctl"><input id="hide-keyboard" type="checkbox"> 隐藏键盘（检查身体）</label>
   <label class="ctl">连续打字多久会生气
     <input id="work-range" type="range" min="15" max="3600" step="5" value="90">
     <span id="work-label">90 秒</span>
@@ -317,6 +318,12 @@
 <script src="growth.js"></script>
 <script src="snapshot.js"></script>
 <script src="visitor.js"></script>
+<script src="tailslap.js"></script>
+<script src="keyeggs.js"></script>
+<script src="kbdflow.js"></script>
+<script src="headturn.js"></script>
+<script src="gamemode.js"></script>
+<script src="privacymode.js"></script>
 <script src="poke.js"></script>
 <script src="pull-tail.js"></script>
 <script src="coffee.js"></script>
@@ -326,6 +333,8 @@
 <script src="shed-fur.js"></script>
 <script src="stats.js"></script>
 <script src="affection.js"></script>
+<script src="hindpaws.js"></script>
+<script src="listenmusic.js"></script>
 <script src="statusbar.js"></script>
 <script src="input.js"></script>
 <script src="updater.js"></script>
@@ -353,7 +362,7 @@
   const work = num('work') ?? 90;
   const rest = num('rest') ?? 20;
   // 调试入口：?demo=阶段 直接摆到并停在某个阶段；&loop=1 循环播放；&at=毫秒 冻结在时间轴上的某一刻
-  const demo = params.get('demo') ? { name: params.get('demo'), loop: params.get('loop') === '1', at: num('at') ?? (params.get('at') === '0' ? 0 : NaN), miss: params.get('miss') === '1', cheer: params.get('cheer') === '1', buddy: params.get('buddy') === '1', fat: params.get('fat') === '1' } : null;
+  const demo = params.get('demo') ? { name: params.get('demo'), loop: params.get('loop') === '1', at: num('at') ?? (params.get('at') === '0' ? 0 : NaN), miss: params.get('miss') === '1', cheer: params.get('cheer') === '1', buddy: params.get('buddy') === '1', fat: params.get('fat') === '1', hunt: params.get('hunt') === '1' } : null;
 
   // 趴下方式：默认每次随机；?slump-style=nod|melt 强制指定（调试用）
   const slumpStyle = params.get('slump-style');
@@ -366,7 +375,7 @@
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null, quip = null;
+  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null, quip = null, sit = null, visitor = null, tailSlapMod = null, kbdFlowMod = null, headTurnMod = null, hindPawsMod = null, listenMod = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep, eyesFollow: eyesParam ?? SillySettings.DEFAULTS.eyesFollow, demo,
     modules: [
@@ -393,14 +402,22 @@
       (ctx) => SillyWand.create(ctx, { demo }),
       (ctx) => SillyLaser.create(ctx, { demo }),
       (ctx) => SillySnack.create(ctx, { demo }),
-      (ctx) => SillySitRemind.create(ctx, { demo }),
+      (ctx) => (sit = SillySitRemind.create(ctx, { demo })),
       (ctx) => SillyWater.create(ctx, { demo }),
       (ctx) => (pomo = SillyPomodoro.create(ctx, { demo })),
       (ctx) => (holiday = SillyHolidays.create(ctx, { demo })),
       (ctx) => SillyBossKey.create(ctx, { demo }),
       (ctx) => SillyGrowth.create(ctx, { demo }),
       (ctx) => SillySnapshot.create(ctx, { demo }),
-      (ctx) => SillyVisitor.create(ctx, { demo }),
+      (ctx) => (visitor = SillyVisitor.create(ctx, { demo })),
+      (ctx) => (tailSlapMod = SillyTailSlap.create(ctx, { demo })),
+      (ctx) => SillyKeyEggs.create(ctx, { demo, tailslap: () => tailSlapMod }),
+      (ctx) => (kbdFlowMod = SillyKbdFlow.create(ctx, { demo })),
+      (ctx) => (headTurnMod = SillyHeadTurn.create(ctx, { demo })),
+      (ctx) => SillyGameModeEgg.create(ctx, { demo }),
+      (ctx) => SillyPrivacyMode.create(ctx, { demo }),
+      (ctx) => (hindPawsMod = SillyHindPaws.create(ctx, { demo })),
+      (ctx) => (listenMod = SillyListenMusic.create(ctx, { demo })),
       (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, enabled: statusBarParam ?? true })),
       SillyCoats.shapeModule,
     ],
@@ -429,6 +446,12 @@
       if (holiday) { holiday.setBirthday(s.birthday); holiday.setBirthdayHearts(s.birthdayHearts); }
       if (quip) quip.setEnabled(s.quips);
       if (sit) sit.setEnabled(s.sitRemind, s.sitMinutes);
+      if (visitor) visitor.setRandomCoat(s.kittenCoat);
+      if (tailSlapMod) tailSlapMod.setEnabled(s.tailSlap);
+      if (kbdFlowMod) kbdFlowMod.setEnabled(s.kbdFlow);
+      if (headTurnMod) headTurnMod.setEnabled(s.headTurn);
+      if (hindPawsMod) hindPawsMod.setEnabled(s.hindPaws);
+      if (listenMod) listenMod.setEnabled(s.listenMusic);
       if (!(skipUrl && eyesParam !== null)) cat.setEyesFollow(s.eyesFollow);
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
@@ -470,6 +493,13 @@
   left.addEventListener('change', () => {
     cat.setMouseSide(left.checked ? 'left' : 'right');
     left.blur();
+  });
+
+  // 隐藏键盘：只在网页版调试面板里有，方便看猫的身体（后腿、肚子、尾巴根这些被键盘挡住的部位）
+  const hideKb = document.getElementById('hide-keyboard');
+  hideKb.addEventListener('change', () => {
+    document.getElementById('keyboard').style.display = hideKb.checked ? 'none' : '';
+    hideKb.blur();
   });
 
   const status = document.getElementById('status');

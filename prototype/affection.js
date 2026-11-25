@@ -51,6 +51,9 @@
       const frozen = demo && Number.isFinite(demo.at);
 
       const F = { kneadAt: -1e9, nextKnead: performance.now() + rand(10, 25) * 1000, demoInit: false, tier: tierOf(data.v || 0) };
+      // 暴露踩奶状态和节拍进度给 hindpaws 等模块（后脚要跟前爪对角同步蹬）
+      window.SillyAffection.kneading = () => F.kneadAt > 0;
+      window.SillyAffection.kneadT = (now) => (F.kneadAt > 0 ? now - F.kneadAt : -1);
 
       function startKnead(now) {
         F.kneadAt = now;

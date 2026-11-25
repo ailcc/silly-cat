@@ -168,6 +168,11 @@
     </div>
     <div id="cat-options" role="radiogroup" aria-labelledby="cat-label"></div>
   </div>
+  <div class="row" data-bool="kittenCoat">
+    <div class="head"><label for="f-kittenCoat">奶猫随机花色</label>
+      <span class="field"><input id="f-kittenCoat" type="checkbox" aria-describedby="kitten-coat-hint"></span></div>
+    <div id="kitten-coat-hint" class="hint">开启后，来串门的小奶猫每次随机生成一套毛色：底色、斑点、虎斑条纹、白手套、白尾尖自由组合；关闭则用原来的橘 / 灰 / 黑三色。只影响小奶猫，大猫的画风不受影响。</div>
+  </div>
   <div class="row" data-key="sleep">
     <div class="head"><label for="f-sleep">多久不操作就睡着</label>
       <span class="field"><input id="f-sleep" type="number" inputmode="decimal"><span class="unit">秒</span></span></div>
@@ -255,6 +260,37 @@
     <div class="head"><label for="f-quips">数据吐槽</label>
       <span class="field"><input id="f-quips" type="checkbox" aria-describedby="quips-hint"></span></div>
     <div id="quips-hint" class="hint">你发呆时，猫会翻小账本，拿你的真实数据低频吐槽：累计敲了多少下键盘、惹它发飙几回、好感度多少。</div>
+  </div>
+  <div class="row" data-bool="tailSlap">
+    <div class="head"><label for="f-tailSlap">尾巴拍键</label>
+      <span class="field"><input id="f-tailSlap" type="checkbox" aria-describedby="tail-slap-hint"></span></div>
+    <div id="tail-slap-hint" class="hint">打字的时候，猫的尾巴偶尔绕过来拍一下你刚按过的键帽，键帽沉一下再弹起来；敲回车时它也会凑热闹拍一下。</div>
+  </div>
+  <div class="row" data-bool="kbdFlow">
+    <div class="head"><label for="f-kbdFlow">键盘跑马灯</label>
+      <span class="field"><input id="f-kbdFlow" type="checkbox" aria-describedby="kbd-flow-hint"></span></div>
+    <div id="kbd-flow-hint" class="hint">打字时键帽泛起一层柔和的彩虹流光，打字越快流得越快；停手一会儿光就熄掉。系统开了「减弱动态效果」时不闪。</div>
+  </div>
+  <div class="row" data-bool="headTurn">
+    <div class="head"><label for="f-headTurn">2.5D 转头</label>
+      <span class="field"><input id="f-headTurn" type="checkbox" aria-describedby="head-turn-hint"></span></div>
+    <div id="head-turn-hint" class="hint">眼睛跟着鼠标看时，头也微微朝指针方向转（球面透视）；快速晃鼠标会触发捕猎态——瞳孔放大、压低身子盯住指针。</div>
+  </div>
+  <div class="row" data-bool="hindPaws">
+    <div class="head"><label for="f-hindPaws">露出后脚</label>
+      <span class="field"><input id="f-hindPaws" type="checkbox" aria-describedby="hind-paws-hint"></span></div>
+    <div id="hind-paws-hint" class="hint">两只后脚趴在身体两侧的键盘后沿上（配色跟随品种和画风）；打字时后脚跟会交替点地打拍子，踩奶时和前爪对角同步蹬。趴着睡觉时会自动收起来。</div>
+  </div>
+  <div class="row" data-bool="listenMusic">
+    <div class="head"><label for="f-listenMusic">空闲听歌</label>
+      <span class="field"><input id="f-listenMusic" type="checkbox" aria-describedby="listen-music-hint"></span></div>
+    <div id="listen-music-hint" class="hint">电脑空闲到原本该睡着时，猫有一半概率不睡，戴上耳机跟着节拍点头听歌（后脚也打拍子，头顶冒音符）；任何输入就摘下耳机。另一半概率照常睡觉。</div>
+  </div>
+  <div class="row" data-bool="mcpServer">
+    <div class="head"><label for="f-mcpServer">MCP 外观接口</label>
+      <span class="field"><input id="f-mcpServer" type="checkbox" aria-describedby="mcp-hint"></span></div>
+    <div id="mcp-hint" class="hint">开一个仅限本机访问的接口（http://127.0.0.1:48620/mcp），让 Claude、Cursor 这类 AI 助手直接给猫换品种、换画风、调大小，改完立刻生效。默认关闭；端口可在 settings.json 里改 mcpPort。命令行方式：把下面的配置加进你的 MCP 客户端即可。</div>
+    <div class="hint" style="user-select:all">curl -X POST http://127.0.0.1:48620/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"set_appearance","arguments":{"cat":"orange"}}}'</div>
   </div>
   <div class="row" data-bool="eyesFollow">
     <div class="head"><label for="f-eyesFollow">眼睛跟着鼠标</label>

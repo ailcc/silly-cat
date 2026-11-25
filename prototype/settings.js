@@ -9,8 +9,9 @@
   // statusBar：猫头顶的状态条（困了 / 烦躁 / 消气中）显示与否；push：推杯子开关。和 autoUpdate（自动检查更新）都是开关项，不参与 KEYS 里的数字校验
   // pushEvery：大约多久推一次杯子（秒），push.js 在它的 0.5–1.5 倍之间随机
   // pomo：番茄钟开关。birthday：猫的生日（MM-DD 文本，空 = 不庆祝）。birthdayHearts：生日当天要不要全程爱心眼（默认关）。和开关项一样不参与 KEYS 里的数字校验
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45 });
-  const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo', 'birthdayHearts', 'quips', 'pomoCheer', 'sitRemind']);
+  // mcpServer：MCP 外观接口（本地回环 HTTP，给 AI 助手换装用，默认关）；mcpPort 不在界面暴露，settings.json 里可手改
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true });
+  const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo', 'birthdayHearts', 'quips', 'pomoCheer', 'sitRemind', 'kittenCoat', 'tailSlap', 'kbdFlow', 'headTurn', 'mcpServer', 'hindPaws', 'listenMusic']);
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
   const SIZE = Object.freeze({ min: 0.5, max: 2, step: 0.05 });
   // 和 coats.js 的列表保持一致，顺序也是设置页的头像顺序。
@@ -71,6 +72,8 @@
       if (Number.isFinite(size) && size >= SIZE.min && size <= SIZE.max) s.size = size;
       if (CATS.includes(raw.cat)) s.cat = raw.cat;
       if (raw.artStyle === 'fur' || raw.artStyle === 'line') s.artStyle = raw.artStyle;
+      // MCP 接口端口不在界面暴露，settings.json 手改才生效（1024–65535）
+      if (Number.isFinite(raw.mcpPort) && raw.mcpPort >= 1024 && raw.mcpPort <= 65535) s.mcpPort = Math.round(raw.mcpPort);
     }
     const err = validate(s);
     if (err.drool) s.drool = null;

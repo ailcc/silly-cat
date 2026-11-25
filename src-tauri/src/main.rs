@@ -5,6 +5,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod autostart;
+mod game_detect;
+mod mcp;
+mod privacy;
 mod updater;
 
 #[cfg(target_os = "macos")]
@@ -275,6 +278,7 @@ fn save_settings(app: AppHandle, settings: serde_json::Value) -> Result<(), Stri
         apply_cat_size(&win, cat_size_of(&settings));
     }
     updater::set_auto(&app, &settings);
+    mcp::update_state(&settings); // MCP 外观接口的开关 / 端口跟着设置走
     let _ = app.emit_to("main", "silly:settings", settings);
     Ok(())
 }
@@ -698,6 +702,14 @@ fn main() {
             tray.build(app)?;
 
             input::start(app.handle().clone());
+            // 游戏模式：后台轮询前台窗口，发现全屏游戏就通知前端（猫戴耳机睡觉）
+            game_detect::start(app.handle().clone());
+            // 密码隐私模式：焦点进密码框就通知前端（猫捂眼不看）
+            privacy::start(app.handle().clone());
+            // MCP 外观接口：本地回环 HTTP 服务（设置里默认关，开了才放行请求）
+            if let Some(f) = settings_file(app.handle()) {
+                mcp::setup(app.handle().clone(), f);
+            }
             Ok(())
         })
         .run(tauri::generate_context!())

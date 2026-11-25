@@ -51,7 +51,9 @@
       if (demo) {
         if (!W.phase && now >= W.next) { startRemind(now); W.next = 1e12; }
       } else if (!W.phase && S.state === STATES.AWAKE && !S.pet && !S.excited
-                 && now - S.lastInput >= IDLE_MIN && now >= W.next) {
+                 && now - S.lastInput >= IDLE_MIN && now >= W.next
+                 && !(window.SillyTypeRhythm && window.SillyTypeRhythm.covering && window.SillyTypeRhythm.covering())
+                 && !(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening())) {
         startRemind(now);
       }
       if (!W.phase) return;

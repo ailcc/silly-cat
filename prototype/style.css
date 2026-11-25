@@ -343,8 +343,16 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .visitor-shadow { fill: rgba(0, 0, 0, 0.12); }
 #scene .visitor-body, #scene .visitor-head, #scene .visitor-ear, #scene .visitor-leg { stroke-width: 3; stroke-linejoin: round; }
 #scene .visitor-tail { fill: none; stroke-width: 7; stroke-linecap: round; }
+#scene .visitor-tail-tip { fill: none; stroke-width: 7; stroke-linecap: round; }
 #scene .visitor-eye { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
 #scene .visitor-eye-dot, #scene .visitor-nose { fill: var(--ink); stroke: none; }
+
+/* 游戏模式的耳机：画在猫头上（深炭灰 + 珊瑚色装饰环，贴合手绘描边风） */
+#scene .gp-band { fill: none; stroke: var(--ink); stroke-width: 9; stroke-linecap: round; }
+#scene .gp-band-in { fill: none; stroke: #3a3a44; stroke-width: 4; stroke-linecap: round; }
+#scene .gp-cup { fill: #2b2b33; stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
+#scene .gp-cup-ring { fill: none; stroke: var(--coral); stroke-width: 3.5; }
+#scene .gp-mic { fill: #2b2b33; stroke: var(--ink); stroke-width: 2.5; }
 
 /* 成长等级：小红围巾 + 小皇冠 */
 #scene .growth-scarf-band { fill: #d9534f; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
