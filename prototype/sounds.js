@@ -107,6 +107,24 @@
       o.connect(g).connect(ctx2.destination);
       o.start(t0); o.stop(t0 + 0.12);
     },
+    // 铃铛：番茄钟切换阶段时的两声清脆小铃
+    bell() {
+      const ctx2 = ready(); if (!ctx2) return;
+      [[880, 0], [1174, 0.18]].forEach(([freq, delay]) => {
+        const t0 = ctx2.currentTime + delay;
+        const o = ctx2.createOscillator();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        const o2 = ctx2.createOscillator();   // 泛音，让铃声更亮
+        o2.type = 'sine'; o2.frequency.value = freq * 2.76;
+        const g2 = ctx2.createGain(); g2.gain.value = 0.25;
+        o2.connect(g2);
+        const g = gainEnv(ctx2, t0, 0.14, 0.004, 0.5);
+        o.connect(g); g2.connect(g);
+        o.start(t0); o.stop(t0 + 0.6);
+        o2.start(t0); o2.stop(t0 + 0.6);
+      });
+    },
   };
 
   // 呼噜：低通噪声被 26Hz 的呼吸式起伏调制，踩奶期间一直响

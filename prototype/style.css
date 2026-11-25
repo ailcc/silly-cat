@@ -329,6 +329,53 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .mouse-btn.down { fill: var(--coral); }
 #scene .mouse-wheel { fill: var(--cream-dark); stroke: var(--ink); stroke-width: 3; }
 
+/* 逗猫棒：垂线和毛线球 */
+#scene .wand-string {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+#scene .wand-ball circle { fill: var(--coral); stroke: var(--ink); stroke-width: 4; }
+#scene .wand-ball .wand-yarn { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; opacity: 0.65; }
+
+/* 小鱼干零食 */
+#scene .snack-fish .snack-body { fill: var(--coral); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
+#scene .snack-fish .snack-tail { fill: var(--coral); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
+#scene .snack-fish .snack-eye { fill: var(--ink); }
+
+/* 久坐举牌 */
+#scene .sit-post { fill: #8a6d4f; stroke: var(--ink); stroke-width: 4; }
+#scene .sit-board { fill: var(--cream); stroke: var(--ink); stroke-width: 4.5; }
+#scene .sit-text { fill: var(--ink); font-size: 26px; font-weight: 800; text-anchor: middle; font-family: inherit; }
+#scene .sit-sub { fill: var(--coral); font-size: 15px; font-weight: 700; text-anchor: middle; font-family: inherit; }
+
+/* 喝水提醒的水杯 */
+#scene .wc-body { fill: #dff1ff; stroke: var(--ink); stroke-width: 4.5; stroke-linejoin: round; }
+#scene .wc-water { fill: #7cc4f5; }
+#scene .wc-rim { fill: none; stroke: var(--ink); stroke-width: 4.5; stroke-linecap: round; }
+#scene .wc-shine { fill: #fff; opacity: 0.55; }
+
+/* 番茄钟倒计时小牌 */
+#scene .pomo-chip { fill: var(--cream); stroke: var(--ink); stroke-width: 4; }
+#scene .pomo-text { fill: var(--ink); font-size: 24px; font-weight: 800; text-anchor: middle; font-family: ui-monospace, monospace; }
+#scene .pomo-dot { fill: #ff3b30; stroke: var(--ink); stroke-width: 3; }
+
+/* 万圣节南瓜灯 */
+#scene .hp-body { fill: #ff9f2e; stroke: var(--ink); stroke-width: 4.5; }
+#scene .hp-rib { stroke: var(--ink); stroke-width: 3; opacity: 0.5; }
+#scene .hp-stem { fill: #5f8f3e; stroke: var(--ink); stroke-width: 3.5; }
+#scene .hp-face { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 圣诞帽 */
+#scene .hh-cone { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+#scene .hh-pompom { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3.5; }
+#scene .hh-brim { fill: var(--fur-white); stroke: var(--ink); stroke-width: 4; }
+
+/* 春节红围巾 */
+#scene .hs-band { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+#scene .hs-tail { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+
 #scene .mug-body, #scene .mug-handle, #scene .mug-rim {
   stroke: var(--ink);
   stroke-width: 5;

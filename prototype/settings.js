@@ -8,8 +8,9 @@
   // drool / slump 为 null 表示「自动」：沿用 sleep.js 的原逻辑（入睡时间 × 2、× 3.5）
   // statusBar：猫头顶的状态条（困了 / 烦躁 / 消气中）显示与否；push：推杯子开关。和 autoUpdate（自动检查更新）都是开关项，不参与 KEYS 里的数字校验
   // pushEvery：大约多久推一次杯子（秒），push.js 在它的 0.5–1.5 倍之间随机
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', sounds: true });
-  const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds']);
+  // pomo：番茄钟开关。birthday：猫的生日（MM-DD 文本，空 = 不庆祝）。和开关项一样不参与 KEYS 里的数字校验
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', sounds: true, pomo: false, birthday: '' });
+  const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo']);
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
   const SIZE = Object.freeze({ min: 0.5, max: 2, step: 0.05 });
   // 和 coats.js 的列表保持一致，顺序也是设置页的头像顺序。
@@ -59,6 +60,11 @@
         else if (typeof v === 'number' && Number.isFinite(v) && v >= FIELDS[k].min && v <= FIELDS[k].max) s[k] = v;
       }
       for (const k of BOOLS) if (typeof raw[k] === 'boolean') s[k] = raw[k]; // 旧的 settings.json 没有这项：用默认值
+      // 生日是文本：接受「M-D」「MM-DD」，其他值一律退回空
+      if (typeof raw.birthday === 'string') {
+        const m = raw.birthday.trim().match(/^(\d{1,2})-(\d{1,2})$/);
+        if (m && +m[1] >= 1 && +m[1] <= 12 && +m[2] >= 1 && +m[2] <= 31) s.birthday = `${+m[1]}-${+m[2]}`;
+      }
       const size = raw.size;
       if (Number.isFinite(size) && size >= SIZE.min && size <= SIZE.max) s.size = size;
       if (CATS.includes(raw.cat)) s.cat = raw.cat;

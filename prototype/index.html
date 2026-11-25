@@ -302,6 +302,16 @@
 <script src="push.js"></script>
 <script src="idle-gestures.js"></script>
 <script src="easter-words.js"></script>
+<script src="typerhythm.js"></script>
+<script src="dreams.js"></script>
+<script src="quotes.js"></script>
+<script src="wand.js"></script>
+<script src="laser.js"></script>
+<script src="snack.js"></script>
+<script src="sitremind.js"></script>
+<script src="water.js"></script>
+<script src="pomodoro.js"></script>
+<script src="holidays.js"></script>
 <script src="poke.js"></script>
 <script src="pull-tail.js"></script>
 <script src="coffee.js"></script>
@@ -351,7 +361,7 @@
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  let fatigue = null, sleepMod = null, push = null, statusBar = null;
+  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep, eyesFollow: eyesParam ?? SillySettings.DEFAULTS.eyesFollow, demo,
     modules: [
@@ -362,6 +372,9 @@
       (ctx) => (push = SillyPush.create(ctx, { enabled: pushParam ?? true, everySeconds: pushEveryParam, demo })),
       (ctx) => SillyIdleGestures.create(ctx, { demo }),
       (ctx) => SillyEasterWords.create(ctx, { demo }),
+      (ctx) => SillyTypeRhythm.create(ctx, { demo }),
+      (ctx) => SillyDreams.create(ctx, { demo }),
+      (ctx) => SillyQuotes.create(ctx, { demo }),
       (ctx) => SillyPoke.create(ctx, { demo }),
       (ctx) => SillyPullTail.create(ctx, { demo, fatigue }),
       (ctx) => SillyCoffee.create(ctx, { demo, push, fatigue }),
@@ -371,6 +384,13 @@
       (ctx) => SillyShed.create(ctx, { demo, sleep: sleepMod }),
       (ctx) => window.SillyStats.create(ctx),
       (ctx) => SillyAffection.create(ctx, { demo }),
+      (ctx) => SillyWand.create(ctx, { demo }),
+      (ctx) => SillyLaser.create(ctx, { demo }),
+      (ctx) => SillySnack.create(ctx, { demo }),
+      (ctx) => SillySitRemind.create(ctx, { demo }),
+      (ctx) => SillyWater.create(ctx, { demo }),
+      (ctx) => (pomo = SillyPomodoro.create(ctx, { demo })),
+      (ctx) => (holiday = SillyHolidays.create(ctx, { demo })),
       (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, enabled: statusBarParam ?? true })),
       SillyCoats.shapeModule,
     ],
@@ -395,6 +415,8 @@
       if (!(skipUrl && statusBarParam !== null)) statusBar.setEnabled(s.statusBar);
       if (!(skipUrl && pushParam !== null)) push.setEnabled(s.push);
       if (!(skipUrl && soundsParam !== null)) window.SillySounds.setEnabled(s.sounds);
+      if (pomo) pomo.setEnabled(s.pomo);
+      if (holiday) holiday.setBirthday(s.birthday);
       if (!(skipUrl && eyesParam !== null)) cat.setEyesFollow(s.eyesFollow);
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };

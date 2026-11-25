@@ -188,6 +188,16 @@
       <span class="field"><input id="f-sounds" type="checkbox"></span></div>
     <div class="hint">喵叫、踩奶的呼噜、砸键盘、敲碗声，全是现场合成的（网页版要先点过页面才出声）。</div>
   </div>
+  <div class="row" data-bool="pomo">
+    <div class="head"><label for="f-pomo">番茄钟</label>
+      <span class="field"><input id="f-pomo" type="checkbox"></span></div>
+    <div class="hint">开启后猫陪你按 25 分钟专注 + 5 分钟休息的节奏工作，每 4 个番茄休一次长的，画面左上角挂着倒计时。</div>
+  </div>
+  <div class="row" data-birthday>
+    <div class="head"><label for="f-birthday">猫的生日</label>
+      <span class="field"><input id="f-birthday" type="text" inputmode="numeric" placeholder="如 3-15"></span></div>
+    <div class="hint">填「月-日」，那天猫会全程爱心眼给你庆祝；留空就不庆祝。</div>
+  </div>
   <div class="row" data-bool="eyesFollow">
     <div class="head"><label for="f-eyesFollow">眼睛跟着鼠标</label>
       <span class="field"><input id="f-eyesFollow" type="checkbox" aria-describedby="eyes-follow-hint"></span></div>
@@ -281,6 +291,7 @@
   }
   const bools = {};
   for (const k of S.BOOLS) bools[k] = document.getElementById(`f-${k}`);
+  const birthdayInput = document.getElementById('f-birthday');
   const sizeInput = document.getElementById('f-size');
   const sizePercent = document.getElementById('size-percent');
   const autostartInput = document.getElementById('f-autostart');
@@ -302,6 +313,7 @@
       input.value = s[k] === null ? '' : fmt(s[k]);
     }
     for (const k of S.BOOLS) bools[k].checked = s[k] !== false;
+    birthdayInput.value = s.birthday || '';
     sizeInput.value = Math.round(s.size * 100);
     refreshHints(s);
   }
@@ -315,6 +327,7 @@
       else s[k] = Number(t);
     }
     for (const k of S.BOOLS) s[k] = bools[k].checked;
+    s.birthday = birthdayInput.value.trim(); // 格式对不对由 sanitize 把关，不对就当没填
     s.size = sizeInput.valueAsNumber / 100;
     return s;
   }
