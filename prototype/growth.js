@@ -16,8 +16,9 @@
     // 围巾：搭在肩上（挂在 #cat-body 里，跟着身体动）；皇冠：戴头上（挂在 #cat-head 里，跟着头动）
     document.getElementById('cat-body').insertAdjacentHTML('beforeend', `
       <g id="growth-scarf" style="display:none">
+        <!-- 垂摆画在带子前面：顶部伸到带子底下（y≈298/304，带子下缘约 307），由后画的带子压住接缝，看起来是从带子下垂出来的 -->
+        <path class="growth-scarf-tail" d="M 424 298 Q 438 340 430 368 Q 418 376 406 370 Q 418 342 412 304 Z"/>
         <path class="growth-scarf-band" d="M 322 296 Q 400 274 478 296 Q 486 308 478 318 Q 400 296 322 318 Q 314 308 322 296 Z"/>
-        <path class="growth-scarf-tail" d="M 424 314 Q 438 340 430 368 Q 418 376 406 370 Q 418 342 412 320 Z"/>
       </g>`);
     document.getElementById('cat-head').insertAdjacentHTML('beforeend', `
       <g id="growth-crown" style="display:none" transform="translate(400 58)">

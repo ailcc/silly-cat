@@ -130,6 +130,12 @@ pub fn update_status(app: AppHandle) -> Option<Notice> {
     app.state::<Updates>().notice.lock().unwrap().clone()
 }
 
+/// 设置页「检查更新」按钮入口，和托盘菜单走同一个内部流程
+#[tauri::command]
+pub fn check_update(app: AppHandle) {
+    manual_check(app);
+}
+
 fn notify(
     app: &AppHandle,
     kind: NoticeKind,

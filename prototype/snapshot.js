@@ -1,11 +1,15 @@
-// 截猫：快速连按两下 P（350ms 内，中间没混别的键），把猫此刻的样子连键盘
-// 一起截成透明底 PNG：优先写进剪贴板（网页版直接粘贴发群），写不进去就落成
-// sillycat.png 下载。摆什么姿势截什么——先让它做个表情再按。
+// 截猫：快速连按两下 P（80–350ms 内，中间没混别的键），把猫此刻的样子连键盘
+// 一起截成透明底 PNG。桌面版交给 Rust 写进系统剪贴板（粘贴即用，不落任何文件）；
+// 网页版优先写剪贴板，写不进去才落成 sillycat.png 下载。
+// 摆什么姿势截什么——先让它做个表情再按。
 // 调试：?demo=snapshot&loop=1（冒提示气泡）
 (function () {
   'use strict';
 
-  const GAP = 350, COOLDOWN = 3000;
+  const GAP = 350, GAP_MIN = 80, COOLDOWN = 3000;
+  // 桌面版走 Rust 的 copy_snapshot（Tauri 剪贴板插件）；网页版用浏览器剪贴板 API
+  const T = window.__TAURI__;
+  const invoke = T && T.core ? T.core.invoke : null;
 
   function create(ctx, opts = {}) {
     const { fx } = ctx;
@@ -60,6 +64,24 @@
           URL.revokeObjectURL(url);
           cv.toBlob(async (blob) => {
             if (!blob) return fail();
+            // 桌面版：PNG 交给 Rust 写进系统剪贴板，不落任何文件
+            if (invoke) {
+              try {
+                const dataURI = await new Promise((resolve, reject) => {
+                  const r = new FileReader();
+                  r.onload = () => resolve(r.result);
+                  r.onerror = () => reject(r.error);
+                  r.readAsDataURL(blob);
+                });
+                await invoke('copy_snapshot', { data: String(dataURI).split(',')[1] });
+                fx.spawn('表情包已复制！', 400, 84, 'hot', performance.now());
+              } catch (err) {
+                console.warn('截猫复制失败：', err);
+                fail('复制到剪贴板失败了');
+              }
+              return;
+            }
+            // 网页版：能写剪贴板就写，写不进去才下载
             try {
               if (typeof ClipboardItem === 'undefined') throw new Error('no ClipboardItem');
               await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
@@ -85,8 +107,9 @@
     function afterKeyDown(code, now) {
       if (demo) return;
       if (code !== 'KeyP') { if (S2.lastP > 0) S2.otherKey = true; return; }
-      // 双击 P：两下之间没混别的键，且过了冷却（防止打「pp」误触）
-      if (S2.lastP > 0 && !S2.otherKey && now - S2.lastP <= GAP && now - S2.lastP > 25 && now >= S2.until) {
+      // 双击 P：两下间隔 80–350ms（80ms 以下手按不出来，350ms 以上不算连按），
+      // 中间没混别的键，且过了冷却（防止打「pp」误触）
+      if (S2.lastP > 0 && !S2.otherKey && now - S2.lastP <= GAP && now - S2.lastP >= GAP_MIN && now >= S2.until) {
         S2.lastP = -1; S2.otherKey = false;
         S2.until = now + COOLDOWN;
         capture();

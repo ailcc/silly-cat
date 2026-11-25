@@ -1,7 +1,9 @@
 // 扔零食：快速连按两下 G，一颗小鱼干从画面右下角抛进来，猫跳起来接住，
 // 咀嚼、舔嘴、「香！」一声，好感 +2。2 分钟里喂超过 3 颗它会嫌多，
 // 把鱼干扒拉到一边：「吃不下啦」。冷却 8 秒。
-// 调试：?demo=snack&loop=1（自动抛）或 &at=毫秒 冻结在咀嚼瞬间
+// 每天最多吃 5 条（多了它自己管住嘴，扒拉走让你明天再来）；连续 3 天
+// 每天都有得吃，它就悄悄圆了起来（鼓腮 + 身体放宽）——断一天就瘦回去。
+// 调试：?demo=snack&loop=1（自动抛）&fat=1（演示变胖）或 &at=毫秒 冻结在咀嚼瞬间
 (function () {
   'use strict';
 
@@ -12,6 +14,31 @@
   const FEED_WIN = 120000; // 喂多判定窗口
   const FEED_MAX = 3;
   const COOLDOWN = 8000;
+  const STORE_KEY = 'sillycat-snack-v1';
+  const DAY_MAX = 5;       // 每天最多吃这么多条
+  const FAT_STREAK = 3;    // 连续这么多天每天都吃，就要圆了
+  const DAY_MS = 86400000;
+
+  // 喂食记录：今天吃了几条、最后喂食日期、连喂天数、圆了没有。localStorage 跨重启。
+  const dstr = (ts) => { const d = new Date(ts); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
+  const TODAY = () => dstr(Date.now());
+  const YDAY = () => dstr(Date.now() - DAY_MS);
+  let store = {};
+  function saveStore() { try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* 存不了就算了 */ } }
+  function ensureDay() {
+    if (store.day === TODAY()) return;
+    store.day = TODAY();
+    store.today = 0;
+    // 昨天一根都没喂：连喂记录断了，圆也悄悄瘦回去
+    if (store.lastDay !== YDAY()) { store.streak = 0; store.fat = false; }
+    saveStore();
+  }
+  try {
+    store = JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {};
+    if (typeof store.today !== 'number') store.today = 0;
+    if (typeof store.streak !== 'number') store.streak = 0;
+    ensureDay();
+  } catch (e) { store = {}; }
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp01 = (v) => Math.min(1, Math.max(0, v));
@@ -49,12 +76,31 @@
 
     function throwFish(now) {
       if (now < W.next || W.phase || S.state !== STATES.AWAKE || S.pet) return;
+      if (!demo) ensureDay();
+      const overDaily = !demo && store.today >= DAY_MAX; // 今天吃够了：这条直接拒收
       const recent = W.feedLog.filter((t) => now - t < FEED_WIN).length;
-      W.overfed = recent >= FEED_MAX;
+      W.overfed = overDaily || recent >= FEED_MAX;
+      W.overDaily = overDaily;
       W.phase = 'crouch'; W.start = now;
       W.feedLog.push(now);
       W.next = now + COOLDOWN;
       W.fish = { ...W.from };
+    }
+
+    // 成功吃下一条：记进每天的账，连续吃满 FAT_STREAK 天就圆了
+    function feedAccepted(now) {
+      if (demo) return;
+      ensureDay();
+      store.today += 1;
+      if (store.lastDay !== store.day) {
+        store.streak = store.lastDay === YDAY() ? store.streak + 1 : 1;
+        store.lastDay = store.day;
+        if (store.streak >= FAT_STREAK && !store.fat) {
+          store.fat = true;
+          setTimeout(() => ctx.fx.spawn('喂得太好了，圆了…', 400, 100, 'hot', performance.now(), 2200), 1300);
+        }
+      }
+      saveStore();
     }
 
     function afterKeyDown(code, now) {
@@ -86,6 +132,10 @@
           }
         } else if (!W.phase && now >= W.next) { throwFish(now); W.next = now + 3500; }
       }
+      // 圆了：鼓腮 + 身体放宽（连续 3 天每天都吃到小鱼干；断一天就瘦回去）。
+      // 常驻演出，跟当下有没有在吃无关
+      const fatOn = !!demo?.fat || (!demo && store.fat);
+      if (fatOn) { P.cheek = 18; P.bodySX *= 1.09; P.bodySY *= 1.06; }
       if (!W.phase) return;
       const t = now - W.start;
 
@@ -105,10 +155,11 @@
         P.look = { x: W.fish.x, y: W.fish.y };
         P.tailAmp = 20; P.tailSpeed = 0.03;
         if (t >= T_FLY) {
-          if (W.overfed) { W.phase = 'spit'; W.start = now; ctx.fx.spawn('吃不下啦', 400, 100, 'angry', performance.now()); }
+          if (W.overfed) { W.phase = 'spit'; W.start = now; ctx.fx.spawn(W.overDaily ? '今天 5 条到顶啦' : '吃不下啦', 400, 100, 'angry', performance.now(), 1800); }
           else {
             W.phase = 'chew'; W.start = now; W.fish = null;
             ctx.fx.spawn('香！', 460, 100, 'hot', performance.now());
+            feedAccepted(now);
             if (window.SillyAffection) window.SillyAffection.add(2);
             if (window.SillySounds) { window.SillySounds.play('tap'); setTimeout(() => window.SillySounds.play('tap'), 220); }
           }
@@ -142,7 +193,10 @@
 
     return {
       afterKeyDown, softPawTarget, pose, render,
-      debugProps: { snack: () => W.phase, snackFish: () => W.fish, snackFed: () => W.feedLog.length },
+      debugProps: {
+        snack: () => W.phase, snackFish: () => W.fish, snackFed: () => W.feedLog.length,
+        snackToday: () => store.today, snackStreak: () => store.streak, snackFat: () => !!store.fat,
+      },
     };
   }
 

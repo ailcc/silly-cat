@@ -1,9 +1,10 @@
 // 小奶猫串门：你发呆一阵后（12 秒没键鼠），一只毛色随机的小奶猫从画面左边
-// 走进来，跳上键盘走到中间伸个懒腰，然后趴下打个小盹；几秒后起身从画面
-// 右边走出去。四条腿对角步态、走路身体一颠一颠、尾巴摆动、偶尔眨眼，趴下
-// 时带呼吸起伏。小猫趴着或伸懒腰时你一打字会吓到它：随机被大猫一巴掌
-// 拍飞出画面（肉掌扬起来拍下去），或者它自己爬起来慌忙走掉。
-// 大猫全程盯着它看，小猫趴下时大猫打一会儿呼噜。冷却 30–60 分钟，一次一只。
+// 走进来，跳上键盘走到中间趴下打个盹；打盹时长随机 6–18 秒（你越久没动
+// 电脑它睡得越安稳，一打字它就会被吓跑），然后起身从画面右边走出去。
+// 四条腿对角步态、走路身体一颠一颠、尾巴摆动、偶尔眨眼，趴下时带呼吸起伏。
+// 小猫趴着时你一打字会吓到它：随机被大猫一巴掌拍飞出画面（肉掌扬起来拍
+// 下去），或者它自己爬起来慌忙走掉。大猫全程盯着它看，小猫趴下时大猫
+// 打一会儿呼噜。冷却 30–60 分钟，一次一只。
 // 调试：?demo=visitor&loop=1（自动循环演出）或 &at=毫秒 冻结在时间轴某刻
 (function () {
   'use strict';
@@ -12,26 +13,35 @@
   const Y_KEYS = 512;   // 键帽顶面（脚底）
   const PH_MS = 300;    // 一步的周期（一个完整步态循环 = 两拍）
   const SCALE = 1.25;   // 整体放大倍率（小奶猫要看得清）
+  const LIE_MIN = 6;    // 打盹最短秒数
+  const LIE_MAX = 18;   // 打盹最长秒数（没人动电脑就让它多睡会儿）
+  const AFF_BUDDY = 120;    // 好感度到「死忠」之后，小奶猫偶尔肯留下来当跟班
+  const BUDDY_CHANCE = 0.5; // 每次串门有多大概率留下（一半一半）
+  const BUDDY_LIE_MIN = 60; // 跟班打盹最短秒数（赖着不走，睡个够）
+  const BUDDY_LIE_MAX = 150;
 
-  // 时间轴：走进来 → 跳上键盘 → 走到中间 → 伸懒腰 → 趴下打盹 → 起身 → 走到右边 → 跳下 → 走出画面
+  // 时间轴：走进来 → 跳上键盘 → 走到中间 → 趴下打盹（时长每次随机）→ 起身 → 走到右边 → 跳下 → 走出画面
   const SEG = [
     { name: 'walk1',   t: 2600, x0: -80, x1: 170, y: Y_DESK },
     { name: 'step1',   t: 500, x0: 170, x1: 230, y0: Y_DESK, y1: Y_KEYS, leap: true },
     { name: 'walk2',   t: 1200, x0: 230, x1: 400, y: Y_KEYS },
-    { name: 'stretch', t: 1500, x: 400, y: Y_KEYS },
     { name: 'lie',     t: 6300, x: 400, y: Y_KEYS },
     { name: 'stand',   t: 400, x: 400, y: Y_KEYS },
     { name: 'walk3',   t: 1200, x0: 400, x1: 570, y: Y_KEYS },
     { name: 'step2',   t: 500, x0: 570, x1: 630, y0: Y_KEYS, y1: Y_DESK, leap: true },
     { name: 'walk4',   t: 2500, x0: 630, x1: 880, y: Y_DESK },
   ];
-  let TOTAL = 0, walkClock = 0;
-  for (const s of SEG) {
-    s.start = TOTAL;
-    TOTAL += s.t;
-    s.walkBefore = walkClock;
-    if (s.x0 !== undefined) walkClock += s.t; // 走路/跳跃才累积步态时间，停留段不算
+  // 重新累计各段的起始时刻（趴下段改成随机时长后要重算后面的段）
+  function rebuildTimeline() {
+    let total = 0, walkClock = 0;
+    for (const s of SEG) {
+      s.start = total;
+      total += s.t;
+      s.walkBefore = walkClock;
+      if (s.x0 !== undefined) walkClock += s.t; // 走路/跳跃才累积步态时间，停留段不算
+    }
   }
+  rebuildTimeline();
   const segOf = (name) => SEG.find((s) => s.name === name);
 
   const COAT = [               // 小奶猫毛色：橘 / 灰 / 黑
@@ -105,6 +115,14 @@
       V.phase = 'play'; V.start = now; V.flags = {};
       V.coat = Math.floor(Math.random() * COAT.length);
       coatEls();
+      // 趴下打盹的时长每次随机：没人动电脑就让它睡得久一点
+      segOf('lie').t = rand(LIE_MIN, LIE_MAX) * 1000;
+      // 死忠粉（好感 120+）面前它才敢撒欢：偶尔这一趟留下来当跟班——睡个够，打字也不跑
+      V.buddy = !!demo.buddy || (!demo && !!window.SillyAffection
+        && window.SillyAffection.get().v >= AFF_BUDDY && Math.random() < BUDDY_CHANCE);
+      if (V.buddy) segOf('lie').t = rand(BUDDY_LIE_MIN, BUDDY_LIE_MAX) * 1000;
+      V.lookUntil = -1e9;
+      rebuildTimeline();
       E.layer.style.display = '';
     }
     function stopPurr() {
@@ -152,11 +170,17 @@
       if (idle) startVisit(now);
     }
 
-    // 小猫上了键盘之后（伸懒腰 / 趴着 / 正要起身），一打字就吓到：随机被拍飞或自己跑掉
+    // 小猫上了键盘之后（趴着 / 正要起身），一打字就吓到：随机被拍飞或自己跑掉。
+    // 当了跟班就不怕了：抬头看你一眼，接着睡。
     function afterKeyDown(code, now) {
       if (demo || !V.phase) return;
       const t = now - V.start;
-      if (t >= segOf('stretch').start && t < segOf('walk3').start) {
+      if (t >= segOf('lie').start && t < segOf('walk3').start) {
+        if (V.buddy) {
+          V.lookUntil = now + 1500;
+          if (Math.random() < 0.25) fx.spawn('喵～', 440, 455, '', now);
+          return;
+        }
         (Math.random() < 0.5 ? scareOff : runOff)(now);
       }
     }
@@ -222,7 +246,12 @@
       if (demo) {
         if (Number.isFinite(demo.at)) {
           // 冻结协议：每帧把时间轴重新锚定在 demo.at（和其他模块一致）
-          if (!V.frozenInit) { V.frozenInit = true; V.coat = 0; coatEls(); V.phase = 'play'; E.layer.style.display = ''; }
+          if (!V.frozenInit) {
+            V.frozenInit = true; V.coat = 0; coatEls(); V.phase = 'play';
+            // &buddy=1：演示跟班局，趴下段拉长到 150 秒，冻结时刻能稳定落在打盹里
+            if (demo.buddy) { V.buddy = true; segOf('lie').t = 150000; rebuildTimeline(); }
+            E.layer.style.display = '';
+          }
           V.start = now - demo.at;
         } else if (!V.phase) {
           startVisit(now); // 循环演出：上一轮结束立刻重来
@@ -242,11 +271,6 @@
         return;
       }
       const lieK = seg.name === 'lie' ? 1 : seg.name === 'stand' ? 1 - ease(p) : 0; // 1 = 完全趴下
-      // 伸懒腰：前半段弓起来，停一拍，最后收回去（收完正好接趴下）
-      const stretchK = seg.name !== 'stretch' ? 0
-        : p < 0.35 ? ease(p / 0.35)
-        : p < 0.75 ? 1
-        : 1 - ease((p - 0.75) / 0.25);
 
       // 到位的小剧场：跳上键盘时打招呼，趴下时大猫打呼噜
       if (seg.name === 'step1' && !V.flags.greet) {
@@ -268,13 +292,13 @@
       E.root.setAttribute('transform', `translate(${x.toFixed(1)} ${(gy + hop).toFixed(1)}) scale(${SCALE})`);
       E.upper.setAttribute('transform', `translate(0 ${(-bob).toFixed(2)})`);
 
-      // 腿：对角步态（左前+右后一组，右前+左后一组）；跳跃前伸后蹬；伸懒腰前腿往前趴；趴下收起来
+      // 腿：对角步态（左前+右后一组，右前+左后一组）；跳跃前伸后蹬；趴下收起来
       const a1 = Math.sin(ph || 0) * 22, a2 = Math.sin((ph || 0) + Math.PI) * 22;
       const ang = {
-        fl: -85 * stretchK + (seg.leap ? -24 : a1 * (1 - stretchK)),
-        fr: -85 * stretchK + (seg.leap ? -24 : a2 * (1 - stretchK)),
-        bl: 15 * stretchK + (seg.leap ? 24 : a2 * (1 - stretchK)),
-        br: 15 * stretchK + (seg.leap ? 24 : a1 * (1 - stretchK)),
+        fl: seg.leap ? -24 : a1,
+        fr: seg.leap ? -24 : a2,
+        bl: seg.leap ? 24 : a2,
+        br: seg.leap ? 24 : a1,
       };
       for (const k of Object.keys(E.legs)) {
         E.legs[k].style.opacity = 1 - lieK;
@@ -285,16 +309,17 @@
       const breath = lieK > 0.9 ? Math.sin(now / 420) * 0.025 : 0;
       E.body.setAttribute('transform', `scale(1 ${(1 - 0.38 * lieK + breath).toFixed(3)})`);
 
-      // 头：伸懒腰时压低前伸，趴下时贴低；眼睛：趴下闭眼，平时偶尔眨眼
-      E.head.setAttribute('transform', `translate(${(30 + 10 * stretchK).toFixed(1)} ${(-62 + 24 * stretchK + 34 * lieK).toFixed(1)})`);
+      // 头：趴下时贴低（跟班被敲键盘吵到会抬头看你一眼）；眼睛：趴下闭眼，平时偶尔眨眼
+      const looking = V.buddy && seg.name === 'lie' && now < V.lookUntil;
+      E.head.setAttribute('transform', `translate(30 ${(-62 + 34 * lieK - (looking ? 6 : 0)).toFixed(1)})`);
       const blink = lieK < 0.3 && (t % 2400) < 130;
-      E.eyesOpen.style.display = blink || lieK > 0.5 ? 'none' : '';
-      E.eyesClosed.style.display = blink || lieK > 0.5 ? '' : 'none';
+      E.eyesOpen.style.display = blink || (lieK > 0.5 && !looking) ? 'none' : '';
+      E.eyesClosed.style.display = blink || (lieK > 0.5 && !looking) ? '' : 'none';
 
-      // 尾巴：走路翘着左右摆，伸懒腰时高高竖起，趴下时垂在身后
+      // 尾巴：走路翘着左右摆，趴下时顺着身后斜垂到地面（带呼吸轻轻晃）
       const walkTail = 35 + Math.sin((ph || 0) * 0.5 + 1) * 8;
-      const tailAng = walkTail + (70 - walkTail) * stretchK + (-50 - walkTail) * lieK;
-      const rad = tailAng * Math.PI / 180, tl = 30;
+      const tailAng = walkTail * (1 - lieK) + (-55 + Math.sin(now / 420) * 2.5) * lieK;
+      const rad = tailAng * Math.PI / 180, tl = 30 + 12 * lieK; // 趴下时尾巴变长才够到地面
       const ex = -34 - tl * Math.cos(rad), ey = -36 - tl * Math.sin(rad);
       const mx = -34 - tl * 0.55 * Math.cos(rad), my = -36 - tl * 0.55 * Math.sin(rad) - 4;
       E.tail.setAttribute('d', `M -34 -36 Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
@@ -312,7 +337,7 @@
 
     return {
       afterState, afterKeyDown, forcedPawTarget, pose,
-      debugProps: { visitor: () => (V.phase ? V.phase + '@' + Math.round(V.tNow) : null) },
+      debugProps: { visitor: () => (V.phase ? V.phase + '@' + Math.round(V.tNow) : null), buddy: () => !!V.buddy },
     };
   }
 

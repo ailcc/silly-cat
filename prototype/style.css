@@ -373,6 +373,11 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .pomo-chip { fill: var(--cream); stroke: var(--ink); stroke-width: 4; }
 #scene .pomo-text { fill: var(--ink); font-size: 24px; font-weight: 800; text-anchor: middle; font-family: ui-monospace, monospace; }
 #scene .pomo-dot { fill: #ff3b30; stroke: var(--ink); stroke-width: 3; }
+/* 番茄庆祝：派对帽 + 金色小星星 */
+#scene .pomo-hat { fill: #ffd34d; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
+#scene .pomo-hat-stripe { stroke: #ff7f9e; stroke-width: 5; fill: none; stroke-linecap: round; }
+#scene .pomo-hat-pompom { fill: #ff7f9e; stroke: var(--ink); stroke-width: 3; }
+#scene .pomo-star { fill: #ffd34d; stroke: var(--ink); stroke-width: 1.5; }
 
 /* 万圣节南瓜灯 */
 #scene .hp-body { fill: #ff9f2e; stroke: var(--ink); stroke-width: 4.5; }

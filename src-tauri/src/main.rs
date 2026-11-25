@@ -587,6 +587,28 @@ fn open_input_monitoring_settings() {
         .spawn();
 }
 
+/// 截猫表情包：前端把 PNG（base64）交过来，解码后写进系统剪贴板，全程不落任何文件
+#[tauri::command]
+fn copy_snapshot(app: AppHandle, data: String) -> Result<(), String> {
+    use base64::{engine::general_purpose::STANDARD, Engine as _};
+    use tauri::image::Image;
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    let bytes = STANDARD.decode(data.trim()).map_err(|e| format!("图片数据无效：{e}"))?;
+    let decoder = png::Decoder::new(std::io::Cursor::new(bytes));
+    let mut reader = decoder.read_info().map_err(|e| format!("图片解码失败：{e}"))?;
+    let mut buf = vec![0; reader.output_buffer_size()];
+    let info = reader
+        .next_frame(&mut buf)
+        .map_err(|e| format!("图片解码失败：{e}"))?;
+    app.clipboard()
+        .write_image(&Image::new_owned(
+            buf[..info.buffer_size()].to_vec(),
+            info.width,
+            info.height,
+        ))
+        .map_err(|e| format!("写入剪贴板失败：{e}"))
+}
+
 fn main() {
     tauri::Builder::default()
         // 单实例必须最先注册：第二个进程启动时立即退出，并把参数转给第一个实例
@@ -597,6 +619,7 @@ fn main() {
                 let _ = win.set_focus();
             }
         }))
+        .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             cursor_local,
             held_input_state,
@@ -616,6 +639,8 @@ fn main() {
             autostart::open_login_items,
             position_locked,
             show_context_menu,
+            copy_snapshot,
+            updater::check_update,
             updater::install_update,
             updater::updater_configured,
             updater::update_status

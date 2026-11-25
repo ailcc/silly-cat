@@ -78,6 +78,9 @@
   #about h2 { margin: 0 0 2px; font-size: inherit; }
   #about-links { display: flex; gap: 12px; margin-top: 2px; }
   #about-links a { color: inherit; }
+  .top-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .duo { display: flex; gap: 12px; margin-top: 12px; align-items: stretch; }
+  .duo .row { flex: 1 1 40%; margin-top: 0; min-width: 0; }
   footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
   button {
     padding: 5px 14px;
@@ -116,6 +119,22 @@
   </div>
   <div class="err" id="about-error" role="status"></div>
 </section>
+<div class="top-actions">
+  <button id="reset" type="button">恢复默认</button>
+  <button id="check-update" type="button">检查更新</button>
+</div>
+<div class="duo">
+  <div class="row" data-stats>
+    <div class="head"><strong>小账本</strong>
+      <span class="field"><button type="button" id="stats-reset">清零</button></span></div>
+    <div class="hint" id="stats-line">累计按键 0 次 · 发飙 0 次 · 推杯 0 次</div>
+  </div>
+  <div class="row" data-affection>
+    <div class="head"><strong>好感度</strong>
+      <span class="field"><button type="button" id="affection-reset">清零</button></span></div>
+    <div class="hint" id="affection-line">♥ 0（陌生）· 常摸摸头会增进感情</div>
+  </div>
+</div>
 <section id="update-result" class="row" hidden aria-live="polite">
   <strong id="update-title"></strong>
   <span id="update-detail"></span>
@@ -202,30 +221,55 @@
       <span class="field"><input id="f-pomo" type="checkbox"></span></div>
     <div class="hint">开启后猫陪你按 25 分钟专注 + 5 分钟休息的节奏工作，每 4 个番茄休一次长的，画面左上角挂着倒计时。</div>
   </div>
+  <div class="row" data-bool="pomoCheer">
+    <div class="head"><label for="f-pomoCheer">番茄庆祝</label>
+      <span class="field"><input id="f-pomoCheer" type="checkbox" aria-describedby="pomo-cheer-hint"></span></div>
+    <div id="pomo-cheer-hint" class="hint">每完成一个番茄，猫撒一把星星喊你休息；凑满 4 个的长休还会戴上派对帽蹦跳庆祝。</div>
+  </div>
   <div class="row" data-birthday>
     <div class="head"><label for="f-birthday">猫的生日</label>
       <span class="field"><input id="f-birthday" type="text" inputmode="numeric" placeholder="如 3-15"></span></div>
-    <div class="hint">填「月-日」，那天猫会全程爱心眼给你庆祝；留空就不庆祝。</div>
+    <div class="hint">填「月-日」，那天猫会戴上生日帽给你庆祝；留空就不庆祝。</div>
+  </div>
+  <div class="row" data-bool="birthdayHearts">
+    <div class="head"><label for="f-birthdayHearts">生日爱心眼</label>
+      <span class="field"><input id="f-birthdayHearts" type="checkbox" aria-describedby="bday-hearts-hint"></span></div>
+    <div id="bday-hearts-hint" class="hint">勾上后，生日当天猫全程爱心眼；不勾就只有生日帽，眼睛保持正常。</div>
+  </div>
+  <div class="row" data-bool="sitRemind">
+    <div class="head"><label for="f-sitRemind">久坐提醒</label>
+      <span class="field"><input id="f-sitRemind" type="checkbox" aria-describedby="sit-hint"></span></div>
+    <div id="sit-hint" class="hint">连续工作（中途没有超过 2 分钟的休息）到下面的时长，猫举牌催你起来活动；摸摸头表示知道了。</div>
+  </div>
+  <div class="row" data-sit>
+    <div class="head"><label for="f-sitMinutes">提醒间隔</label>
+      <span class="field"><select id="f-sitMinutes">
+        <option value="30">30 分钟</option>
+        <option value="45">45 分钟</option>
+        <option value="60">60 分钟</option>
+        <option value="90">90 分钟</option>
+      </select></span></div>
+    <div class="hint">久坐提醒的触发时长，默认 45 分钟。</div>
+  </div>
+  <div class="row" data-bool="quips">
+    <div class="head"><label for="f-quips">数据吐槽</label>
+      <span class="field"><input id="f-quips" type="checkbox" aria-describedby="quips-hint"></span></div>
+    <div id="quips-hint" class="hint">你发呆时，猫会翻小账本，拿你的真实数据低频吐槽：累计敲了多少下键盘、惹它发飙几回、好感度多少。</div>
   </div>
   <div class="row" data-bool="eyesFollow">
     <div class="head"><label for="f-eyesFollow">眼睛跟着鼠标</label>
       <span class="field"><input id="f-eyesFollow" type="checkbox" aria-describedby="eyes-follow-hint"></span></div>
     <div id="eyes-follow-hint" class="hint">醒着时，猫的眼睛会跟着鼠标指针看；指针停下几秒后收回目光。</div>
   </div>
-  <div class="row" data-stats>
-    <div class="head"><strong>小账本</strong>
-      <span class="field"><button type="button" id="stats-reset">清零</button></span></div>
-    <div class="hint" id="stats-line">累计按键 0 次 · 发飙 0 次 · 推杯 0 次</div>
-  </div>
-  <div class="row" data-affection>
-    <div class="head"><strong>好感度</strong>
-      <span class="field"><button type="button" id="affection-reset">清零</button></span></div>
-    <div class="hint" id="affection-line">♥ 0（陌生）· 常摸摸头会增进感情</div>
+  <div class="row" data-size>
+    <div class="head"><label for="f-size">猫的大小</label>
+      <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
+    <div id="size-hint" class="hint">可调 50%–200%，改大小时猫的右下角不动。</div>
   </div>
   <div class="row" data-bool="autoUpdate" hidden>
     <div class="head"><label for="f-autoUpdate">自动检查更新</label>
       <span class="field"><input id="f-autoUpdate" type="checkbox" aria-describedby="update-hint"></span></div>
-    <div class="hint" id="update-hint">每天从 GitHub 检查新版本，点击更新后才下载。</div>
+    <div class="hint" id="update-hint">每天从 Gitee 检查新版本，点击更新后才下载。</div>
   </div>
   <div class="row" id="autostart" hidden>
     <div class="head"><label for="f-autostart">开机时自动启动</label>
@@ -235,14 +279,8 @@
     <button id="autostart-login-items" type="button" hidden>打开登录项</button>
     <div class="err" id="autostart-error" role="status"></div>
   </div>
-  <div class="row" data-size>
-    <div class="head"><label for="f-size">猫的大小</label>
-      <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
-    <div id="size-hint" class="hint">可调 50%–200%，改大小时猫的右下角不动。</div>
-  </div>
 </form>
 <footer>
-  <button id="reset" type="button">恢复默认</button>
   <span id="status"></span>
 </footer>
 
@@ -292,6 +330,7 @@
   const bools = {};
   for (const k of S.BOOLS) bools[k] = document.getElementById(`f-${k}`);
   const birthdayInput = document.getElementById('f-birthday');
+  const sitMinutesInput = document.getElementById('f-sitMinutes');
   const sizeInput = document.getElementById('f-size');
   const sizePercent = document.getElementById('size-percent');
   const autostartInput = document.getElementById('f-autostart');
@@ -313,6 +352,7 @@
       input.value = s[k] === null ? '' : fmt(s[k]);
     }
     for (const k of S.BOOLS) bools[k].checked = s[k] !== false;
+    sitMinutesInput.value = String(s.sitMinutes);
     birthdayInput.value = s.birthday || '';
     sizeInput.value = Math.round(s.size * 100);
     refreshHints(s);
@@ -327,6 +367,7 @@
       else s[k] = Number(t);
     }
     for (const k of S.BOOLS) s[k] = bools[k].checked;
+    s.sitMinutes = Number(sitMinutesInput.value);
     s.birthday = birthdayInput.value.trim(); // 格式对不对由 sanitize 把关，不对就当没填
     s.size = sizeInput.valueAsNumber / 100;
     return s;
@@ -382,6 +423,12 @@
   });
   form.addEventListener('submit', (e) => e.preventDefault());
   document.getElementById('reset').addEventListener('click', () => { fill(S.DEFAULTS); onEdit(); });
+  // 检查更新：桌面版直接触发 Rust 侧的检查，结果会通过 silly:update 事件显示在页面顶部的 update-result 区
+  document.getElementById('check-update').addEventListener('click', () => {
+    if (!invoke) { setStatus('网页版没有内置更新机制，桌面版可用', 'bad'); return; }
+    setStatus('正在检查更新…');
+    invoke('check_update').catch((e) => setStatus('检查失败：' + e, 'bad'));
+  });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && T && T.window) T.window.getCurrentWindow().close().catch(() => {});
   });
@@ -499,6 +546,14 @@
         if (e.button === 1) open(e);
       });
     }
+  } else {
+    // 网页版预览：开机启动和自动检查更新依赖桌面环境，显示但禁用，方便在测试页里对照布局
+    bools.autoUpdate.closest('.row').hidden = false;
+    bools.autoUpdate.disabled = true;
+    document.getElementById('update-hint').textContent = '桌面版才可自动检查更新';
+    document.getElementById('autostart').hidden = false;
+    autostartInput.disabled = true;
+    document.getElementById('autostart-hint').textContent = '桌面版才可开机自启动';
   }
   setTimeout(() => rows.sleep.input.focus(), 50);
 

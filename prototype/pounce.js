@@ -8,6 +8,10 @@
   const LEAP = 620;     // 扑过去
   const HOLD = 2000;    // 抱住鼠标玩
   const END = 2500;     // 松手、得意
+  const MISS_END = 1700; // 扑空：懊恼一会儿就收场
+  const SWAT_UP = 400;  // 扑空时：爪扬到最高点
+  const SWAT_HIT = 740; // 扑空时：爪拍到桌面（鼠标早跑了，拍空）
+  const MISS_RATE = 0.2; // 五分之一的概率扑空
   const WINDOW = 280;   // 这么短的时间里甩出足够距离才算“在甩”
   const THRESH = 36;    // 甩动判定：窗口内鼠标位移总和
   const COOLDOWN = [18000, 40000]; // 玩过一次后缓一缓再玩
@@ -25,12 +29,17 @@
     const F = {
       pounceAt: -1e9, nextPounce: performance.now() + (demo ? 800 : rand(6000, 15000)),
       lastM: { x: 0, y: 0 }, moves: [], demoInit: false,
+      miss: false, aim: { x: 400, y: 480 }, // 扑空局：爪子认准触发瞬间的鼠标位置，拍下去时鼠标早跑了
     };
     const lean = () => (mouseHome().x < 400 ? -1 : 1); // 鼠标在画面哪一侧，猫就往哪边扑
 
     function trigger(now) {
       F.pounceAt = now;
-      const m = mousePoint();
+      F.aim = mousePoint();
+      // 大多数时候扑个正着；偶尔（demo 里更容易遇到）扑空，露出懊恼
+      F.miss = opts.demo?.miss ? true : Math.random() < (demo ? 0.5 : MISS_RATE);
+      F.oww = false;
+      const m = F.aim;
       fx.spawn('扑！', clamp(m.x + lean() * 26, 60, 740), m.y - 46, 'hot', now);
       if (window.SillySounds) window.SillySounds.play('meow');
     }
@@ -43,7 +52,7 @@
     function refresh(now) {
       if (F.pounceAt > 0) {
         if (frozen) return; // 冻结帧永远停在扑住的瞬间
-        if (now - F.pounceAt >= END) cancel(now);
+        if (now - F.pounceAt >= (F.miss ? MISS_END : END)) cancel(now);
         return;
       }
       if (demo) {
@@ -75,10 +84,19 @@
       return F.pounceAt > 0 ? STATES.AWAKE : null; // 犯困时被甩鼠标吵到也会醒来玩
     }
 
-    // ---------- 爪子：一只按住鼠标顶，一只从旁边搂住 ----------
+    // ---------- 爪子 ----------
+    // 扑中：一只按住鼠标顶，一只从旁边搂住。
+    // 扑空：复用拍小奶猫那套「扬爪 → 拍下」——爪认准触发瞬间的鼠标位置拍下去，鼠标早跑了。
     function forcedPawTarget(paw, now) {
       if (F.pounceAt <= 0) return null;
       const t = now - F.pounceAt;
+      if (F.miss) {
+        if (paw !== mousePaw()) return null;             // 只挥鼠标那一侧的爪，另一只留在键盘上
+        if (t < SWAT_UP) return null;                    // 蓄势扑出阶段爪子跟着身体走
+        if (t < SWAT_HIT) return { id: 'swat-up', x: F.aim.x, y: F.aim.y - 170, tau: 9 }; // 扬起来
+        if (t < MISS_END) return { id: 'swat-down', x: F.aim.x + lean() * 26, y: F.aim.y - 2, tau: 45 }; // 拍！拍空
+        return null;
+      }
       if (t < CROUCH || t >= HOLD) return null; // 蓄势和松手阶段爪子自己安排
       const m = mousePoint();
       const holding = t >= LEAP + 120;
@@ -88,10 +106,10 @@
       return { id: 'pounce', x: m.x + lean() * 18, y: m.y + 7, tau: holding ? 8 : 10, pressing: holding };
     }
 
-    // ---------- 姿态：蓄势压低 -> 扑出去 -> 抱着晃 -> 得意 ----------
+    // ---------- 姿态：蓄势压低 -> 扑出去 -> 抱着晃 -> 得意（扑空：拍空后懊恼地坐回来） ----------
     function pose(now, dt, rm, P) {
       if (frozen) { // 冻结帧：把扑击钉在时间轴上，方便调试截图
-        F.demoInit = true;
+        if (!F.demoInit) { F.demoInit = true; F.miss = !!opts.demo?.miss; F.aim = mousePoint(); }
         F.pounceAt = now - demo.at;
       }
       if (F.pounceAt <= 0) return;
@@ -112,6 +130,23 @@
         P.headRot += d * 5 * e;
         P.look = m;
         P.tailAmp = Math.max(P.tailAmp || 0, 14);
+      } else if (F.miss) {
+        // 扑空：拍下去落空，懊恼地坐回来
+        const e = ease((t - LEAP) / (MISS_END - LEAP));
+        P.bodyX += d * 13 * (1 - e);
+        P.headX += d * 5 * (1 - e);
+        if (t < SWAT_HIT) {
+          P.look = F.aim;                 // 眼睛还死死盯着鼠标刚才在的地方
+        } else {
+          P.earDroop -= 14 * (1 - e) + 4; // 没拍到，耳朵尴尬地耷下来
+          P.lidMin = 0.55;               // 眼皮半耷，写满懊恼
+          P.look = m;                    // 目送鼠标扬长而去
+          if (!F.oww) {
+            F.oww = true;
+            fx.spawn('喵？！扑空了', clamp(F.aim.x, 60, 700), F.aim.y - 60, 'angry', now, 1500);
+          }
+        }
+        P.tailAmp = Math.max(P.tailAmp || 0, 10);
       } else if (t < HOLD) {
         P.bodyX += d * 13;
         P.headX += d * 5;
@@ -135,7 +170,7 @@
 
     return {
       refresh, afterState, afterKeyDown, overrideState, forcedPawTarget, pose,
-      debugProps: { pounce: () => (F.pounceAt > 0 ? Math.floor(performance.now() - F.pounceAt) : null) },
+      debugProps: { pounce: () => (F.pounceAt > 0 ? Math.floor(performance.now() - F.pounceAt) : null), miss: () => F.miss },
     };
   }
 

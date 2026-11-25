@@ -1,7 +1,8 @@
 // 节日彩蛋：到了特定日子，猫换上应景的装扮、说应景的话——
 // 万圣节桌上摆南瓜灯、圣诞节戴圣诞帽、新年放烟花爱心、情人节飘♥、
 // 春节穿红色小马褂、隔几分钟天上放一簇烟花（猫抬头看）、
-// 国庆周（10-01~07）身披国旗披风、生日（设置里可填 MM-DD）戴尖角生日帽全程爱心眼。
+// 国庆周（10-01~07）身披国旗披风、生日（设置里可填 MM-DD）戴尖角生日帽，
+// 生日爱心眼由设置里的开关控制（默认不启用）。
 // 调试：?demo=halloween|christmas|newyear|valentine|spring|national|birthday 直接看某一节的装扮
 (function () {
   'use strict';
@@ -41,6 +42,7 @@
     const demo = opts.demo && LINES[opts.demo.name] ? opts.demo.name : null;
     const W = {
       birthday: '',
+      hearts: false,      // 生日爱心眼开关（设置里控制，默认关）
       next: performance.now() + (demo ? 900 : rand(EVERY[0], EVERY[1])),
       nextFw: 0,          // 下一簇烟花的时刻
       fwLook: null,       // 刚放烟花时猫抬头看的位置
@@ -66,6 +68,13 @@
         if (el) el.remove();
       });
       W.domReady = null;
+    }
+
+    // 国庆披风会盖住成长小红围巾，但盖不满垂摆，会露出一条像"围巾戴重复了"；
+    // 披风出场时把小围巾暂时藏起来（用 visibility，不打架 growth.js 的 display 逻辑），节日结束自动恢复
+    function setScarfHidden(hidden) {
+      const el = document.getElementById('growth-scarf');
+      if (el) el.style.visibility = hidden ? 'hidden' : '';
     }
     function buildDecor(mode) {
       if (W.domReady === mode) return;
@@ -139,6 +148,7 @@
     }
 
     function setBirthday(v) { W.birthday = typeof v === 'string' ? v : ''; }
+    function setBirthdayHearts(v) { W.hearts = !!v; }
 
     // 一簇烟花：天上随机一点炸开 8 颗彩星（fx 粒子），「嘭！」一声，猫抬头看
     function firework(now) {
@@ -171,6 +181,7 @@
       if (mode !== W.mode) {
         W.mode = mode;
         if (mode) buildDecor(mode); else clearDecor();
+        setScarfHidden(mode === 'national'); // 披风出场收起日常围巾，其他节日不冲突
       }
       if (!mode) return;
 
@@ -180,8 +191,11 @@
       else if (!demo && idle && now >= W.next) { say(mode, now); W.next = now + rand(EVERY[0], EVERY[1]); }
 
       // 姿态加成
-      if (mode === 'birthday' || mode === 'valentine') {
-        P.eyesHappy = true; // 全程爱心眼：文档承诺了「全程」，打字时也眯眯眼
+      if (mode === 'birthday') {
+        // 生日爱心眼：只在设置里勾了开关才启用；生日帽不受开关影响
+        if (W.hearts) P.eyesHappy = true;
+      } else if (mode === 'valentine') {
+        P.eyesHappy = true; // 情人节照旧全程爱心眼
       } else if (mode === 'christmas' || mode === 'spring' || mode === 'national') {
         P.earDroop -= 2; // 戴帽子/马褂/披风，精神一点
       } else if (mode === 'halloween') {
@@ -197,7 +211,7 @@
     }
 
     return {
-      pose, setBirthday,
+      pose, setBirthday, setBirthdayHearts,
       debugProps: { holiday: () => W.mode },
     };
   }

@@ -305,6 +305,7 @@
 <script src="typerhythm.js"></script>
 <script src="dreams.js"></script>
 <script src="quotes.js"></script>
+<script src="quip.js"></script>
 <script src="wand.js"></script>
 <script src="laser.js"></script>
 <script src="snack.js"></script>
@@ -352,7 +353,7 @@
   const work = num('work') ?? 90;
   const rest = num('rest') ?? 20;
   // 调试入口：?demo=阶段 直接摆到并停在某个阶段；&loop=1 循环播放；&at=毫秒 冻结在时间轴上的某一刻
-  const demo = params.get('demo') ? { name: params.get('demo'), loop: params.get('loop') === '1', at: num('at') ?? (params.get('at') === '0' ? 0 : NaN) } : null;
+  const demo = params.get('demo') ? { name: params.get('demo'), loop: params.get('loop') === '1', at: num('at') ?? (params.get('at') === '0' ? 0 : NaN), miss: params.get('miss') === '1', cheer: params.get('cheer') === '1', buddy: params.get('buddy') === '1', fat: params.get('fat') === '1' } : null;
 
   // 趴下方式：默认每次随机；?slump-style=nod|melt 强制指定（调试用）
   const slumpStyle = params.get('slump-style');
@@ -365,7 +366,7 @@
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null;
+  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null, quip = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep, eyesFollow: eyesParam ?? SillySettings.DEFAULTS.eyesFollow, demo,
     modules: [
@@ -379,6 +380,7 @@
       (ctx) => SillyTypeRhythm.create(ctx, { demo }),
       (ctx) => SillyDreams.create(ctx, { demo }),
       (ctx) => SillyQuotes.create(ctx, { demo }),
+      (ctx) => (quip = SillyQuips.create(ctx, { demo })),
       (ctx) => SillyPoke.create(ctx, { demo }),
       (ctx) => SillyPullTail.create(ctx, { demo, fatigue }),
       (ctx) => SillyCoffee.create(ctx, { demo, push, fatigue }),
@@ -423,8 +425,10 @@
       if (!(skipUrl && statusBarParam !== null)) statusBar.setEnabled(s.statusBar);
       if (!(skipUrl && pushParam !== null)) push.setEnabled(s.push);
       if (!(skipUrl && soundsParam !== null)) window.SillySounds.setEnabled(s.sounds);
-      if (pomo) pomo.setEnabled(s.pomo);
-      if (holiday) holiday.setBirthday(s.birthday);
+      if (pomo) { pomo.setEnabled(s.pomo); pomo.setCheer(s.pomoCheer); }
+      if (holiday) { holiday.setBirthday(s.birthday); holiday.setBirthdayHearts(s.birthdayHearts); }
+      if (quip) quip.setEnabled(s.quips);
+      if (sit) sit.setEnabled(s.sitRemind, s.sitMinutes);
       if (!(skipUrl && eyesParam !== null)) cat.setEyesFollow(s.eyesFollow);
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
