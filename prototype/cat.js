@@ -874,21 +874,29 @@
     function frame(now) {
       const dt = clamp(now - last, 0, 64);
       last = now;
-      const rm = reducedMotion();
-      update(now);
-      const P = defaultPose();
-      call('pose', now, dt, rm, P);   // 扩展模块叠加姿态
-      setCatHidden(P.hideCat);
-      renderMouse(dt, P);
-      renderPaws(now, dt, P);
-      renderHead(now, dt, rm, P);
-      renderEyes(now, dt, P);
-      renderEars(now, P);
-      renderTail(now, dt, rm, P);
-      renderBody(now, rm, P);
-      renderZzz(now, P);
-      call('render', now, dt, rm, P);
-      fx.tick(now, rm);
+      // 渲染帧整体兜底：任何一帧抛异常（模块钩子已各自兜底，这里防的是主渲染代码本身
+      // 和未来的漏网之鱼），只跳过这一帧，下一帧照常排程。以前一帧崩了 requestAnimationFrame
+      // 就永远不再执行，猫从此僵在原地——键盘音效照响（音效走事件监听，不经过渲染循环），
+      // 这就是 1.2.2 用户实测「打开几分钟猫就不动了」的机制。出错时打到控制台方便定位。
+      try {
+        const rm = reducedMotion();
+        update(now);
+        const P = defaultPose();
+        call('pose', now, dt, rm, P);   // 扩展模块叠加姿态
+        setCatHidden(P.hideCat);
+        renderMouse(dt, P);
+        renderPaws(now, dt, P);
+        renderHead(now, dt, rm, P);
+        renderEyes(now, dt, P);
+        renderEars(now, P);
+        renderTail(now, dt, rm, P);
+        renderBody(now, rm, P);
+        renderZzz(now, P);
+        call('render', now, dt, rm, P);
+        fx.tick(now, rm);
+      } catch (e) {
+        console.error('[silly-cat] 渲染帧出错，跳过这一帧（主循环继续）', e);
+      }
       requestAnimationFrame(frame);
     }
     // ---------- 给扩展模块的上下文 ----------
