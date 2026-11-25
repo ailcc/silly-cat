@@ -460,24 +460,47 @@ jobs:
           set -euo pipefail
           mkdir -p updates
           # tauri-action 在草稿阶段生成的 latest.json 用的是 api.github.com 资产地址
-          # （发布后才可匿名下载），不能只按 download 前缀替换；统一按资产文件名
-          # 映射成 Gitee 下载地址（2026-11-25 v1.2.1 实测：api 地址形态 sed 匹配不上，
-          # Gitee 清单差点仍指向 GitHub）
+          # （发布后才可匿名下载），路径末段是数字资产 ID 而不是文件名，直接取末段会生成
+          # .../download/v1.2.2/791511771 这种 404 地址（2026-11-25 v1.2.2 实测踩坑）。
+          # 所以先拉一份「资产 ID -> 文件名」对照表，再统一映射成 Gitee 下载地址。
+          rel_id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+            --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" | head -n1)
+          if [[ -n "$rel_id" ]]; then
+            gh api "repos/$GITHUB_REPOSITORY/releases/$rel_id/assets" --paginate \
+              --jq '.[] | "\(.id) \(.name)"' > /tmp/asset-map.txt
+          else
+            : > /tmp/asset-map.txt
+          fi
           cat > /tmp/gitee-manifest.mjs <<'NODE'
             import fs from 'node:fs';
-            const [src, dst, tag] = process.argv.slice(2);
+            const [src, dst, tag, mapFile] = process.argv.slice(2);
+            const map = new Map();
+            if (mapFile && fs.existsSync(mapFile)) {
+              for (const line of fs.readFileSync(mapFile, 'utf8').split('\n')) {
+                const i = line.indexOf(' ');
+                if (i > 0) map.set(line.slice(0, i).trim(), line.slice(i + 1).trim());
+              }
+            }
             const m = JSON.parse(fs.readFileSync(src, 'utf8'));
             for (const v of Object.values(m.platforms || {})) {
-              const name = decodeURIComponent(new URL(v.url).pathname.split('/').pop());
+              const path = new URL(v.url).pathname;
+              const last = decodeURIComponent(path.split('/').pop());
+              const id = (path.match(/\/assets\/(\d+)$/) || [])[1];
+              const name = id && map.has(id) ? map.get(id) : last;
               v.url = `https://gitee.com/ailcc/silly-cat/releases/download/${tag}/${name}`;
             }
             fs.writeFileSync(dst, JSON.stringify(m, null, 2));
           NODE
-          node /tmp/gitee-manifest.mjs assets/latest.json updates/latest.json "$GITHUB_REF_NAME"
+          node /tmp/gitee-manifest.mjs assets/latest.json updates/latest.json "$GITHUB_REF_NAME" /tmp/asset-map.txt
           if [[ -f assets/latest-win7.json ]]; then
-            node /tmp/gitee-manifest.mjs assets/latest-win7.json updates/latest-win7.json "$GITHUB_REF_NAME"
+            node /tmp/gitee-manifest.mjs assets/latest-win7.json updates/latest-win7.json "$GITHUB_REF_NAME" /tmp/asset-map.txt
           else
             echo "::warning::没有 latest-win7.json（Win7 构建可能失败了），本次跳过 Win7 清单"
+          fi
+          # 兜底校验：清单里不允许再出现纯数字的资产 ID 地址
+          if grep -qE 'releases/download/[^/]+/[0-9]+"' updates/latest.json; then
+            echo "::error::更新清单仍是资产 ID 而非文件名，终止发布"
+            exit 1
           fi
           echo '--- latest.json ---'
           cat updates/latest.json
