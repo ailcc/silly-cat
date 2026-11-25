@@ -107,6 +107,15 @@
 </style>
 </head>
 <body>
+<section id="about" class="row" aria-labelledby="about-title">
+  <h2 id="about-title">关于</h2>
+  <div>捣蛋猫 SillyCat 增强版<span id="app-version"></span> · 基于 S0u1/silly-cat 扩展 · 免费开源（MIT 许可）</div>
+  <div id="about-links">
+    <a data-link="github" href="https://github.com/ailcc/silly-cat" target="_blank" rel="noopener">GitHub（本项目）</a>
+    <a data-link="origin" href="https://github.com/S0u1/silly-cat" target="_blank" rel="noopener">原作者</a>
+  </div>
+  <div class="err" id="about-error" role="status"></div>
+</section>
 <section id="update-result" class="row" hidden aria-live="polite">
   <strong id="update-title"></strong>
   <span id="update-detail"></span>
@@ -232,15 +241,6 @@
     <div id="size-hint" class="hint">可调 50%–200%，改大小时猫的右下角不动。</div>
   </div>
 </form>
-<section id="about" class="row" aria-labelledby="about-title">
-  <h2 id="about-title">关于</h2>
-  <div>捣蛋猫 SillyCat 增强版<span id="app-version"></span> · 基于 S0u1/silly-cat 扩展 · 免费开源（MIT 许可）</div>
-  <div id="about-links">
-    <a data-link="github" href="https://github.com/ailcc/silly-cat" target="_blank" rel="noopener">GitHub（本项目）</a>
-    <a data-link="origin" href="https://github.com/S0u1/silly-cat" target="_blank" rel="noopener">原作者</a>
-  </div>
-  <div class="err" id="about-error" role="status"></div>
-</section>
 <footer>
   <button id="reset" type="button">恢复默认</button>
   <span id="status"></span>
