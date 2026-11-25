@@ -496,7 +496,8 @@ jobs:
             echo "已删除 Gitee 上的旧 Release $old"
           fi
           body=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq 'map(select(.tag_name==env.GITHUB_REF_NAME))[0].body')
-          payload=$(node -e 'const [tag,name,body]=process.argv.slice(1);console.log(JSON.stringify({tag_name:tag,name,body,prerelease:false}))' "$GITHUB_REF_NAME" "SillyCat $GITHUB_REF_NAME" "$body")
+          # target_commitish 是 Gitee 必填字段（2026-11-25 实测缺了会报 "target_commitish is missing"）
+          payload=$(node -e 'const [tag,name,body]=process.argv.slice(1);console.log(JSON.stringify({tag_name:tag,name,body,prerelease:false,target_commitish:"main"}))' "$GITHUB_REF_NAME" "SillyCat $GITHUB_REF_NAME" "$body")
           rid=$(curl -sS --max-time 30 -X POST -H 'Content-Type: application/json' \
             -d "$payload" "$api/releases?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.id){process.stderr.write(s);process.exit(1)}console.log(r.id)})')
           echo "Gitee Release 创建成功，编号 $rid"
