@@ -61,9 +61,9 @@
 
 ## 更新机制
 
-桌面版使用 Tauri 2 updater。启动约 10 秒后检查一次，之后每 24 小时检查。设置文件中的布尔字段 `autoUpdate` 默认是 `true`，缺失或类型错误时也按开启处理。关闭后停止后台检查，右键菜单和托盘里的「检查更新…」仍可手动使用。检查只请求本项目的 GitHub Release，不上传输入或设置。只有用户点击安装才下载更新。
+桌面版使用 Tauri 2 updater。启动约 10 秒后检查一次，之后每 24 小时检查。设置文件中的布尔字段 `autoUpdate` 默认是 `true`，缺失或类型错误时也按开启处理。关闭后停止后台检查，右键菜单和托盘里的「检查更新…」仍可手动使用。检查只请求本项目的两个更新清单，不上传输入或设置。只有用户点击安装才下载更新。
 
-生产端点为 `https://github.com/ailcc/silly-cat/releases/latest/download/latest.json`（GitHub，首选；Gitee 镜像 `https://gitee.com/ailcc/silly-cat/raw/main/updates/latest.json` 兜底），指向已发布的最新 Release。Rust 插件根据清单、当前平台和 semver 决定是否提示更新，下载后校验签名，并要求签名中的版本与清单一致。macOS 使用通用 `.app.tar.gz`，Windows 使用 NSIS 安装包和 passive 安装模式。安装位置不可写时转到 Releases 页面手动下载。
+生产端点按顺序取 `plugins.updater.endpoints`（v1.2.1 起 Gitee 首选、GitHub 兜底）：Gitee `https://gitee.com/ailcc/silly-cat/raw/main/updates/latest.json`（Win7 版用 `latest-win7.json`），连不上再试 GitHub `https://github.com/ailcc/silly-cat/releases/latest/download/latest.json`。哪个端点先返回清单，下载就用清单里写的哪个源，提示里会标注来源。下载途中失败会自动换备用源重新拿清单再试一次（备用清单没有更新的版本时保留原错误照常报告）。清单由发版工作流生成并提交进仓库 `updates/` 目录（Gitee 镜像地址）。Rust 插件根据清单、当前平台和 semver 决定是否提示更新，下载后校验签名，并要求签名中的版本与清单一致。macOS 使用通用 `.app.tar.gz`，Windows 使用 NSIS 安装包和 passive 安装模式。安装位置不可写时按来源跳到对应的 Releases 页面手动下载。
 
 更新公钥嵌入 `src-tauri/tauri.conf.json` 的 `plugins.updater.pubkey`。将对应私钥内容和密码分别保存到仓库 Secrets `TAURI_SIGNING_PRIVATE_KEY` 和 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`，并在本地安全备份。这对密钥和 macOS 代码签名证书各有用途。换用新私钥后，旧客户端仍可能发现版本，但会拒绝安装由新密钥签署的包。丢失旧私钥时，需要用户手动安装包含新公钥的版本。
 

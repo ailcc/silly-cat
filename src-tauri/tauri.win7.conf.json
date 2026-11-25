@@ -10,8 +10,8 @@
     "updater": {
       "requireSignedVersion": false,
       "endpoints": [
-        "https://github.com/ailcc/silly-cat/releases/latest/download/latest-win7.json",
-        "https://gitee.com/ailcc/silly-cat/raw/main/updates/latest-win7.json"
+        "https://gitee.com/ailcc/silly-cat/raw/main/updates/latest-win7.json",
+        "https://github.com/ailcc/silly-cat/releases/latest/download/latest-win7.json"
       ]
     }
   }

@@ -3,7 +3,7 @@ use minisign_verify::PublicKey;
 use serde::Serialize;
 use serde_json::Value;
 use std::{io, path::Path, process::Command, sync::Mutex, time::Duration};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, Url};
 use tauri_plugin_updater::{Error, Update, UpdaterExt};
 use tokio::sync::{watch, Mutex as AsyncMutex};
 
@@ -264,6 +264,26 @@ fn unwritable(e: &io::Error) -> bool {
     read_only || e.kind() == io::ErrorKind::PermissionDenied
 }
 
+// 换源重试用：把更新器配置里的端点顺序反过来（两源时等于交换主备）。
+// 下载地址写在清单里，换一份清单就等于换一个下载源。
+fn reversed_endpoints(app: &AppHandle) -> Vec<Url> {
+    app.config()
+        .plugins
+        .0
+        .get("updater")
+        .and_then(|v| v.get("endpoints"))
+        .and_then(|v| v.as_array())
+        .map(|a| {
+            let mut eps: Vec<Url> = a
+                .iter()
+                .filter_map(|x| x.as_str().and_then(|s| Url::parse(s).ok()))
+                .collect();
+            eps.reverse();
+            eps
+        })
+        .unwrap_or_default()
+}
+
 #[tauri::command]
 pub async fn install_update(app: AppHandle) {
     let state = app.state::<Updates>();
@@ -290,40 +310,81 @@ pub async fn install_update(app: AppHandle) {
         }
         return;
     }
-    notify(
-        &app,
-        NoticeKind::Progress,
-        &format!("正在从{source}下载更新"),
-        "准备下载…",
-        false,
-    );
+    let mut update = update;
+    let mut source = source;
     let mut received = 0u64;
     let mut last_progress = None;
-    let result = update
-        .download_and_install(
-            |chunk, total| {
-                received += chunk as u64;
-                let progress = if let Some(total) = total.filter(|&n| n > 0) {
-                    format!("{}%", received.saturating_mul(100) / total)
-                } else {
-                    format!("{} KiB", (received / 65536) * 64)
-                };
-                if last_progress.as_ref() != Some(&progress) {
-                    notify(&app, NoticeKind::Progress, &format!("正在从{source}下载更新"), &progress, false);
-                    last_progress = Some(progress);
+    // 下载失败换源只试一次：主源挂了就按备用源顺序重新拿清单，下载地址跟着换。
+    // 换过来的清单版本若不比当前新（比如备用源还没同步到），保留原错误照常报告。
+    let mut swapped = false;
+    let result = loop {
+        received = 0;
+        last_progress = None;
+        notify(
+            &app,
+            NoticeKind::Progress,
+            &format!("正在从{source}下载更新"),
+            if swapped { "已切换备用源" } else { "准备下载…" },
+            false,
+        );
+        let outcome = update
+            .download_and_install(
+                |chunk, total| {
+                    received += chunk as u64;
+                    let progress = if let Some(total) = total.filter(|&n| n > 0) {
+                        format!("{}%", received.saturating_mul(100) / total)
+                    } else {
+                        format!("{} KiB", (received / 65536) * 64)
+                    };
+                    if last_progress.as_ref() != Some(&progress) {
+                        notify(
+                            &app,
+                            NoticeKind::Progress,
+                            &format!("正在从{source}下载更新"),
+                            &progress,
+                            false,
+                        );
+                        last_progress = Some(progress);
+                    }
+                },
+                || {
+                    notify(
+                        &app,
+                        NoticeKind::Progress,
+                        "正在校验并安装",
+                        "完成后自动重启",
+                        false,
+                    )
+                },
+            )
+            .await;
+        match &outcome {
+            Ok(()) => break outcome,
+            Err(Error::Io(e)) if unwritable(e) => break outcome,
+            Err(_) if swapped => break outcome,
+            Err(_) => {
+                let eps = reversed_endpoints(&app);
+                if eps.len() < 2 {
+                    break outcome;
                 }
-            },
-            || {
-                notify(
-                    &app,
-                    NoticeKind::Progress,
-                    "正在校验并安装",
-                    "完成后自动重启",
-                    false,
-                )
-            },
-        )
-        .await;
+                let builder = app
+                    .updater_builder()
+                    .timeout(Duration::from_secs(30))
+                    .endpoints(eps);
+                let Ok(builder) = builder else { break outcome };
+                let Ok(other) = builder.build() else { break outcome };
+                match other.check().await {
+                    Ok(Some(mut u)) => {
+                        u.timeout = Some(Duration::from_secs(10 * 60));
+                        source = source_of(&u);
+                        update = u;
+                        swapped = true;
+                    }
+                    _ => break outcome,
+                }
+            }
+        }
+    };
     match result {
         Ok(()) => app.restart(),
         Err(Error::Io(e)) if unwritable(&e) => fallback(&app, source),
