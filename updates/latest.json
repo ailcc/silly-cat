@@ -1,39 +1,39 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "notes": "捣蛋奶牛猫桌宠。macOS 下载 .dmg（Intel 和 Apple Silicon 通用），Windows 下载 -setup.exe。Windows 7、8、8.1 下载文件名带 win7 的 -setup.exe，并先按 README 常见问题装好 WebView2 109。首次打开需要手动放行。",
-  "pub_date": "2026-11-25T05:51:08.684Z",
+  "pub_date": "2026-11-25T07:23:50.980Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmQwV3hPazBrR05PVlRpb3RhcEJFckRRL2x4NnVBd0Z5c1dJZkpjSWR6UFd5cE9abVFReHFzUFlXZlhQNGJaaVNUS1VzQWNPRXM5bVZnaC9uVmVJV3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg1NTI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMS4wCmo1dnJTaWRCWEovc1dDaTl2ZW5ISDg3ZFdVMmgvV0R6eG1xdGVjSFZ1VTRDY29LL3oxOE5GZDM5dm1rbFRXYTVQam4rYlhiNmFsQXZlQVFpSFVkN0N3PT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790244329"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcllFbU9yRUs2aEdWVlNEQUFQVlFmNmdJRGdVQmpyc011ZnRQYitLcDhDYnJGWVFDMVoweEh1eUFGc3gwdFlMTDhiVTRHRDZvMkMzanpZQkduTzRBUFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTkxMTI1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4wCnRRbWRScXRWWC9pZkpXUDJ6dmlDU25RS1cyb0Q5azhNNWcrVEdBY2crajZ4ZVJWUExaeHAvQnlva01vWldhbGRma1VCdnZLMDVDTUZXUDY5MFVreER3PT0K",
+      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790507132"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmQwV3hPazBrR05PVlRpb3RhcEJFckRRL2x4NnVBd0Z5c1dJZkpjSWR6UFd5cE9abVFReHFzUFlXZlhQNGJaaVNUS1VzQWNPRXM5bVZnaC9uVmVJV3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg1NTI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMS4wCmo1dnJTaWRCWEovc1dDaTl2ZW5ISDg3ZFdVMmgvV0R6eG1xdGVjSFZ1VTRDY29LL3oxOE5GZDM5dm1rbFRXYTVQam4rYlhiNmFsQXZlQVFpSFVkN0N3PT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790244329"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcllFbU9yRUs2aEdWVlNEQUFQVlFmNmdJRGdVQmpyc011ZnRQYitLcDhDYnJGWVFDMVoweEh1eUFGc3gwdFlMTDhiVTRHRDZvMkMzanpZQkduTzRBUFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTkxMTI1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4wCnRRbWRScXRWWC9pZkpXUDJ6dmlDU25RS1cyb0Q5azhNNWcrVEdBY2crajZ4ZVJWUExaeHAvQnlva01vWldhbGRma1VCdnZLMDVDTUZXUDY5MFVreER3PT0K",
+      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790507132"
     },
     "darwin-universal": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmQwV3hPazBrR05PVlRpb3RhcEJFckRRL2x4NnVBd0Z5c1dJZkpjSWR6UFd5cE9abVFReHFzUFlXZlhQNGJaaVNUS1VzQWNPRXM5bVZnaC9uVmVJV3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg1NTI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMS4wCmo1dnJTaWRCWEovc1dDaTl2ZW5ISDg3ZFdVMmgvV0R6eG1xdGVjSFZ1VTRDY29LL3oxOE5GZDM5dm1rbFRXYTVQam4rYlhiNmFsQXZlQVFpSFVkN0N3PT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790244329"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcllFbU9yRUs2aEdWVlNEQUFQVlFmNmdJRGdVQmpyc011ZnRQYitLcDhDYnJGWVFDMVoweEh1eUFGc3gwdFlMTDhiVTRHRDZvMkMzanpZQkduTzRBUFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTkxMTI1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4wCnRRbWRScXRWWC9pZkpXUDJ6dmlDU25RS1cyb0Q5azhNNWcrVEdBY2crajZ4ZVJWUExaeHAvQnlva01vWldhbGRma1VCdnZLMDVDTUZXUDY5MFVreER3PT0K",
+      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790507132"
     },
     "darwin-aarch64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmQwV3hPazBrR05PVlRpb3RhcEJFckRRL2x4NnVBd0Z5c1dJZkpjSWR6UFd5cE9abVFReHFzUFlXZlhQNGJaaVNUS1VzQWNPRXM5bVZnaC9uVmVJV3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg1NTI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMS4wCmo1dnJTaWRCWEovc1dDaTl2ZW5ISDg3ZFdVMmgvV0R6eG1xdGVjSFZ1VTRDY29LL3oxOE5GZDM5dm1rbFRXYTVQam4rYlhiNmFsQXZlQVFpSFVkN0N3PT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790244329"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcllFbU9yRUs2aEdWVlNEQUFQVlFmNmdJRGdVQmpyc011ZnRQYitLcDhDYnJGWVFDMVoweEh1eUFGc3gwdFlMTDhiVTRHRDZvMkMzanpZQkduTzRBUFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTkxMTI1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4wCnRRbWRScXRWWC9pZkpXUDJ6dmlDU25RS1cyb0Q5azhNNWcrVEdBY2crajZ4ZVJWUExaeHAvQnlva01vWldhbGRma1VCdnZLMDVDTUZXUDY5MFVreER3PT0K",
+      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790507132"
     },
     "darwin-x86_64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmQwV3hPazBrR05PVlRpb3RhcEJFckRRL2x4NnVBd0Z5c1dJZkpjSWR6UFd5cE9abVFReHFzUFlXZlhQNGJaaVNUS1VzQWNPRXM5bVZnaC9uVmVJV3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg1NTI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMS4wCmo1dnJTaWRCWEovc1dDaTl2ZW5ISDg3ZFdVMmgvV0R6eG1xdGVjSFZ1VTRDY29LL3oxOE5GZDM5dm1rbFRXYTVQam4rYlhiNmFsQXZlQVFpSFVkN0N3PT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790244329"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcllFbU9yRUs2aEdWVlNEQUFQVlFmNmdJRGdVQmpyc011ZnRQYitLcDhDYnJGWVFDMVoweEh1eUFGc3gwdFlMTDhiVTRHRDZvMkMzanpZQkduTzRBUFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTkxMTI1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4wCnRRbWRScXRWWC9pZkpXUDJ6dmlDU25RS1cyb0Q5azhNNWcrVEdBY2crajZ4ZVJWUExaeHAvQnlva01vWldhbGRma1VCdnZLMDVDTUZXUDY5MFVreER3PT0K",
+      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790507132"
     },
     "darwin-universal-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmQwV3hPazBrR05PVlRpb3RhcEJFckRRL2x4NnVBd0Z5c1dJZkpjSWR6UFd5cE9abVFReHFzUFlXZlhQNGJaaVNUS1VzQWNPRXM5bVZnaC9uVmVJV3drPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg1NTI0CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMS4wCmo1dnJTaWRCWEovc1dDaTl2ZW5ISDg3ZFdVMmgvV0R6eG1xdGVjSFZ1VTRDY29LL3oxOE5GZDM5dm1rbFRXYTVQam4rYlhiNmFsQXZlQVFpSFVkN0N3PT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790244329"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcllFbU9yRUs2aEdWVlNEQUFQVlFmNmdJRGdVQmpyc011ZnRQYitLcDhDYnJGWVFDMVoweEh1eUFGc3gwdFlMTDhiVTRHRDZvMkMzanpZQkduTzRBUFFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTkxMTI1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMi4wCnRRbWRScXRWWC9pZkpXUDJ6dmlDU25RS1cyb0Q5azhNNWcrVEdBY2crajZ4ZVJWUExaeHAvQnlva01vWldhbGRma1VCdnZLMDVDTUZXUDY5MFVreER3PT0K",
+      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790507132"
     },
     "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclZyVDZCUEgrWVJqZU95bUhmL0pWOVIwOStBRHpaaGhYY1R2ZE5nemVIQXFVTzIvb3lteFk5eDE4U3E4V2t6N1E4ZTJDWDNIMEZWeThWa2QvQ0I1VkFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg1ODY2CWZpbGU6U2lsbHlDYXRfMS4xLjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMS4wCldYalFxN1Z2V3dsNzhxeGNGUzhwdWRZS0x3azUvN0daY3ZJWW9OSXVYVHl1SjN2d0RDTHlpR1V0a2RnRFhVRmxpZWd3UTZNUE1VWWlYMC9HM0UwYUR3PT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790260336"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclI4SktrdURlNHZJOGdpcWhzOVg4S3BiTWQ1OVJRdXlRVmNINmFza1RnMFRha3VQVmFPY0UzZmk5dm5ublljR3l4Z2RmK1lTd3JIYkxHcEpJZnpQc2djPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTkxNDI3CWZpbGU6U2lsbHlDYXRfMS4yLjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMi4wCmQxbHRUam9MTXhCZGZBN0tWNmxUMk9Ld3A4Skx2Z1NUV3ZsdW1vbEF3a1llSWtTNWxyVlc2d0FHRjZUWkp2dVdBWG9nekprMktodHFvMUNvNVlrakF3PT0K",
+      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790522582"
     },
     "windows-x86_64-nsis": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclZyVDZCUEgrWVJqZU95bUhmL0pWOVIwOStBRHpaaGhYY1R2ZE5nemVIQXFVTzIvb3lteFk5eDE4U3E4V2t6N1E4ZTJDWDNIMEZWeThWa2QvQ0I1VkFzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTg1ODY2CWZpbGU6U2lsbHlDYXRfMS4xLjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMS4wCldYalFxN1Z2V3dsNzhxeGNGUzhwdWRZS0x3azUvN0daY3ZJWW9OSXVYVHl1SjN2d0RDTHlpR1V0a2RnRFhVRmxpZWd3UTZNUE1VWWlYMC9HM0UwYUR3PT0K",
-      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790260336"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclI4SktrdURlNHZJOGdpcWhzOVg4S3BiTWQ1OVJRdXlRVmNINmFza1RnMFRha3VQVmFPY0UzZmk5dm5ublljR3l4Z2RmK1lTd3JIYkxHcEpJZnpQc2djPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTkxNDI3CWZpbGU6U2lsbHlDYXRfMS4yLjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMi4wCmQxbHRUam9MTXhCZGZBN0tWNmxUMk9Ld3A4Skx2Z1NUV3ZsdW1vbEF3a1llSWtTNWxyVlc2d0FHRjZUWkp2dVdBWG9nekprMktodHFvMUNvNVlrakF3PT0K",
+      "url": "https://api.github.com/repos/ailcc/silly-cat/releases/assets/790522582"
     }
   }
 }
