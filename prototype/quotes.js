@@ -29,7 +29,8 @@
 
     function say() {
       W.line = pick(LINES);
-      ctx.fx.spawn(W.line, 400 + rand(-40, 40), 100, '', performance.now());
+      // 语录是完整句子，寿命给 2.6 秒（比浮键帽的 0.7 秒长）才看得清
+      ctx.fx.spawn(W.line, 400 + rand(-40, 40), 100, '', performance.now(), 2600);
       if (window.SillySounds) window.SillySounds.play('meow');
     }
 

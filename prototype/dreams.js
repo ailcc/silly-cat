@@ -28,8 +28,8 @@
       W.start = now;
       W.until = now + DREAM_MS;
       W.line = t ?? pick(LINES);
-      // 梦话从脑袋附近飘出来，寿命借用浮字特效自己的
-      ctx.fx.spawn(W.line, 470 + rand(-24, 24), 118, '', ms);
+      // 梦话从脑袋附近飘出来；句子长，寿命给 2.4 秒（比浮键帽的 0.7 秒长）才看得清
+      ctx.fx.spawn(W.line, 470 + rand(-24, 24), 118, '', ms, 2400);
     }
 
     function pose(now, dt, rm, P) {

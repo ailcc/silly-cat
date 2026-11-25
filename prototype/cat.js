@@ -177,34 +177,38 @@
   // ---------- 浮起键帽特效（画面坐标，正着显示给观众） ----------
   const FX_MAX = 24, FX_LIFE = 700;
   function createKeycapFx(layer) {
-    const live = []; // { g, text, start, x, y, dx, rot, rise }
-    // style: '' | 'hot'（兴奋）| 'angry'（生气）
-    function spawn(text, x, y, style, now) {
+    const live = []; // { g, text, start, x, y, dx, rot, rise, life }
+    // style: '' | 'hot'（兴奋）| 'angry'（生气）；life 可选，定制寿命（梦话、语录这类长句给长一点）
+    function spawn(text, x, y, style, now, life) {
       const excited = !!style;
       while (live.length >= FX_MAX) live.shift().g.remove();
-      const w = Math.max(26, 12 + text.length * 9), h = 26;
       const g = document.createElementNS(SVG_NS, 'g');
       g.setAttribute('class', 'keycap-fx' + (style ? ' ' + style : ''));
       const r = document.createElementNS(SVG_NS, 'rect');
-      r.setAttribute('x', -w / 2); r.setAttribute('y', -h / 2);
-      r.setAttribute('width', w); r.setAttribute('height', h); r.setAttribute('rx', 7);
+      r.setAttribute('y', -13); r.setAttribute('height', 26); r.setAttribute('rx', 7);
       const t = document.createElementNS(SVG_NS, 'text');
       t.setAttribute('x', 0); t.setAttribute('y', 5);
       t.textContent = text;
       g.appendChild(r); g.appendChild(t);
-      g.setAttribute('opacity', '0');
       layer.appendChild(g);
+      // 边框宽度按渲染出来的实际文字量（中文字比估算宽得多，纯估算会溢出）
+      let tw = 12 + text.length * 9;
+      try { tw = t.getBBox().width; } catch { /* 量不出来退回估算 */ }
+      const w = Math.max(26, tw + 16);
+      r.setAttribute('x', -w / 2); r.setAttribute('width', w);
+      g.setAttribute('opacity', '0');
       live.push({
         g, text, start: now, x, y,
         dx: (Math.random() * 2 - 1) * 14,
         rot: (Math.random() * 2 - 1) * 8,
         rise: (excited ? 62 : 40) + Math.random() * (excited ? 14 : 18),
+        life: life || FX_LIFE,
       });
     }
     function tick(now, rm) {
       for (let i = live.length - 1; i >= 0; i--) {
         const f = live[i];
-        const p = (now - f.start) / FX_LIFE;
+        const p = (now - f.start) / f.life;
         if (p >= 1) { f.g.remove(); live.splice(i, 1); continue; }
         let op, tx = f.x, ty = f.y, sc = 1, rot = 0;
         if (rm) {
@@ -221,7 +225,7 @@
       }
     }
     function prune(now) { // 不依赖渲染帧也能清掉过期的（后台标签页 rAF 被节流时）
-      for (let i = live.length - 1; i >= 0; i--) if (now - live[i].start >= FX_LIFE) { live[i].g.remove(); live.splice(i, 1); }
+      for (let i = live.length - 1; i >= 0; i--) if (now - live[i].start >= live[i].life) { live[i].g.remove(); live.splice(i, 1); }
     }
     return { spawn, tick, texts(now) { prune(now); return live.map((f) => f.text); } };
   }
