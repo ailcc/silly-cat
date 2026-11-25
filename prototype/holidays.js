@@ -103,12 +103,12 @@
           <g id="holiday-cape">
             <path class="hca-band" d="M 322 296 Q 400 274 478 296 Q 486 308 478 318 Q 400 296 322 318 Q 314 308 322 296 Z"/>
             <path class="hca-drape" d="M 322 306 L 318 396 Q 336 406 354 398 L 350 310 Z"/>
-            <path class="hca-drape" d="M 478 306 L 482 396 Q 464 406 446 398 L 450 310 Z"/>
+            <path class="hca-drape" d="M 444 306 L 448 396 Q 430 406 412 398 L 416 310 Z"/>
             <path class="hca-star" d="${starPath(400, 304, 14)}"/>
-            <path class="hca-star" d="${starPath(460, 330, 8)}"/>
-            <path class="hca-star" d="${starPath(467, 350, 8)}"/>
-            <path class="hca-star" d="${starPath(464, 371, 8)}"/>
-            <path class="hca-star" d="${starPath(452, 388, 8)}"/>
+            <path class="hca-star" d="${starPath(424, 292, 7)}"/>
+            <path class="hca-star" d="${starPath(438, 304, 7)}"/>
+            <path class="hca-star" d="${starPath(438, 320, 7)}"/>
+            <path class="hca-star" d="${starPath(424, 330, 7)}"/>
           </g>`);
       } else if (mode === 'birthday') {
         // 尖角生日帽：条纹圆锥 + 顶上一个小球，歪戴着，挂在头部组里跟着头动
