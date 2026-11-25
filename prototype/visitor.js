@@ -75,6 +75,14 @@
           <rect id="visitor-leg-fr" class="visitor-leg" x="5.5" y="-22" width="9" height="22" rx="4.5"/>
           <rect id="visitor-leg-fl" class="visitor-leg" x="17.5" y="-22" width="9" height="22" rx="4.5"/>
         </g>
+        <g id="visitor-paw" style="display:none">
+          <g id="visitor-paw-tilt">
+            <ellipse class="visitor-bigpaw" cx="0" cy="0" rx="30" ry="21"/>
+            <ellipse class="visitor-bigpaw" cx="-17" cy="-18" rx="9" ry="11"/>
+            <ellipse class="visitor-bigpaw" cx="0" cy="-22" rx="9" ry="11"/>
+            <ellipse class="visitor-bigpaw" cx="17" cy="-18" rx="9" ry="11"/>
+          </g>
+        </g>
       </g>`);
     const E = {
       layer: document.getElementById('visitor-layer'),
@@ -90,6 +98,7 @@
       },
       eyesOpen: document.getElementById('visitor-eyes-open'),
       eyesClosed: document.getElementById('visitor-eyes-closed'),
+      paw: document.getElementById('visitor-paw'),
     };
     // 髋部位置（x）：腿绕这点旋转
     const HIP = { fl: 22, fr: 10, bl: -22, br: -10 };
@@ -113,15 +122,17 @@
     function endVisit(now) {
       V.phase = null;
       E.layer.style.display = 'none';
+      E.paw.style.display = 'none';
       V.next = now + rand(30, 60) * 60000;
       stopPurr();
     }
-    // 被打字吓跑：时间轴直接跳到起身走人那段
+    // 被打字吓跑 → 大猫一巴掌拍飞（肉掌从小猫图层里拍下来，不动大猫本体的爪子系统）
+    const FLEE = { freeze: 120, slap: 260, fly: 740, end: 1150 };
     function scareOff(now) {
-      V.start = now - segOf('walk3').start;
+      V.phase = 'flee';
+      V.start = now;
       V.flags.lie = false;
       stopPurr();
-      fx.spawn('喵！？', 400, 250, '', now);
     }
 
     function afterState(now) {
@@ -158,6 +169,53 @@
       return null; // 演出结束
     }
 
+    // 拍飞阶段：肉掌拍下 → 小奶猫僵住、被拍中 → 抛物线转圈飞出画面右边
+    function poseFlee(now, P) {
+      const t = now - V.start;
+      V.tNow = t;
+      let x = 400, y = Y_KEYS, rot = 0;
+      // 肉掌：从大猫方向拍下来，停一拍，再收回去
+      if (t >= FLEE.freeze && t < FLEE.slap + 280) {
+        E.paw.style.display = '';
+        const down = ease(clamp((t - FLEE.freeze) / (FLEE.slap - FLEE.freeze - 40), 0, 1));
+        const back = t > FLEE.slap + 120 ? ease(clamp((t - FLEE.slap - 120) / 160, 0, 1)) : 0;
+        E.paw.setAttribute('transform', `translate(${(355 + 30 * down).toFixed(1)} ${(330 + 140 * down - 180 * back).toFixed(1)})`);
+      } else {
+        E.paw.style.display = 'none';
+      }
+      // 小奶猫：先吓得一缩，被拍中后飞出去
+      if (t < FLEE.slap) {
+        x -= Math.sin(clamp(t / FLEE.slap, 0, 1) * Math.PI) * 6;
+      } else {
+        const fp = clamp((t - FLEE.slap) / FLEE.fly, 0, 1);
+        x = 400 + 560 * fp;
+        y = Y_KEYS - Math.sin(fp * Math.PI) * 300 + 60 * fp * fp;
+        rot = 720 * fp;
+        if (!V.flags.oww) {
+          V.flags.oww = true;
+          fx.spawn('啪！！', 420, 430, 'angry', now);
+          fx.spawn('喵嗷——！', 580, 350, 'angry', now);
+          if (window.SillySounds) window.SillySounds.play('meow');
+        }
+      }
+      E.root.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${SCALE}) rotate(${rot.toFixed(0)} 0 -30)`);
+      // 挨拍时四脚乱蹬、眼睛圆睁、尾巴竖起；影子留在地面跟着走
+      for (const k of Object.keys(E.legs)) E.legs[k].setAttribute('transform', `rotate(${k[0] === 'f' ? -30 : 30} ${HIP[k]} -22)`);
+      E.body.setAttribute('transform', 'scale(1 1)');
+      E.head.setAttribute('transform', 'translate(30 -62)');
+      E.upper.setAttribute('transform', 'translate(0 0)');
+      E.eyesOpen.style.display = '';
+      E.eyesClosed.style.display = 'none';
+      E.tail.setAttribute('d', 'M -34 -36 Q -50 -52 -44 -68');
+      E.shadow.setAttribute('cx', x.toFixed(1));
+      E.shadow.setAttribute('cy', (Y_KEYS + 5).toFixed(1));
+      if (t >= FLEE.end) { endVisit(now); return; }
+      // 大猫目送它飞出去
+      P.look = { x, y: y - 30 };
+      P.earDroop -= 3;
+      S.lastInput = now;
+    }
+
     function pose(now, dt, rm, P) {
       if (demo) {
         if (Number.isFinite(demo.at)) {
@@ -169,12 +227,15 @@
         }
       }
       if (!V.phase) return;
+      if (V.phase === 'flee') { poseFlee(now, P); return; }
       const t = now - V.start;
       V.tNow = t;
       const L = layout(t);
       if (!L) { endVisit(now); return; }
 
       const { seg, x, gy, ph, p } = L;
+      // demo 循环模式：趴下一会儿后自动挨一巴掌，方便预览拍飞
+      if (demo && !Number.isFinite(demo.at) && seg.name === 'lie' && t > seg.start + 800) { scareOff(now); return; }
       const lieK = seg.name === 'lie' ? 1 : seg.name === 'stand' ? 1 - ease(p) : 0; // 1 = 完全趴下
       // 伸懒腰：前半段弓起来，停一拍，最后收回去（收完正好接趴下）
       const stretchK = seg.name !== 'stretch' ? 0
@@ -246,7 +307,7 @@
 
     return {
       afterState, afterKeyDown, pose,
-      debugProps: { visitor: () => (V.phase ? 'play@' + Math.round(V.tNow) : null) },
+      debugProps: { visitor: () => (V.phase ? V.phase + '@' + Math.round(V.tNow) : null) },
     };
   }
 
