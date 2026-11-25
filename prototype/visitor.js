@@ -1,7 +1,8 @@
 // 小奶猫串门：你发呆一阵后（12 秒没键鼠），一只毛色随机的小奶猫从画面左边
 // 走进来，跳上键盘走到中间伸个懒腰，然后趴下打个小盹；几秒后起身从画面
 // 右边走出去。四条腿对角步态、走路身体一颠一颠、尾巴摆动、偶尔眨眼，趴下
-// 时带呼吸起伏。小猫趴着或伸懒腰时你一打字，它立刻被吓跑（起身走掉）。
+// 时带呼吸起伏。小猫趴着或伸懒腰时你一打字会吓到它：随机被大猫一巴掌
+// 拍飞出画面（肉掌扬起来拍下去），或者它自己爬起来慌忙走掉。
 // 大猫全程盯着它看，小猫趴下时大猫打一会儿呼噜。冷却 30–60 分钟，一次一只。
 // 调试：?demo=visitor&loop=1（自动循环演出）或 &at=毫秒 冻结在时间轴某刻
 (function () {
@@ -126,13 +127,21 @@
       V.next = now + rand(30, 60) * 60000;
       stopPurr();
     }
-    // 被打字吓跑 → 大猫一巴掌拍飞（肉掌从小猫图层里拍下来，不动大猫本体的爪子系统）
-    const FLEE = { freeze: 120, slap: 260, fly: 740, end: 1150 };
+    // 被打字吓到的两种结局（随机二选一）：
+    // 拍飞——大猫的肉掌从爪边出现、扬起来、一巴掌拍下去，小奶猫转圈飞出画面右边
+    // 吓跑——自己起身，从键盘上下来往右边走掉
+    const FLEE = { freeze: 120, slap: 390, fly: 740, end: 1300 };
     function scareOff(now) {
       V.phase = 'flee';
       V.start = now;
       V.flags.lie = false;
       stopPurr();
+    }
+    function runOff(now) {
+      V.start = now - segOf('stand').start; // 从起身段开始播，趴着先爬起来再走
+      V.flags.lie = false;
+      stopPurr();
+      fx.spawn('喵！？', 400, 250, '', now);
     }
 
     function afterState(now) {
@@ -143,11 +152,13 @@
       if (idle) startVisit(now);
     }
 
-    // 小猫上了键盘之后（伸懒腰 / 趴着 / 正要起身），一打字就吓跑；还在路上时随便打
+    // 小猫上了键盘之后（伸懒腰 / 趴着 / 正要起身），一打字就吓到：随机被拍飞或自己跑掉
     function afterKeyDown(code, now) {
       if (demo || !V.phase) return;
       const t = now - V.start;
-      if (t >= segOf('stretch').start && t < segOf('walk3').start) scareOff(now);
+      if (t >= segOf('stretch').start && t < segOf('walk3').start) {
+        (Math.random() < 0.5 ? scareOff : runOff)(now);
+      }
     }
 
     // 按时间轴算出此刻小猫该怎么摆：x / 地面高度 / 段名 / 步态相位 / 段内进度
@@ -174,12 +185,25 @@
       const t = now - V.start;
       V.tNow = t;
       let x = 400, y = Y_KEYS, rot = 0;
-      // 肉掌：从大猫方向拍下来，停一拍，再收回去
-      if (t >= FLEE.freeze && t < FLEE.slap + 280) {
+      // 肉掌：从大猫爪边出现 → 扬起来（后仰蓄力）→ 快速拍下去 → 抬起 → 收回爪边
+      if (t < 1000) {
         E.paw.style.display = '';
-        const down = ease(clamp((t - FLEE.freeze) / (FLEE.slap - FLEE.freeze - 40), 0, 1));
-        const back = t > FLEE.slap + 120 ? ease(clamp((t - FLEE.slap - 120) / 160, 0, 1)) : 0;
-        E.paw.setAttribute('transform', `translate(${(355 + 30 * down).toFixed(1)} ${(330 + 140 * down - 180 * back).toFixed(1)})`);
+        let px, py, pr;
+        if (t < FLEE.freeze) { px = 490; py = 465; pr = 0; }                                  // 出现在大猫爪边
+        else if (t < 270) {                                                                   // 扬起来
+          const q = ease((t - FLEE.freeze) / 150);
+          px = 490 + (455 - 490) * q; py = 465 + (320 - 465) * q; pr = -42 * q;
+        } else if (t < FLEE.slap) {                                                           // 拍下去
+          const q = ease((t - 270) / (FLEE.slap - 270));
+          px = 455 + (405 - 455) * q; py = 320 + (462 - 320) * q; pr = -42 + 54 * q;
+        } else if (t < 700) {                                                                 // 拍完抬起
+          const q = ease((t - FLEE.slap) / 310);
+          px = 405 + (455 - 405) * q; py = 462 + (360 - 462) * q; pr = 12 - 37 * q;
+        } else {                                                                              // 收回爪边
+          const q = ease((t - 700) / 300);
+          px = 455 + (490 - 455) * q; py = 360 + (465 - 360) * q; pr = -25 * (1 - q);
+        }
+        E.paw.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${pr.toFixed(1)})`);
       } else {
         E.paw.style.display = 'none';
       }
@@ -234,8 +258,11 @@
       if (!L) { endVisit(now); return; }
 
       const { seg, x, gy, ph, p } = L;
-      // demo 循环模式：趴下一会儿后自动挨一巴掌，方便预览拍飞
-      if (demo && !Number.isFinite(demo.at) && seg.name === 'lie' && t > seg.start + 800) { scareOff(now); return; }
+      // demo 循环模式：趴下一会儿后自动吓到，拍飞/跑掉轮流演示
+      if (demo && !Number.isFinite(demo.at) && seg.name === 'lie' && t > seg.start + 800) {
+        (V.demoCount = (V.demoCount || 0) + 1) % 2 ? scareOff(now) : runOff(now);
+        return;
+      }
       const lieK = seg.name === 'lie' ? 1 : seg.name === 'stand' ? 1 - ease(p) : 0; // 1 = 完全趴下
       // 伸懒腰：前半段弓起来，停一拍，最后收回去（收完正好接趴下）
       const stretchK = seg.name !== 'stretch' ? 0
