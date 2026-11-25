@@ -76,14 +76,6 @@
           <rect id="visitor-leg-fr" class="visitor-leg" x="5.5" y="-22" width="9" height="22" rx="4.5"/>
           <rect id="visitor-leg-fl" class="visitor-leg" x="17.5" y="-22" width="9" height="22" rx="4.5"/>
         </g>
-        <g id="visitor-paw" style="display:none">
-          <g id="visitor-paw-tilt">
-            <ellipse class="visitor-bigpaw" cx="0" cy="0" rx="30" ry="21"/>
-            <ellipse class="visitor-bigpaw" cx="-17" cy="-18" rx="9" ry="11"/>
-            <ellipse class="visitor-bigpaw" cx="0" cy="-22" rx="9" ry="11"/>
-            <ellipse class="visitor-bigpaw" cx="17" cy="-18" rx="9" ry="11"/>
-          </g>
-        </g>
       </g>`);
     const E = {
       layer: document.getElementById('visitor-layer'),
@@ -99,7 +91,6 @@
       },
       eyesOpen: document.getElementById('visitor-eyes-open'),
       eyesClosed: document.getElementById('visitor-eyes-closed'),
-      paw: document.getElementById('visitor-paw'),
     };
     // 髋部位置（x）：腿绕这点旋转
     const HIP = { fl: 22, fr: 10, bl: -22, br: -10 };
@@ -123,19 +114,28 @@
     function endVisit(now) {
       V.phase = null;
       E.layer.style.display = 'none';
-      E.paw.style.display = 'none';
       V.next = now + rand(30, 60) * 60000;
       stopPurr();
     }
     // 被打字吓到的两种结局（随机二选一）：
-    // 拍飞——大猫的肉掌从爪边出现、扬起来、一巴掌拍下去，小奶猫转圈飞出画面右边
+    // 拍飞——接管大猫两只爪中随机一只（forcedPawTarget）：先扬起来，再拍到小猫身上，
+    //       然后松手让爪子自己回到打字位；小奶猫转圈飞出画面右边
     // 吓跑——自己起身，从键盘上下来往右边走掉
-    const FLEE = { freeze: 120, slap: 390, fly: 740, end: 1300 };
+    const FLEE = { freeze: 300, slap: 430, fly: 740, end: 1300 };
     function scareOff(now) {
       V.phase = 'flee';
       V.start = now;
       V.flags.lie = false;
+      V.slapPaw = Math.random() < 0.5 ? 'L' : 'R';
       stopPurr();
+    }
+    // 拍飞期间接管大猫那只爪：扬起 → 拍下 → 松手归位
+    function forcedPawTarget(paw, now) {
+      if (V.phase !== 'flee' || !V.slapPaw || paw.side !== V.slapPaw) return null;
+      const t = now - V.start;
+      if (t < FLEE.freeze) return { id: 'slap-up', x: 400 + (paw.side === 'L' ? 40 : -40), y: 310, tau: 90 };
+      if (t < FLEE.slap) return { id: 'slap-down', x: 400, y: 485, tau: 45 };
+      return null; // 拍完松手，爪子自己回到原来的位置
     }
     function runOff(now) {
       V.start = now - segOf('stand').start; // 从起身段开始播，趴着先爬起来再走
@@ -180,33 +180,11 @@
       return null; // 演出结束
     }
 
-    // 拍飞阶段：肉掌拍下 → 小奶猫僵住、被拍中 → 抛物线转圈飞出画面右边
+    // 拍飞阶段：大猫的爪扬起拍下（forcedPawTarget 接管），小奶猫僵住、被拍中 → 抛物线转圈飞出画面右边
     function poseFlee(now, P) {
       const t = now - V.start;
       V.tNow = t;
       let x = 400, y = Y_KEYS, rot = 0;
-      // 肉掌：从大猫爪边出现 → 扬起来（后仰蓄力）→ 快速拍下去 → 抬起 → 收回爪边
-      if (t < 1000) {
-        E.paw.style.display = '';
-        let px, py, pr;
-        if (t < FLEE.freeze) { px = 490; py = 465; pr = 0; }                                  // 出现在大猫爪边
-        else if (t < 270) {                                                                   // 扬起来
-          const q = ease((t - FLEE.freeze) / 150);
-          px = 490 + (455 - 490) * q; py = 465 + (320 - 465) * q; pr = -42 * q;
-        } else if (t < FLEE.slap) {                                                           // 拍下去
-          const q = ease((t - 270) / (FLEE.slap - 270));
-          px = 455 + (405 - 455) * q; py = 320 + (462 - 320) * q; pr = -42 + 54 * q;
-        } else if (t < 700) {                                                                 // 拍完抬起
-          const q = ease((t - FLEE.slap) / 310);
-          px = 405 + (455 - 405) * q; py = 462 + (360 - 462) * q; pr = 12 - 37 * q;
-        } else {                                                                              // 收回爪边
-          const q = ease((t - 700) / 300);
-          px = 455 + (490 - 455) * q; py = 360 + (465 - 360) * q; pr = -25 * (1 - q);
-        }
-        E.paw.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)}) rotate(${pr.toFixed(1)})`);
-      } else {
-        E.paw.style.display = 'none';
-      }
       // 小奶猫：先吓得一缩，被拍中后飞出去
       if (t < FLEE.slap) {
         x -= Math.sin(clamp(t / FLEE.slap, 0, 1) * Math.PI) * 6;
@@ -333,7 +311,7 @@
     }
 
     return {
-      afterState, afterKeyDown, pose,
+      afterState, afterKeyDown, forcedPawTarget, pose,
       debugProps: { visitor: () => (V.phase ? V.phase + '@' + Math.round(V.tNow) : null) },
     };
   }

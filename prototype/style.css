@@ -345,7 +345,6 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .visitor-tail { fill: none; stroke-width: 7; stroke-linecap: round; }
 #scene .visitor-eye { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
 #scene .visitor-eye-dot, #scene .visitor-nose { fill: var(--ink); stroke: none; }
-#scene .visitor-bigpaw { fill: var(--coat-paw-r); stroke: var(--ink); stroke-width: 3; }
 
 /* 成长等级：小红围巾 + 小皇冠 */
 #scene .growth-scarf-band { fill: #d9534f; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
