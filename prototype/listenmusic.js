@@ -21,15 +21,21 @@
     const demo = opts.demo && opts.demo.name === 'listen' ? opts.demo : null;
     const A = { enabled: true, on: false, decidedFor: -1, nextNote: 0, noteAlt: false, doze: false, willDoze: false, dozeAt: 0 };
 
-    // 耳机：复用游戏模式模板（去麦克风），绕头顶放大 1.35 倍（头梁顶不超出画面）；狗狗按物种缩放
+    // 耳机：复用游戏模式模板（去麦克风），挂在头组里。摆放参数（每皮肤一套：锚点 + 缩放）
+    // 来自 decor-fit.js 的 headphone 项；decor-fit.js 缺席时回退猫基准（1.35 倍）。
+    const phoneFit = () => {
+      const p = (window.SillyDecorFit && window.SillyDecorFit.get && window.SillyDecorFit.get('headphone')) ||
+        { x: 400, y: 100, scale: 1.35 };
+      return `translate(${p.x} ${p.y}) scale(${p.scale}) translate(-400 -100)`;
+    };
     document.getElementById('cat-head').insertAdjacentHTML('beforeend',
-      `<g transform="${window.SillyGameModeEgg.phoneWrap(1.35)}">${
+      `<g transform="${phoneFit()}">${
         window.SillyGameModeEgg.headphoneSVG('listen-phones', false)}</g>`);
     const phones = document.getElementById('listen-phones');
     if (!phones) return {}; // 插入失败就整个不启用
     const fitPhones = () => {
       const g = phones.parentElement;
-      if (g) g.setAttribute('transform', window.SillyGameModeEgg.phoneWrap(1.35));
+      if (g) g.setAttribute('transform', phoneFit());
     };
     window.addEventListener('silly:species', fitPhones);
 
@@ -57,11 +63,13 @@
         }
       }
       phones.style.display = A.on ? '' : 'none';
+      if (A.on) fitPhones(); // 同物种换毛色（切皮肤）也重摆一次耳机；只是设一个 transform，开销可忽略
       if (!A.on) return;
 
-      // 这轮掷中了才睡：眼睛闭上，不再点头晃身、不再冒音符，后脚也不打拍子（bobbing=false）
+      // 这轮掷中了才睡：正常闭眼（闭眼弧线，跟真睡着一个样），不再点头晃身、
+      // 不再冒音符，后脚也不打拍子（bobbing=false）
       if (A.willDoze && now >= A.dozeAt) A.doze = true;
-      if (A.doze) { P.lidMin = 1; return; }
+      if (A.doze) { P.eyesClosed = true; return; }
 
       // 听歌姿态：跟着节拍点头 + 身子轻晃 + 半眯眼享受 + 尾巴加大摆幅
       const beat = Math.sin((now % BOB_BEAT) / BOB_BEAT * Math.PI * 2);

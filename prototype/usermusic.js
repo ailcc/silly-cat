@@ -14,15 +14,21 @@
     if (!T || !window.SillyGameModeEgg) return {};
     const A = { on: false, enabled: true };
 
+    // 耳机摆放参数（每皮肤一套：锚点 + 缩放）来自 decor-fit.js；缺席时回退猫基准（1.35 倍）
+    const phoneFit = () => {
+      const p = (window.SillyDecorFit && window.SillyDecorFit.get && window.SillyDecorFit.get('headphone')) ||
+        { x: 400, y: 100, scale: 1.35 };
+      return `translate(${p.x} ${p.y}) scale(${p.scale}) translate(-400 -100)`;
+    };
     // 耳机：复用游戏模式模板（去麦克风），和空闲听歌的耳机同款同位
     document.getElementById('cat-head').insertAdjacentHTML('beforeend',
-      `<g transform="${window.SillyGameModeEgg.phoneWrap(1.35)}">${
+      `<g transform="${phoneFit()}">${
         window.SillyGameModeEgg.headphoneSVG('user-phones', false)}</g>`);
     const phones = document.getElementById('user-phones');
     if (!phones) return {};
     const fitPhones = () => {
       const g = phones.parentElement;
-      if (g) g.setAttribute('transform', window.SillyGameModeEgg.phoneWrap(1.35));
+      if (g) g.setAttribute('transform', phoneFit());
     };
     window.addEventListener('silly:species', fitPhones);
 
@@ -30,7 +36,9 @@
     window.SillyUserMusic = { create, active: () => A.on };
 
     function pose() {
-      phones.style.display = A.on && A.enabled && !gaming() ? '' : 'none';
+      const on = A.on && A.enabled && !gaming();
+      phones.style.display = on ? '' : 'none';
+      if (on) fitPhones(); // 同物种换毛色（切皮肤）也重摆一次耳机
     }
 
     // 设置里「电脑出声时戴耳机」的开关：关掉后 Rust 停止采样，耳机也不再冒出来

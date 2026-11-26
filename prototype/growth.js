@@ -44,48 +44,51 @@
       bellLine: document.getElementById('love-collar-bell-line'),
       dot: document.getElementById('love-collar-dot'),
     };
-    // 装扮几何按物种适配：狗的头更窄更低、胸口更宽更靠下，不能直接用猫的坐标。
+    // 装扮的摆放参数按皮肤存放在 decor-fit.js（每个毛色一套 x/y/宽高/缩放），微调改那个文件。
+    // 这里只放参考几何：围巾带/垂摆是归一化路径（0,0 起笔），由每皮肤的参考框摆到身上；
+    // 项圈粉带不单独开放调整（只在没戴围巾时露出），按物种写死。
     // 铃铛挂点跟着「上面那条带子」走：戴了围巾就挂围巾下（项圈粉带藏起来，免得红粉两条带子叠着），
     // 没戴围巾才挂项圈带下。
-    const DECOR_GEOM = {
-      cat: {
-        // 上 U 型围巾带（与狗同款、按猫的体型收窄）：两端绕到脖子两侧（上段藏进头轮廓后），
-        // 胸前正中下垂成 U 底；整体比首版上移了半个带宽
-        scarfBand: 'M 322 285 Q 400 327 478 285 Q 486 296 478 307 Q 400 349 322 307 Q 314 296 322 285 Z',
-        scarfTail: 'M 424 330 Q 437 362 430 386 Q 418 392 406 386 Q 418 364 412 334 Z',
-        collarBand: 'M 336 326 Q 400 306 464 326 Q 470 338 464 349 Q 400 329 336 349 Q 330 338 336 326 Z',
-        scarfBellY: 354, collarBellY: 354,
-        crown: 'translate(400 58)',
-      },
-      dog: {
-        // 上 U 型围巾带：像真围巾绕脖半圈——两端从脖子两侧绕出来（藏进头轮廓），
-        // 胸前正中往下垂成 U 底；垂摆从带子下缘垂出，铃铛挂 U 底正中
-        scarfBand: 'M 306 270 Q 400 312 494 270 Q 502 282 494 292 Q 400 334 306 292 Q 298 282 306 270 Z',
-        scarfTail: 'M 424 328 Q 437 358 430 378 Q 418 384 406 378 Q 418 360 412 332 Z',
-        collarBand: 'M 330 344 Q 400 320 470 344 Q 477 356 470 367 Q 400 343 330 367 Q 323 356 330 344 Z',
-        scarfBellY: 339, collarBellY: 347,
-        crown: 'translate(400 94) scale(0.9)',
-      },
+    const COLLAR_BAND = {
+      cat: 'M 336 326 Q 400 306 464 326 Q 470 338 464 349 Q 400 329 336 349 Q 330 338 336 326 Z',
+      dog: 'M 330 344 Q 400 320 470 344 Q 477 356 470 367 Q 400 343 330 367 Q 323 356 330 344 Z',
     };
-    const geom = () => DECOR_GEOM[window.SillySpecies?.current?.id] ?? DECOR_GEOM.cat;
+    const BAND_D = 'M 8 0 Q 102 42 196 0 Q 204 12 196 22 Q 102 64 8 22 Q 0 12 8 0 Z';
+    const BAND_BOX = { w: 204, h: 64 };
+    const TAIL_D = 'M 18 0 Q 31 30 24 50 Q 12 56 0 50 Q 12 32 6 4 Z';
+    const TAIL_BOX = { w: 31, h: 56 };
+    const fit = (item) => (window.SillyDecorFit && window.SillyDecorFit.get && window.SillyDecorFit.get(item)) || null;
     // 围巾是否「看得见」：国庆披风会用 visibility 把围巾临时藏起来（holidays.js），那时铃铛挂点也别跟着围巾走
     const scarfVisible = () => G.scarf && E.scarf.style.visibility !== 'hidden';
     let decorKey = '';
     function refreshDecor() {
-      const g = geom();
-      E.scarfBand.setAttribute('d', g.scarfBand);
-      E.scarfTail.setAttribute('d', g.scarfTail);
-      E.collarBand.setAttribute('d', g.collarBand);
-      E.crown.setAttribute('transform', g.crown);
-      // 项圈带子只在没戴围巾时显示；铃铛挂在上面那条带子的正中垂下来
-      const bellY = scarfVisible() ? g.scarfBellY : g.collarBellY;
+      const band = fit('scarfBand'), tail = fit('scarfTail'), crown = fit('crown'), bell = fit('bell');
+      const sp = window.SillySpecies?.current?.id ?? 'cat';
+      if (band) {
+        E.scarfBand.setAttribute('d', BAND_D);
+        E.scarfBand.setAttribute('transform', `translate(${band.x} ${band.y}) scale(${(band.w / BAND_BOX.w).toFixed(4)} ${(band.h / BAND_BOX.h).toFixed(4)})`);
+      }
+      if (tail) {
+        E.scarfTail.setAttribute('d', TAIL_D);
+        E.scarfTail.setAttribute('transform', `translate(${tail.x} ${tail.y}) scale(${(tail.w / TAIL_BOX.w).toFixed(4)} ${(tail.h / TAIL_BOX.h).toFixed(4)})`);
+      }
+      if (crown) E.crown.setAttribute('transform', `translate(${crown.x} ${crown.y}) scale(${crown.scale})`);
+      E.collarBand.setAttribute('d', COLLAR_BAND[sp] ?? COLLAR_BAND.cat);
+      // 项圈带子只在没戴围巾时显示；铃铛挂点来自 decor-fit.js
       E.collarBand.style.display = scarfVisible() ? 'none' : '';
-      E.bell.setAttribute('cy', bellY);
-      E.bellLine.setAttribute('d', `M 392 ${bellY + 4} Q 400 ${bellY + 9} 408 ${bellY + 4}`);
-      E.dot.setAttribute('cy', bellY - 4);
+      if (bell) {
+        E.bell.setAttribute('cx', bell.x);
+        E.bell.setAttribute('cy', bell.y);
+        E.bell.setAttribute('r', bell.size);
+        E.bellLine.setAttribute('d', `M ${bell.x - 8} ${bell.y + 4} Q ${bell.x} ${bell.y + 9} ${bell.x + 8} ${bell.y + 4}`);
+        E.dot.setAttribute('cx', bell.x);
+        E.dot.setAttribute('cy', bell.y - 4);
+      }
     }
     function syncDecor() {
-      const key = window.SillySpecies?.current?.id + '|' + scarfVisible();
+      // 皮肤切换（coats.apply 不发事件，用毛色 id 进 key 轮询去重）也要重摆装饰
+      const coatId = window.SillyCoats?.current?.()?.id;
+      const key = coatId + '|' + window.SillySpecies?.current?.id + '|' + scarfVisible();
       if (key === decorKey) return;
       decorKey = key;
       refreshDecor();
