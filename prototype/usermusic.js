@@ -40,9 +40,17 @@
       T.core.invoke('set_user_music_enabled', { enabled: A.enabled }).catch(() => {});
     }
 
-    // 初始状态问一次（猫启动前电脑可能已经在放歌），之后靠事件增量更新
-    T.event.listen('silly:user-music', (ev) => { A.on = !!(ev.payload && ev.payload.active); });
-    T.core.invoke('user_music_active').then((v) => { A.on = !!v; }).catch(() => {});
+    // 初始状态问一次（猫启动前电脑可能已经在放歌），之后靠事件增量更新；
+    // 从「没戴」变「戴上」的那一刻掷随机配色（戴着期间不变）
+    T.event.listen('silly:user-music', (ev) => {
+      const next = !!(ev.payload && ev.payload.active);
+      if (next && !A.on) window.SillyHeadphoneColor?.onWear?.();
+      A.on = next;
+    });
+    T.core.invoke('user_music_active').then((v) => {
+      if (v && !A.on) window.SillyHeadphoneColor?.onWear?.();
+      A.on = !!v;
+    }).catch(() => {});
 
     return { pose, setEnabled, debugProps: { userMusic: () => (A.on ? 'on' : 'off') } };
   }

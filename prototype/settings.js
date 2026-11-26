@@ -13,10 +13,13 @@
   // userMusic：用户听歌模式（检测系统音频，真正出声才戴耳机）；headphoneColor：耳机颜色（游戏 / 空闲听歌 / 用户听歌三处共用）
   const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', keyboard: 'compact', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, grump: true, swat: true, purr: true, purrVolume: 60, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true, userMusic: true, headphoneColor: 'strawberry' });
   const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo', 'birthdayHearts', 'quips', 'pomoCheer', 'sitRemind', 'kittenCoat', 'tailSlap', 'kbdFlow', 'headTurn', 'grump', 'swat', 'purr', 'mcpServer', 'hindPaws', 'listenMusic', 'userMusic']);
-  // 耳机颜色的名字和顺序就是设置页色块的顺序
+  // 耳机颜色的名字和顺序就是设置页色块的顺序；random 是第 5 个特殊选项：每次戴上随机挑一个，
+  // 戴着期间不再换色（耳机戴一半换色太怪了），摘下来下次戴上再随机
   const HEADPHONE_COLORS = Object.freeze({ strawberry: '草莓奶', mint: '薄荷', latte: '奶咖', sky: '天蓝' });
+  const HP_RANDOM = 'random';
   const normalizeHeadphoneColor = (value) =>
-    typeof value === 'string' && Object.hasOwn(HEADPHONE_COLORS, value) ? value : DEFAULTS.headphoneColor;
+    (typeof value === 'string' && (Object.hasOwn(HEADPHONE_COLORS, value) || value === HP_RANDOM))
+      ? value : DEFAULTS.headphoneColor;
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
   const SIZE = Object.freeze({ min: 0.5, max: 2, step: 0.05 });
   // 和 coats.js 的列表保持一致，顺序也是设置页的头像顺序。
@@ -91,5 +94,5 @@
     return s;
   }
 
-  window.SillySettings = { DEFAULTS, AUTO, SIZE, CATS, HEADPHONE_COLORS, normalizeHeadphoneColor, FIELDS, KEYS, BOOLS, validate, sanitize, effDrool, effSlump };
+  window.SillySettings = { DEFAULTS, AUTO, SIZE, CATS, HEADPHONE_COLORS, HP_RANDOM, normalizeHeadphoneColor, FIELDS, KEYS, BOOLS, validate, sanitize, effDrool, effSlump };
 })();

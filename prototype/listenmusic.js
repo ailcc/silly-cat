@@ -47,6 +47,7 @@
           A.decidedFor = S.lastInput;
           if (demo || Math.random() < 0.5) {
             A.on = true;
+            window.SillyHeadphoneColor?.onWear?.(); // 随机配色：戴上时才换色，戴着期间不变
             // 这轮听歌只有 DOZE_CHANCE 概率最后听着睡着（demo 必睡，8 秒）；
             // 没掷中的就一直清醒听到有输入
             A.doze = false;

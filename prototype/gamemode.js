@@ -55,6 +55,7 @@
     }
     if (demo) {
       G.on = true;
+      window.SillyHeadphoneColor?.onWear?.(); // 随机配色：戴上时才换色，戴着期间不变
       G.name = '演示游戏';
       if (demo.loop) G.nextAuto = performance.now() + 6000;
     }

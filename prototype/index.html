@@ -458,6 +458,19 @@
   const params = new URLSearchParams(location.search);
   SillySpecies.select('cat');
   const desktopMode = SillyDesktopInput.isDesktop();
+  // 耳机颜色：headphoneColor = 'random' 时每次戴上随机挑一个，戴着期间不变（摘了下次戴再随机）。
+  // 当前生效颜色记在 hpColor 里；设置换成固定色时立即生效，换成随机时保留当前色到下次戴上。
+  let hpColor = 'strawberry';
+  const HP_KEYS = Object.keys(SillySettings.HEADPHONE_COLORS);
+  const pickHpColor = () => HP_KEYS[Math.floor(Math.random() * HP_KEYS.length)];
+  const sceneEl = document.getElementById('scene');
+  const applyHpColor = (value) => {
+    hpColor = SillySettings.normalizeHeadphoneColor(value);
+    sceneEl.setAttribute('data-hp-color', hpColor === SillySettings.HP_RANDOM ? pickHpColor() : hpColor);
+  };
+  // 戴上耳机的三个入口（游戏模式 / 空闲听歌 / 用户听歌）都会调用：随机模式下换一个颜色
+  // set：设置变化时重新应用（桌面版 applySettings 调用；也方便调试）
+  window.SillyHeadphoneColor = { onWear() { if (hpColor === SillySettings.HP_RANDOM) sceneEl.setAttribute('data-hp-color', pickHpColor()); }, set: applyHpColor };
   if (!desktopMode) {
     const catSelect = document.getElementById('cat-select');
     for (const { id, name } of SillyCoats.list()) catSelect.add(new Option(name, id));
@@ -595,7 +608,7 @@
       if (hindPawsMod) hindPawsMod.setEnabled(s.hindPaws);
       if (listenMod) listenMod.setEnabled(s.listenMusic);
       if (userMusicMod) userMusicMod.setEnabled(s.userMusic);
-      document.getElementById('scene').setAttribute('data-hp-color', s.headphoneColor);
+      applyHpColor(s.headphoneColor);
       if (grumpMod) grumpMod.setEnabled(s.grump);
       if (swatMod) swatMod.setEnabled(s.swat);
       if (purrMod) { purrMod.setEnabled(s.purr); purrMod.setVolume(s.purrVolume); }
