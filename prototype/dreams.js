@@ -18,8 +18,10 @@
     const dog = () => ctx.species.id === 'dog';
     const lines = () => (dog() ? DOG_LINES : CAT_LINES);
     const demo = opts.demo && opts.demo.name === 'dream' ? opts.demo : null;
+    // 睡眠类演示（趴睡/口水等）就是「真的睡着」：第一句梦话早点来，别让观众干等
+    const sleepDemo = opts.demo && ['slumped', 'drool', 'slump-in'].includes(opts.demo.name);
     const W = {
-      next: performance.now() + (demo ? 800 : rand(EVERY[0], EVERY[1])),
+      next: performance.now() + (demo || sleepDemo ? 800 : rand(EVERY[0], EVERY[1])),
       until: -1e9,          // 当前这句梦话的结束时刻
       line: null,
       start: -1e9,          // 当前这句梦话的开始时刻（扭动用）

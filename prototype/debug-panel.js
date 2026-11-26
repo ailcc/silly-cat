@@ -12,11 +12,11 @@
     ['睡眠与听歌', [
       ['趴着睡觉', 'slumped'],
       ['趴下入睡', 'slump-in'],
-      ['说梦话', 'dream'],
+      ['说梦话', 'slumped'], // 真睡着才说梦话（和趴睡同一状态，梦里 0.8 秒后开始冒梦话）
       ['流口水', 'drool'],
       ['刚醒压痕', 'wake-marks'],
       ['听歌戴耳机', 'listen'], // 听 8 秒后自动睡着
-      ['踩奶', 'knead'],
+      ['踩奶', 'knead&at=800'], // knead 演示必须带 at 才会进入踩奶冻结帧
     ]],
     ['情绪与疲劳', [
       ['起床气', 'rage'],
@@ -109,13 +109,23 @@
     select.blur();
   });
 
-  // 现有 URL 里的 demo 名（高亮当前状态按钮用）
+  // 现有 URL 里的 demo 名（高亮当前状态按钮用）：含附加参数的项（如 knead&at=800）
+  // 按主名匹配高亮
   const currentDemo = params.get('demo');
-  function go(demo) {
+  function go(spec) {
     const p = new URLSearchParams(location.search);
     p.set('cat', select.value);
-    if (demo) { p.set('demo', demo); p.set('loop', '1'); }
-    else { p.delete('demo'); p.delete('loop'); p.delete('at'); }
+    if (spec) {
+      const [name, ...extra] = spec.split('&');
+      p.set('demo', name);
+      p.set('loop', '1');
+      for (const kv of extra) {
+        const eq = kv.indexOf('=');
+        p.set(eq === -1 ? kv : kv.slice(0, eq), eq === -1 ? '1' : kv.slice(eq + 1));
+      }
+    } else {
+      p.delete('demo'); p.delete('loop'); p.delete('at');
+    }
     location.href = location.pathname + '?' + p.toString();
   }
 
@@ -129,7 +139,7 @@
     for (const [label, demo] of items) {
       const b = document.createElement('button');
       b.textContent = label;
-      if (currentDemo === demo) b.classList.add('on');
+      if (currentDemo === demo.split('&')[0]) b.classList.add('on');
       b.title = label === '听歌戴耳机' ? '戴上耳机听歌，8 秒后自动睡着' : demo;
       b.addEventListener('click', () => go(demo));
       grid.appendChild(b);
