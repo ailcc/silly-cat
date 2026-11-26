@@ -9,3 +9,8 @@ build/
 
 签名密钥备份/
 其它cat/
+.screenshots/
+
+# 本地内部文件，永不提交
+沟通存档.md
+启动网站服务.txt
