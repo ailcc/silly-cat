@@ -2,11 +2,10 @@
 (function () {
   'use strict';
 
-  const PAW_OUT = 430, PULL = 720, PULL_END = 1010, PAW_HOME = 1210;
   const DIP = 540, GRIP = 1250, WAG = 1900, TURN = 2500, TUCK = 2640;
   const BACK = 2780, FRONT = 3130, END = 3400;
   const RETURN_RATE = 2;
-  const BITE_Y = 244, MOUSE_TOP = 38, PULL_DISTANCE = 85;
+  const BITE_Y = 244, MOUSE_TOP = 38;
   const lerp = (a, b, t) => a + (b - a) * t;
   const segment = (t, from, to) => {
     const p = Math.max(0, Math.min(1, (t - from) / (to - from)));
@@ -18,19 +17,13 @@
   };
 
   function deskMouse(t, dir, home) {
-    return { x: home.x - dir * PULL_DISTANCE * segment(t, PULL, PULL_END), y: home.y };
+    // 狗不伸爪拨弄鼠标（猫才用爪子），鼠标原地不动，狗低头一口叼住
+    return { x: home.x, y: home.y };
   }
 
   function pawTarget(ctx, frame, paw) {
-    const { t, dir, home } = frame;
-    if (paw !== ctx.mousePaw() || t < PAW_OUT || t >= PAW_HOME) return null;
-    const rest = ctx.restPoint(paw.side);
-    const mouse = deskMouse(t, dir, home);
-    const reach = segment(t, PAW_OUT, PULL) * (1 - segment(t, PULL_END, PAW_HOME));
-    return {
-      id: 'snatch', x: lerp(rest.x, mouse.x - dir * 16, reach),
-      y: lerp(rest.y, mouse.y - 13, reach), pressing: t >= PULL && t < PULL_END, tau: 17,
-    };
+    // 纯嘴叼：不给爪子任何目标，前爪留在键盘上
+    return null;
   }
 
   function sample(t, dir, home) {
@@ -89,7 +82,7 @@
       // 从嘴角的局部坐标反推低头位置，最后一帧正好够到鼠标上端。
       const pivot = ctx.rig.head.pivot;
       const biteAtGrip = rotate(400 + dir * 20 - pivot.x, BITE_Y - pivot.y, dir * 20);
-      P.headX += (home.x - dir * PULL_DISTANCE - pivot.x - biteAtGrip.x) * lean * recover;
+      P.headX += (home.x - pivot.x - biteAtGrip.x) * lean * recover;
       P.headY += ((home.y - MOUSE_TOP - pivot.y - biteAtGrip.y) * lean - 32 * lift) * recover;
       P.bodyX += dir * 57 * lean * recover;
       P.bodyY += 20 * lean * recover;
