@@ -38,6 +38,13 @@
       crown: document.getElementById('growth-crown'),
       collar: document.getElementById('love-collar'),
     };
+    // 狗头比猫头窄、且整体下移了 12：皇冠跟着缩一点、压低一点
+    const fitCrown = () => {
+      const dog = window.SillySpecies?.current?.scene?.template === 'parts-dog';
+      E.crown.setAttribute('transform', dog ? 'translate(400 74) scale(0.86)' : 'translate(400 58)');
+    };
+    fitCrown();
+    window.addEventListener('silly:species', fitCrown);
 
     function apply(v) {
       const scarf = v >= SCARF_AT, crown = v >= CROWN_AT, collar = v >= COLLAR_AT;

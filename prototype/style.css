@@ -563,3 +563,88 @@ html.desktop #perm-bubble { cursor: pointer; }
 #scene #perm-bubble:hover .perm-bubble-shape { fill: var(--cream); }
 
 #scene .art-replaced { display: none !important; }
+
+/* ---------- 狗狗：三只狗的配色与小狗眼（与上游 0.0.12 对齐） ---------- */
+html[data-cat="tianyuan"] {
+  --coat-base: #d9a24e;
+  --coat-dark: #b97e33;
+  --coat-back: #c48a3a;
+  --coat-light: #f3ddb0;
+  --coat-ear: var(--coat-base);
+  --coat-inner-ear: #e8b9a0;
+  --coat-paw-l: var(--coat-light);
+  --coat-paw-r: var(--coat-light);
+  --coat-pad: #cfab82;
+  --coat-lid-l: #dca151;
+  --coat-lid-r: #dba150;
+  --coat-eye-arc-l: #3a2417;
+  --coat-eye-arc-r: #3a2417;
+  --coat-nose: #251c17;
+  --coat-mouth-line: #4c3022;
+  --coat-tail: url(#coat-tianyuan-tail);
+  --coat-tail-tip: #e9cb93;
+  --coat-blush-opacity: 0.35;
+}
+html[data-cat="corgi"] {
+  --coat-base: #d78e43;
+  --coat-dark: #ad692e;
+  --coat-back: #bf7835;
+  --coat-light: #fbf2de;
+  --coat-ear: var(--coat-base);
+  --coat-inner-ear: #f0b4ac;
+  --coat-arm-l: var(--coat-base);
+  --coat-arm-r: var(--coat-base);
+  --coat-paw-l: var(--coat-light);
+  --coat-paw-r: var(--coat-light);
+  --coat-pad: #ccab95;
+  --coat-lid-l: #ce8643;
+  --coat-lid-r: #c88241;
+  --coat-eye-arc-l: #4b2e20;
+  --coat-eye-arc-r: #4b2e20;
+  --coat-nose: #30211d;
+  --coat-mouth-line: #513327;
+  --coat-tail: var(--coat-base);
+  --coat-tail-tip: #e1a359;
+  --coat-blush-opacity: 0.35;
+}
+html[data-cat="collie"] {
+  --coat-base: #35353b;
+  --coat-dark: #1b1b20;
+  --coat-back: #2b2b30;
+  --coat-light: #f7f6f2;
+  --coat-ear: var(--coat-base);
+  --coat-inner-ear: #92838a;
+  --coat-arm-l: var(--coat-base);
+  --coat-arm-r: var(--coat-base);
+  --coat-paw-l: var(--coat-light);
+  --coat-paw-r: var(--coat-light);
+  --coat-pad: #a59ba1;
+  --coat-lid-l: #35353b;
+  --coat-lid-r: #333338;
+  --coat-eye-arc-l: #988c86;
+  --coat-eye-arc-r: #988c86;
+  --coat-nose: #211e20;
+  --coat-mouth-line: #41383b;
+  --coat-tail: var(--coat-base);
+  --coat-tail-tip: #eeeae6;
+  --coat-blush-opacity: 0.35;
+}
+#scene .puppy-pupil { fill: url(#puppy-iris); stroke: #1e120a; stroke-width: 2.4; }
+#scene .puppy-dot { fill: #0b0604; }
+#scene .puppy-lid-line { stroke: #3a2417; stroke-width: 2.8; }
+#scene[data-eye-style="puppy"] .eye-arc-l,
+#scene[data-eye-style="puppy"] .eye-arc-r { stroke-width: 3.8; }
+
+html:not([data-cat="tianyuan"]) #scene [data-coat-pattern="tianyuan"] { display: none; }
+html:not([data-cat="collie"]) #scene [data-coat-pattern="collie"] { display: none; }
+html:not([data-cat="corgi"]) #scene [data-coat-pattern="corgi"] { display: none; }
+
+html[data-cat="tianyuan"] #scene .arm-outline { stroke-width: 43; }
+html[data-cat="tianyuan"] #scene :is(.arm-fill-l, .arm-fill-r) { stroke: url(#coat-tianyuan-arm); stroke-width: 33; }
+html[data-cat="tianyuan"] #scene .tail-outline { stroke-width: 32; }
+html[data-cat="tianyuan"] #scene :is(.tail-fill, .tail-tip) { stroke-width: 22; }
+html[data-cat="tianyuan"] #scene .tuft { stroke: #754b30; stroke-width: 2.6; }
+
+/* 全尺寸 108 键：键帽更小、描边更细 */
+#scene .kb-full .key-cap { stroke-width: 2; }
+#scene .kb-full .key-label { font-size: 7px; }

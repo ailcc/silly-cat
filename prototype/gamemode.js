@@ -32,8 +32,10 @@
     window.SillyGameMode = { active: () => G.on, name: () => G.name };
 
     // 耳机画在头组里（跟着头的姿态 / 球面转头一起动）：头梁弧 + 两侧耳罩
-    document.getElementById('cat-head').insertAdjacentHTML('beforeend', headphoneSVG('game-phones'));
+    document.getElementById('cat-head').insertAdjacentHTML('beforeend',
+      `<g transform="${phoneWrap(1)}">${headphoneSVG('game-phones')}</g>`);
     const phones = document.getElementById('game-phones');
+    if (phones) window.addEventListener('silly:species', () => phones.parentElement?.setAttribute('transform', phoneWrap(1)));
 
     function announce(now) {
       if (G.on) fx.spawn(G.name ? `打着游戏呢？我先睡了～` : '你打游戏，我先睡了～', 400, 92, '', now);
@@ -83,5 +85,12 @@
     };
   }
 
-  window.SillyGameModeEgg = { create, headphoneSVG };
+  // 耳机整体套一层 transform 挂在头组里。狗头比猫头窄一圈、还往下挪了 12，所以狗要缩一点、压下来一点。
+  const phoneWrap = (scale) => {
+    const dog = window.SillySpecies?.current?.scene?.template === 'parts-dog';
+    const k = dog ? 0.84 : 1, dy = dog ? 16 : 0;
+    return `translate(400 ${100 + dy}) scale(${(scale * k).toFixed(3)}) translate(-400 -100)`;
+  };
+
+  window.SillyGameModeEgg = { create, headphoneSVG, phoneWrap };
 })();

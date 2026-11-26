@@ -44,6 +44,13 @@
         <circle id="pomo-dot" class="pomo-dot" cx="34" cy="42" r="7"/>
       </g>`);
     const E = { chip: $('pomo-timer'), text: $('pomo-text'), dot: $('pomo-dot') };
+    // 狗的头顶比猫低、头也窄一圈：帽子跟着缩一点、压下来一点。切换品种时也重新适配
+    const fitHat = () => {
+      if (!E.hat) return;
+      const dog = window.SillySpecies?.current?.scene?.template === 'parts-dog';
+      E.hat.setAttribute('transform', dog ? 'translate(400 112) scale(0.86) translate(-400 -100)' : '');
+    };
+    window.addEventListener('silly:species', fitHat);
 
     // 派对帽：歪戴的大圆锥（够大，正好盖住头顶的小皇冠），插在头组里跟着头动。
     // 延迟到首次渲染才插入：排在后面的成长系统会把皇冠插进头部组，晚插的才能盖在皇冠上面
@@ -212,6 +219,7 @@
       if (!E.hat) { // 首次渲染才把派对帽插进头部组（盖在成长皇冠上面）
         document.getElementById('cat-head').insertAdjacentHTML('beforeend', HAT_HTML);
         E.hat = document.getElementById('pomo-hat');
+        fitHat();
       }
       // 窗口外层按 settings.size 整体缩放 scene。番茄钟 chip 是左上角的小计数牌，
       // 猫缩到 50% 时时间数字也缩到 50% 就看不清了——所以用逆缩放抵消，视觉保持固定大小。

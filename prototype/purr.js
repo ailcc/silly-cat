@@ -1,6 +1,4 @@
-// 摸摸呼噜：Web Audio 低频噪声短脉冲合成呼噜声，呼吸改变脉冲速度和力度。摸头时响，松手淡出。
-// 音量在设置里调（默认 60%），满格也经过硬限幅，设备音量交给系统。
-// 音频上下文在 onPetStart（用户手势）里解锁；闲置 5 秒自动 suspend 省电。
+// Web Audio：低频噪声的短脉冲形成呼噜，呼吸改变脉冲速度和力度。
 (function () {
   'use strict';
 
@@ -80,11 +78,27 @@
       fade,
       setVolume(value) { level.gain.setTargetAtTime(value / 100, audio.currentTime, 0.02); },
       stop() { source.stop(); nodes.forEach(node => node.disconnect()); },
+      // OfflineAudioContext 在渲染前一次排好与在线版相同的包络。
+      scheduleSample(seconds) {
+        envelope.gain.setValueAtTime(0, 0);
+        envelope.gain.linearRampToValueAtTime(1, FADE_IN);
+        envelope.gain.setValueAtTime(1, seconds - FADE_OUT);
+        envelope.gain.linearRampToValueAtTime(0, seconds);
+        source.stop(seconds);
+      },
     };
+  }
+
+  async function renderSample() {
+    const seconds = 8, rate = 44100;
+    const audio = new OfflineAudioContext(1, seconds * rate, rate);
+    makeVoice(audio, makeTexture(audio), 100).scheduleSample(seconds);
+    return audio.startRendering();
   }
 
   function create(ctx, opts = {}) {
     const { S } = ctx;
+    const supported = () => ctx.species?.purr !== false;
     let enabled = opts.enabled !== false, volume = opts.volume ?? 60;
     let audio = null, texture = null, voice = null, unlocked = false, resuming = null;
     let playing = false, cleanup = 0, idle = 0;
@@ -108,7 +122,7 @@
     }
 
     function unlock() {
-      if (!enabled || volume <= 0) return;
+      if (!supported() || !enabled || volume <= 0) return;
       const Context = window.AudioContext || window.webkitAudioContext;
       if (!Context) return;
       try {
@@ -122,7 +136,7 @@
     }
 
     function sync() {
-      const want = enabled && volume > 0 && !!S.pet && (!opts.canPurr || opts.canPurr());
+      const want = supported() && enabled && volume > 0 && !!S.pet && (!opts.canPurr || opts.canPurr());
       if (want && unlocked && audio?.state === 'suspended') { resume(); return; }
       if (playing === want || audio?.state !== 'running') return;
       if (want) {
@@ -132,7 +146,7 @@
         voice ||= makeVoice(audio, texture, volume);
         voice.fade(1, 0, FADE_IN);
       } else if (voice) {
-        const hold = enabled && volume > 0 && !S.pet ? HOLD : 0;
+        const hold = supported() && enabled && volume > 0 && !S.pet ? HOLD : 0;
         voice.fade(0, hold, FADE_OUT);
         cleanup = setTimeout(() => {
           cleanup = 0;
@@ -158,5 +172,5 @@
     };
   }
 
-  window.SillyPurr = { create };
+  window.SillyPurr = { create, renderSample };
 })();

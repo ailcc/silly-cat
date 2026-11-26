@@ -11,7 +11,7 @@
   // pomo：番茄钟开关。birthday：猫的生日（MM-DD 文本，空 = 不庆祝）。birthdayHearts：生日当天要不要全程爱心眼（默认关）。和开关项一样不参与 KEYS 里的数字校验
   // mcpServer：MCP 外观接口（本地回环 HTTP，给 AI 助手换装用，默认关）；mcpPort 不在界面暴露，settings.json 里可手改
   // userMusic：用户听歌模式（检测系统音频，真正出声才戴耳机）；headphoneColor：耳机颜色（游戏 / 空闲听歌 / 用户听歌三处共用）
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, grump: true, swat: true, purr: true, purrVolume: 60, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true, userMusic: true, headphoneColor: 'strawberry' });
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', keyboard: 'compact', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, grump: true, swat: true, purr: true, purrVolume: 60, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true, userMusic: true, headphoneColor: 'strawberry' });
   const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo', 'birthdayHearts', 'quips', 'pomoCheer', 'sitRemind', 'kittenCoat', 'tailSlap', 'kbdFlow', 'headTurn', 'grump', 'swat', 'purr', 'mcpServer', 'hindPaws', 'listenMusic', 'userMusic']);
   // 耳机颜色的名字和顺序就是设置页色块的顺序
   const HEADPHONE_COLORS = Object.freeze({ strawberry: '草莓奶', mint: '薄荷', latte: '奶咖', sky: '天蓝' });
@@ -20,7 +20,7 @@
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
   const SIZE = Object.freeze({ min: 0.5, max: 2, step: 0.05 });
   // 和 coats.js 的列表保持一致，顺序也是设置页的头像顺序。
-  const CATS = Object.freeze(['cow', 'orange', 'lihua', 'siamese', 'black', 'calico', 'blue', 'white', 'maine', 'sphynx']);
+  const CATS = Object.freeze(['cow', 'orange', 'lihua', 'siamese', 'black', 'calico', 'blue', 'white', 'maine', 'sphynx', 'tianyuan', 'corgi', 'collie']);
 
   // min / max 都是秒
   const FIELDS = Object.freeze({
@@ -80,6 +80,7 @@
       if (Number.isFinite(size) && size >= SIZE.min && size <= SIZE.max) s.size = size;
       if (CATS.includes(raw.cat)) s.cat = raw.cat;
       if (raw.artStyle === 'fur' || raw.artStyle === 'line') s.artStyle = raw.artStyle;
+      if (raw.keyboard === 'compact' || raw.keyboard === 'full') s.keyboard = raw.keyboard;
       // MCP 接口端口不在界面暴露，settings.json 手改才生效（1024–65535）
       if (Number.isFinite(raw.mcpPort) && raw.mcpPort >= 1024 && raw.mcpPort <= 65535) s.mcpPort = Math.round(raw.mcpPort);
     }

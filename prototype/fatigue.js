@@ -1,4 +1,4 @@
-// 疲劳与情绪：打字太久 -> 累了 -> 生气 -> 发飙砸键盘、砸鼠标 -> 罢工 -> 休息够了消气 -> 自己动手修好。
+// 疲劳与情绪：打字太久 -> 累了 -> 生气 -> 发飙 -> 罢工 -> 休息够了消气 -> 自己动手修好。
 // 作为 cat.js 的扩展模块：通过钩子拦截输入（只影响画面，不碰真实的浏览器事件）。
 (function () {
   'use strict';
@@ -67,15 +67,97 @@
       kbRot: 0, kbTy: 0, mouseBandageUntil: 0,
       kbShakeStart: -1e9, shakeUntil: 0, shakeAmp: 0,
       nextSigh: performance.now() + 2500, sighStart: -1e9, earFlick: -1e9, earSide: 'l',
-      debris: [], bubbles: [], effects: [], shown: {}, ghosts: null, cloth: null, hist: { L: [], R: [] },
+      debris: [], bubbles: [], effects: [], shown: {}, ghosts: null, ghostShape: null, cloth: null, hist: { L: [], R: [] },
     };
 
     const moodOf = (v) => (v < 0.6 ? 'fine' : v < 0.85 ? 'tired' : 'angry');
     const mood = () => (F.rage || F.strike ? 'angry' : F.repair ? 'fine' : moodOf(F.v));
     const mouseDir = () => (ctx.mouseHome().x < 400 ? -1 : 1); // 鼠标在画面哪一侧
+    let dog;
+    const dogView = () => (dog ??= window.SillyDogMischief.create(ctx));
+    const frozenTime = Number.isFinite(demo?.at) ? demo.at : null;
+    const dogPhase = (now) => ({
+      rage: F.rage ? now - F.rage.start : null,
+      strike: !!F.strike,
+      repair: F.repair ? now - F.repair.start : null,
+      time: frozenTime ?? now,
+      fixedFinishedRepair: frozenTime >= REPAIR_MS && demo?.name === 'repair',
+    });
+    const catVisual = {
+      startRage: startCatRage,
+      staticDamage: brokenStatic,
+      enterStrike() { F.broken = true; },
+      startRepair: prepareRepairCaps,
+      finishRepair(t) { F.mouseBandageUntil = t + MOUSE_BANDAGE_MS; },
+      restore: restoreCatDamage,
+      hide: hideCatDamage,
+      afterKeyDown(now) { if (mood() === 'angry') F.kbShakeStart = now; },
+      pawTarget: catPawTarget,
+      pose: poseCat,
+      renderDamage: renderCatDamage,
+      render: renderCat,
+    };
+    const dogVisual = {
+      frozenAt: frozenTime,
+      finishRepair(t) { dogView().repairFinished(t); },
+      onWake(now) { dog?.onWake(now); },
+      hide() { dog?.hide(); },
+      pawTarget(paw, now) {
+        if (F.rage && !ctx.reducedMotion()) return dogView().ragePaw(paw, now - F.rage.start);
+        return null;
+      },
+      pose(now, rm, P, m) {
+        P.dogPoseTime = frozenTime;
+        if (F.rage) P.cheek = 0;
+        dogView().pose(dogPhase(now), m, rm, P);
+      },
+      render(now, dt, rm, m) { dogView().render(now, rm, dogPhase(now), m); },
+      holes() { return dog?.holeCount() ?? 0; },
+    };
+    const selectVisual = () => window.SillySpecies.current.fatigue.mischief ? dogVisual : catVisual;
+    let visual = selectVisual();
+
+    function resetImpacts() {
+      F.impactsDone = 0; F.mouseHitDone = false; F.splitDone = false; F.patDone = false;
+    }
+
+    function syncSpecies(now) {
+      const next = selectVisual();
+      if (visual === next) return;
+      visual.hide();
+      visual = next;
+      if (!F.rage && !F.strike && !F.repair) return;
+      resetScene();
+      visual.restore?.(now);
+    }
+
+    function hideCatDamage() {
+      E.keyboard.removeAttribute('transform');
+      E.scene.style.transform = '';
+      show(E.crack, 'crack', false);
+      show(E.mouseBandage, 'mbandage', false);
+      for (const fx of F.effects) fx.g.remove();
+      F.effects.length = 0;
+      if (F.ghosts) for (const gh of F.ghosts) gh.g.style.display = 'none';
+      if (F.cloth) show(F.cloth, 'cloth', false);
+    }
+
+    function restoreCatDamage(now) {
+      resetImpacts();
+      F.kbRot = F.kbTy = F.shakeUntil = 0;
+      F.kbShakeStart = -1e9;
+      // 延续休息和修理计时，按当前物种恢复这个阶段该有的道具。
+      if (F.strike || F.repair || ctx.reducedMotion()) {
+        brokenStatic(now, !!(F.strike || F.repair));
+        F.impactsDone = IMPACTS.length;
+        F.mouseHitDone = F.splitDone = true;
+        if (F.repair) prepareRepairCaps();
+      }
+    }
 
     // ---------- 状态推进（读取调试信息时也会调用，保证后台节流时也准） ----------
     function refresh(now) {
+      syncSpecies(now);
       let t = F.lastT;
       if (now <= t) return;
       F.lastT = now;
@@ -114,16 +196,18 @@
 
     function startRage(t) {
       F.rage = { start: t };
-      F.impactsDone = 0; F.mouseHitDone = false; F.splitDone = false; F.patDone = false;
       ctx.releaseAll();
       S.excited = false;
-      if (window.SillyStats) window.SillyStats.addRage(); // 小账本：发飙 +1
+      visual.startRage?.(t);
+    }
+    function startCatRage(t) {
+      resetImpacts();
       if (ctx.reducedMotion()) { brokenStatic(t, false); F.impactsDone = IMPACTS.length; F.mouseHitDone = F.splitDone = true; }
     }
     function enterStrike(t) {
       F.rage = null;
-      F.broken = true;
       F.strike = { start: t, restMs: 0, count: 0, hmphAt: 5 + Math.floor(Math.random() * 5), nextPeek: t + rand(2500, 4500), peek: -1e9, peekSide: 'l' };
+      visual.enterStrike?.();
     }
     function endStrike(now) {
       F.strike = null;
@@ -133,6 +217,9 @@
     }
     function startRepair(now) {
       F.repair = { start: now };
+      visual.startRepair?.();
+    }
+    function prepareRepairCaps() {
       // 给每个散落的键帽排好飞回的顺序
       const caps = F.debris.filter((d) => d.kind === 'cap');
       caps.forEach((d, i) => { d.order = i; d.from = null; });
@@ -142,11 +229,12 @@
       F.repair = null;
       F.v = 0;
       resetScene();
-      F.mouseBandageUntil = t + MOUSE_BANDAGE_MS;
+      visual.finishRepair(t);
       S.lastInput = t; // 之后的无输入计时从这里重新走向犯困和睡觉
       if (demo && demo.name === 'repair' && demo.loop) F.demoHoldUntil = t + 800;
     }
     function resetScene() {
+      dog?.resetDamage();
       for (const d of F.debris) d.g.remove();
       F.debris.length = 0;
       for (const c of kb.codes()) kb.setGone(c, false);
@@ -160,17 +248,20 @@
       if (F.v === 0 && !F.rage && !F.strike && !F.repair && !F.demoStarted) {
         F.demoStarted = true;
         if (demo.name === 'rage') { F.v = 1; startRage(now); }
-        else if (demo.name === 'strike') { F.v = 1; brokenStatic(now, true); enterStrike(now - 400); }
-        else if (demo.name === 'repair') { brokenStatic(now, true); startRepair(now); }
+        else if (demo.name === 'strike') { F.v = 1; visual.staticDamage?.(now, true); enterStrike(now - 400); }
+        else if (demo.name === 'repair') { visual.staticDamage?.(now, true); startRepair(now); }
       }
       if (demo.name === 'repair' && !F.repair && F.demoHoldUntil && now >= F.demoHoldUntil) {
-        F.demoHoldUntil = 0; brokenStatic(now, true); startRepair(now);
+        F.demoHoldUntil = 0; visual.staticDamage?.(now, true); startRepair(now);
       }
       if (Number.isFinite(demo.at)) { // 冻结在时间轴上的某一刻
         if (F.rage) F.rage.start = now - demo.at;
         if (F.repair) F.repair.start = now - demo.at;
       }
-      if (demo.name === 'strike' && F.strike) F.strike.restMs = 0;
+      if (demo.name === 'strike' && F.strike) {
+        F.strike.restMs = clamp(visual.frozenAt ?? 0, 0, restSec * 1000);
+        if (visual.frozenAt != null) F.strike.start = now - 400 - visual.frozenAt;
+      }
     }
     // 直接摆出"砸烂了"的样子：键帽散在桌上、鼠标碎成两半
     function brokenStatic(now, withCaps) {
@@ -200,7 +291,7 @@
       if (F.rage) return STATES.RAGE;
       if (F.strike) return STATES.STRIKE;
       if (F.repair) return STATES.REPAIR;
-      return null;
+      return visual.frozenAt != null ? STATES.AWAKE : null;
     }
 
     // ---------- 输入拦截：只是猫不理人，真实输入照常 ----------
@@ -223,16 +314,33 @@
     }
 
     function keycapStyle() { return mood() === 'angry' ? 'angry' : null; }
-    function afterKeyDown(code, now) { if (mood() === 'angry') F.kbShakeStart = now; }
+    function afterKeyDown(code, now) { visual.afterKeyDown?.(now); }
 
     // ---------- 几何 ----------
+    function fitKeyboard(x, y) {
+      return { x: kb.pivot.x + (x - kb.pivot.x) * kb.caseScale.x, y: kb.bounds.y + (y - kb.bounds.y) * kb.caseScale.y };
+    }
+
+    function updateCrackTransform() {
+      if (kb.style === 'compact') E.crack.removeAttribute('transform');
+      else {
+        const { x } = kb.pivot, { y } = kb.bounds;
+        E.crack.setAttribute('transform', `translate(${x} ${y}) scale(${kb.caseScale.x} ${kb.caseScale.y}) translate(${-x} ${-y})`);
+      }
+    }
+    updateCrackTransform();
+
     function kbToScene(p) { // 键盘本地点 -> 画面点（键盘歪斜时）
       const a = F.kbRot * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
-      const vx = p.x - 400, vy = p.y - 477;
-      return { x: 400 + vx * c - vy * s, y: 477 + vx * s + vy * c + F.kbTy };
+      const { x, y } = kb.pivot;
+      const vx = p.x - x, vy = p.y - y;
+      return { x: x + vx * c - vy * s, y: y + vx * s + vy * c + F.kbTy };
     }
     function slamPoint() { const H = ctx.mouseHome(); return { x: H.x + (mouseDir() < 0 ? 12 : -12), y: 566 }; }
-    function overheadPoint() { return { x: 400 + mouseDir() * 128, y: 44 }; }
+    function overheadPoint() {
+      const { x, y } = window.SillySpecies.current.fatigue.rage.overhead;
+      return { x: window.SillySpecies.current.rig.turnX + mouseDir() * x, y };
+    }
 
     // 发飙时鼠标的位置（被抓起、举高、砸下、压扁）
     function rageMousePose(tm) {
@@ -252,16 +360,26 @@
 
     // ---------- 爪子 ----------
     function forcedPawTarget(paw, now) {
-      if (F.strike) { const r = ctx.restPoint(paw.side); return { id: 'crossed', x: r.x, y: r.y - 40, tau: 200 }; }
+      if (F.strike) {
+        const r = ctx.restPoint(paw.side);
+        const { crossedLift } = window.SillySpecies.current.fatigue.strike;
+        return { id: 'crossed', x: r.x, y: r.y - crossedLift, tau: 200 };
+      }
+      return visual.pawTarget(paw, now);
+    }
+
+    function catPawTarget(paw, now) {
       if (F.repair && !ctx.reducedMotion()) return repairPaw(paw, now - F.repair.start);
       if (!F.rage || ctx.reducedMotion()) return null;
       const t = now - F.rage.start;
-      const sx = paw.side === 'L' ? 1 : -1; // 猫的左爪在观众右侧
-      if (t < SMASH_T0) return { id: 'rage', x: 400 + sx * 100, y: 118, tau: 70 };
+      const { rig, fatigue } = window.SillySpecies.current;
+      const { raised, smash, clenched } = fatigue.rage.paws;
+      const side = paw.side === 'L' ? 1 : -1; // 左爪在观众右侧
+      if (t < SMASH_T0) return { id: 'rage', x: rig.turnX + side * raised.x, y: raised.y, tau: 70 };
       if (t < MOUSE_T0) {
         const c = ((t - SMASH_T0) % SMASH_CYCLE) / SMASH_CYCLE, up = c < 0.6;
-        return up ? { id: 'rage', x: 400 + sx * 100, y: 118, tau: 45 }
-          : { id: 'rage', x: 400 + sx * 66, y: 440, tau: 12, pressing: true };
+        return up ? { id: 'rage', x: rig.turnX + side * raised.x, y: raised.y, tau: 45 }
+          : { id: 'rage', ...fitKeyboard(rig.turnX + side * smash.x, smash.y), tau: 12, pressing: true };
       }
       const tm = t - MOUSE_T0;
       if (tm < M_END) {
@@ -272,7 +390,7 @@
           if (tm < M_PAT1) return { id: 'rage', x: T.x + 6, y: T.y - 12, tau: 10, pressing: true }; // 补一爪拍扁
           return { id: 'rage', x: T.x + 6, y: T.y - 40, tau: 60 };
         }
-        return { id: 'rage', x: 400 + sx * 92, y: 300, tau: 80 }; // 另一只爪握拳在胸前
+        return { id: 'rage', x: rig.turnX + side * clenched.x, y: clenched.y, tau: 80 }; // 另一只爪握拳在胸前
       }
       return null;
     }
@@ -307,9 +425,9 @@
       return { id: 'repair', ...ctx.restPoint(paw.side), tau: 50 };
     }
     function clothPoint(t) { // 抹布：上半横擦一趟、下半擦回来
-      if (t < WIPE_MID) { const p = (t - WIPE_T0) / (WIPE_MID - WIPE_T0); return kbToScene({ x: lerp(200, 604, p), y: 430 + 6 * Math.sin(p * Math.PI * 6) }); }
+      if (t < WIPE_MID) { const p = (t - WIPE_T0) / (WIPE_MID - WIPE_T0); return kbToScene(fitKeyboard(lerp(200, 604, p), 430 + 6 * Math.sin(p * Math.PI * 6))); }
       const p = (t - WIPE_MID) / (WIPE_T1 - WIPE_MID);
-      return kbToScene({ x: lerp(604, 200, p), y: 524 + 6 * Math.sin(p * Math.PI * 6) });
+      return kbToScene(fitKeyboard(lerp(604, 200, p), 524 + 6 * Math.sin(p * Math.PI * 6)));
     }
 
     // ---------- 特效对象 ----------
@@ -320,6 +438,7 @@
     function placeDebris(d) { d.g.setAttribute('transform', `translate(${f1(d.x)} ${f1(d.y)}) rotate(${d.r.toFixed(1)})`); }
     function makeCap(code, x, y) {
       const g = addSvg(E.debris, '<g class="debris-cap"><rect x="-13" y="-12" width="26" height="24" rx="5"/><text x="0" y="4"></text></g>');
+      if (kb.style === 'full') for (const child of g.children) child.setAttribute('transform', `scale(${kb.heightScale})`);
       g.querySelector('text').textContent = ctx.keycapText(code, null);
       const k = kb.center(code);
       const d = { kind: 'cap', code, side: k && k.x > 400 ? 'L' : 'R', g, x, y, vx: 0, vy: 0, r: 0, vr: 0, floor: rand(588, 610), rest: false };
@@ -387,48 +506,43 @@
     }
     function spawnHmph(now, side) {
       const g = addSvg(E.bubbles, '<g class="hmph"><path class="hmph-bubble" d="M -26 -14 Q -26 -30 0 -30 Q 26 -30 26 -14 Q 26 2 4 2 L -6 12 L -4 2 Q -26 2 -26 -14 Z"/><text x="0" y="-8">哼</text></g>');
-      F.bubbles.push({ g, start: now, x: (side === 'r' ? 514 : 286) + rand(-10, 10), y: 104 });
+      const { x, y } = window.SillySpecies.current.fatigue.strike.hmph[side];
+      F.bubbles.push({ g, start: now, x: x + rand(-10, 10), y });
     }
 
     // ---------- 姿态 ----------
     function sighPhase(now) {
+      if (visual.frozenAt != null) {
+        const at = visual.frozenAt;
+        return demo.name === 'sigh' && at >= 0 && at < 900 ? at / 900 : -1;
+      }
       const ts = now - F.sighStart;
       return ts >= 0 && ts < 900 ? ts / 900 : -1;
     }
     function pose(now, dt, rm, P) {
       const m = mood();
+      const { sigh, angry } = window.SillySpecies.current.fatigue;
       if (!F.rage && !F.strike && !F.repair) {
         if (m === 'tired') { P.lidMin = Math.max(P.lidMin, 0.45); P.pawTau *= 1.9; P.pressBoost += 0.08; }
-        else if (m === 'angry') { P.lidMin = Math.max(P.lidMin, 0.32); P.pawTau *= 1.3; P.tailAmp = 22; P.tailSpeed = 0.024; }
+        else if (m === 'angry') { P.lidMin = Math.max(P.lidMin, 0.32); P.pawTau *= 1.3; }
         // 叹气：头和肩膀沉一下，眼睛闭一下
-        if (m === 'tired' && !rm && now >= F.nextSigh) {
+        if (m === 'tired' && visual.frozenAt == null && !rm && now >= F.nextSigh) {
           F.sighStart = now;
           F.nextSigh = now + (demo && demo.name === 'sigh' ? 1600 : rand(3500, 6500));
         }
         const p = m === 'tired' ? sighPhase(now) : -1;
         if (p >= 0) {
           const s = Math.sin(Math.PI * p);
-          P.headY += 6 * s; P.bodyY += 3 * s;
+          P.headY += sigh.headDip * s; P.bodyY += sigh.bodyDip * s;
           if (p > 0.12 && p < 0.7) P.eyesClosed = true;
         }
       }
-      if (m === 'angry' && !F.strike) P.cheek = 20 + (rm ? 0 : 2.5 * Math.sin(now / 260));
-
-      if (F.rage) {
-        const t = now - F.rage.start;
-        P.lidMin = Math.max(P.lidMin, 0.3);
-        P.tailAmp = 26; P.tailSpeed = 0.03;
-        if (!rm) {
-          P.lift = t < STAND_MS ? -30 * easeOut(t / STAND_MS) : t < SIT_T0 ? -30 : -30 * (1 - (t - SIT_T0) / (RAGE_MS - SIT_T0));
-          const tm = t - MOUSE_T0;
-          if (tm >= M_REACH && tm < M_HIT) { // 举起鼠标时身体后仰
-            const p = tm < M_LIFT ? easeOut((tm - M_REACH) / (M_LIFT - M_REACH)) : 1 - easeIn((tm - M_LIFT) / (M_HIT - M_LIFT));
-            P.headY -= 10 * p; P.headRot += mouseDir() * -5 * p; P.bodyRot += mouseDir() * -3 * p; P.lift -= 6 * p;
-          }
-          if (tm >= 0 && tm < M_SPLIT) P.mouseAbs = rageMousePose(tm);
-        }
+      if (m === 'angry' && !F.strike) {
+        const t = visual.frozenAt ?? now;
+        P.cheek = angry.cheek + (rm ? 0 : angry.cheekPulse * Math.sin(t / 260));
       }
-      if (F.shattered) P.mouseHidden = true;
+
+      visual.pose(now, rm, P, m);
 
       // 转身：正面 <-> 背影，横向挤压到很窄再展开
       if (F.strike) {
@@ -440,7 +554,34 @@
         const tr = now - F.repair.start;
         if (!rm && tr < TURN_MS / 2) P.hideCat = true;
         else if (!rm && tr < TURN_MS) P.turnSX = (tr - TURN_MS / 2) / (TURN_MS / 2);
-        // 修鼠标：壳合上之后鼠标回来，啪一下
+      }
+    }
+
+    function poseCat(now, rm, P, m) {
+      const { angry, rage } = window.SillySpecies.current.fatigue;
+      if (m === 'angry' && !F.strike) { P.tailAmp = angry.tailAmp; P.tailSpeed = 0.024; }
+      if (F.rage) {
+        const t = now - F.rage.start;
+        P.lidMin = Math.max(P.lidMin, 0.3);
+        P.tailAmp = rage.tailAmp; P.tailSpeed = 0.03;
+        if (!rm) {
+          P.lift = t < STAND_MS ? rage.standLift * easeOut(t / STAND_MS)
+            : t < SIT_T0 ? rage.standLift : rage.standLift * (1 - (t - SIT_T0) / (RAGE_MS - SIT_T0));
+          const tm = t - MOUSE_T0;
+          if (tm >= M_REACH && tm < M_HIT) { // 举起鼠标时身体后仰
+            const p = tm < M_LIFT ? easeOut((tm - M_REACH) / (M_LIFT - M_REACH)) : 1 - easeIn((tm - M_LIFT) / (M_HIT - M_LIFT));
+            const { headY, headRot, bodyRot, lift } = rage.lean;
+            P.headY -= headY * p; P.headRot += mouseDir() * headRot * p;
+            P.bodyRot += mouseDir() * bodyRot * p; P.lift -= lift * p;
+          }
+          if (tm >= 0 && tm < M_SPLIT) P.mouseAbs = rageMousePose(tm);
+        }
+      }
+      if (F.shattered) P.mouseHidden = true;
+
+      if (F.repair) {
+        const tr = now - F.repair.start;
+        // 猫的鼠标修复后回到原位。
         if (tr >= FIX_SNAP) {
           P.mouseHidden = false;
           const q = clamp((tr - FIX_SNAP) / 90, 0, 1);
@@ -496,9 +637,19 @@
       // 两只爪的残影
       if (!F.ghosts) {
         F.ghosts = ['L', 'R'].flatMap((s) => [0, 1].map((i) => {
-          const g = addSvg(E.debris, `<ellipse class="ghost ${s === 'L' ? 'ghost-white' : 'ghost-black'}" rx="20" ry="14"/>`);
+          const g = addSvg(E.debris, '<ellipse/>');
           return { s, i, g };
         }));
+      }
+      const ghostShape = window.SillySpecies.current.fatigue.repairGhost;
+      if (ghostShape !== F.ghostShape) {
+        for (const { s, g } of F.ghosts) {
+          const { paint, rx, ry } = ghostShape[s];
+          g.setAttribute('class', `ghost ${paint}`);
+          g.setAttribute('rx', rx);
+          g.setAttribute('ry', ry);
+        }
+        F.ghostShape = ghostShape;
       }
       for (const s of ['L', 'R']) { F.hist[s].push({ x: paws[s].x, y: paws[s].y }); if (F.hist[s].length > 8) F.hist[s].shift(); }
       const ghostOn = tr >= CAP_T0 && tr < WIPE_T0 + 80;
@@ -547,22 +698,24 @@
       void dir; void dt;
     }
 
-    function render(now, dt, rm) {
-      const m = mood();
+    function renderMood(now, rm, m) {
       const raging = !!F.rage;
-      show(E.brows, 'brows', m !== 'fine');
+      const { fatigue } = window.SillySpecies.current;
+      show(E.brows, 'brows', fatigue.browMoods?.includes(m) ?? (m !== 'fine'));
       show(E.sweat, 'sweat', m === 'tired' && !raging);
       show(E.anger, 'anger', m === 'angry');
       if (m === 'angry') {
-        const s = rm ? 1 : 1 + 0.12 * Math.sin(now / 90);
-        E.anger.setAttribute('transform', `translate(478 96) scale(${s.toFixed(3)})`);
+        const s = rm ? 1 : 1 + 0.12 * Math.sin((visual.frozenAt ?? now) / 90);
+        const { x, y } = fatigue.angry.symbol;
+        E.anger.setAttribute('transform', `translate(${x} ${y}) scale(${s.toFixed(3)})`);
       }
 
       // 叹气：气团从嘴角出来，往斜下方飘出、散开、变淡（都在头部组内）
       const sp = m === 'tired' ? sighPhase(now) : -1;
       if (sp >= 0) {
         show(E.sigh, 'sigh', true);
-        const A = { x: 410, y: 236 }, base = [[0, 0, 6], [7, -3, 4.5], [3, 6, 4]];
+        const A = (S.eyeMode === 'closed' && fatigue.sigh.closedAnchor) || fatigue.sigh.anchor;
+        const base = [[0, 0, 6], [7, -3, 4.5], [3, 6, 4]];
         base.forEach(([ox, oy, r], i) => {
           const c = E.sighC[i], k = 1 + 1.6 * sp;
           c.setAttribute('cx', f1(A.x + 26 * sp + ox * k));
@@ -571,15 +724,16 @@
         });
         E.sigh.setAttribute('opacity', (sp < 0.12 ? sp / 0.12 : 1 - (sp - 0.12) / 0.88).toFixed(3));
       } else show(E.sigh, 'sigh', false);
+    }
 
+    function renderCatDamage(now, rm) {
       // 发飙：三次砸键盘 + 砸鼠标
-      if (raging && !rm) {
+      if (F.rage && !rm) {
         const t = now - F.rage.start;
         while (F.impactsDone < IMPACTS.length && t >= IMPACTS[F.impactsDone]) {
           F.broken = true;
           spawnCaps(F.impactsDone, now);
           shake(now, 180, 7);
-          if (window.SillySounds) window.SillySounds.play('smash');
           F.impactsDone++;
         }
         const tm = t - MOUSE_T0;
@@ -587,7 +741,6 @@
           F.mouseHitDone = true;
           const T = slamPoint();
           shake(now, 170, 9); impactLines(T.x, T.y + 18, now);
-          if (window.SillySounds) window.SillySounds.play('smash');
         }
         if (tm >= M_SPLIT && !F.splitDone) { F.splitDone = true; shatterMouse(now); }
         if (tm >= M_PAT1 - 20 && !F.patDone) { F.patDone = true; shake(now, 90, 4); }
@@ -596,8 +749,11 @@
         while (F.impactsDone < IMPACTS.length) { if (!rm) spawnCaps(F.impactsDone, now); F.impactsDone++; }
         if (!F.splitDone) { F.splitDone = true; if (!rm) shatterMouse(now); else F.shattered = true; }
       }
+    }
 
-      // 罢工的猫：背影 + 转身展开 + 偷偷回头
+    function renderBack(now, rm) {
+      const { rig, fatigue } = window.SillySpecies.current;
+      // 背影 + 转身展开 + 偷偷回头
       const strikeOn = !!F.strike && (rm || now - F.strike.start >= TURN_MS / 2);
       const repairBack = !!F.repair && !rm && now - F.repair.start < TURN_MS / 2;
       show(E.strike, 'strike', strikeOn || repairBack);
@@ -605,39 +761,45 @@
         let sx = 1;
         if (F.strike && !rm) sx = clamp((now - F.strike.start - TURN_MS / 2) / (TURN_MS / 2), 0.02, 1);
         if (repairBack) sx = clamp(1 - (now - F.repair.start) / (TURN_MS / 2), 0.02, 1);
-        E.strike.setAttribute('transform', `translate(400 0) scale(${sx.toFixed(3)} 1) translate(-400 0)`);
+        E.strike.setAttribute('transform', `translate(${rig.turnX} 0) scale(${sx.toFixed(3)} 1) translate(${-rig.turnX} 0)`);
       }
       if (F.strike) {
         const t = now - F.strike.start;
         // 尾巴：绕离开身体的那一点往上翘，再拍回桌面
+        const { tail, ears, headTurn } = fatigue.strike;
         let a = 0;
-        if (!rm) { const p = (t % 1100) / 1100; a = p < 0.75 ? -14 * easeOut(p / 0.75) : -14 * (1 - (p - 0.75) / 0.25); }
-        E.strikeTail.setAttribute('transform', `rotate(${a.toFixed(2)} 500 378)`);
+        if (!rm) { const p = (t % 1100) / 1100; a = p < 0.75 ? tail.angle * easeOut(p / 0.75) : tail.angle * (1 - (p - 0.75) / 0.25); }
+        E.strikeTail.setAttribute('transform', `rotate(${a.toFixed(2)} ${tail.pivot.x} ${tail.pivot.y})`);
         // 偷听：隔几秒一只耳朵朝观众转过来、头往那边歪一点，再转回去"哼"一声
-        if (!rm && now >= F.strike.nextPeek && now - F.strike.peek > 1200) {
+        const at = visual.frozenAt;
+        if (at == null && !rm && now >= F.strike.nextPeek && now - F.strike.peek > 1200) {
           F.strike.peek = now; F.strike.nextPeek = now + rand(3000, 6000);
           F.strike.peekSide = Math.random() < 0.5 ? 'l' : 'r';
         }
-        const tp = now - F.strike.peek;
+        const tp = at == null ? now - F.strike.peek : at % 5400 - 2700;
         let turn = 0;
         if (tp >= 0 && tp < 1000) {
           turn = tp < 180 ? easeOut(tp / 180) : tp < 820 ? 1 : 1 - (tp - 820) / 180;
-          if (tp >= 820 && !F.strike.hmphed) { F.strike.hmphed = true; spawnHmph(now, F.strike.peekSide); }
+          if (at == null && tp >= 820 && !F.strike.hmphed) { F.strike.hmphed = true; spawnHmph(now, F.strike.peekSide); }
         } else F.strike.hmphed = false;
-        const ps = F.strike.peekSide, sg = (s) => (s === 'l' ? -1 : 1);
+        const ps = at == null ? F.strike.peekSide : Math.floor(at / 5400) % 2 ? 'r' : 'l';
+        const sg = (s) => (s === 'l' ? -1 : 1);
         // 耳朵：平时向两侧各压低 12°（飞机耳）；偷听的那只立起来、横向收窄像转了过来；按键时抖一下
-        const te = now - F.earFlick;
+        const te = at == null ? now - F.earFlick : Infinity;
         for (const s of ['l', 'r']) {
-          const px = s === 'l' ? 322 : 478, py = 110;
-          let ea = 12 - (s === ps ? 18 * turn : 0);
-          if (s === F.earSide && te >= 0 && te < 240) ea += 16 * Math.sin(2 * Math.PI * te / 120) * (1 - te / 240);
-          const k = s === ps ? 1 - 0.4 * turn : 1;
+          const { x: px, y: py } = ears.pivots[s];
+          let ea = ears.rest - (s === ps ? ears.peek * turn : 0);
+          if (s === F.earSide && te >= 0 && te < 240) ea += ears.flick * Math.sin(2 * Math.PI * te / 120) * (1 - te / 240);
+          const k = s === ps ? 1 - ears.narrow * turn : 1;
           E.strikeEar[s].setAttribute('transform', `rotate(${(sg(s) * ea).toFixed(2)} ${px} ${py})` +
             (k !== 1 ? ` translate(${px} ${py}) scale(${k.toFixed(3)} 1) translate(${-px} ${-py})` : ''));
         }
-        E.strikeHead.setAttribute('transform', `rotate(${(sg(ps) * 7 * turn).toFixed(2)} 400 262)`);
+        const { x, y } = rig.head.pivot;
+        E.strikeHead.setAttribute('transform', `rotate(${(sg(ps) * headTurn * turn).toFixed(2)} ${x} ${y})`);
       }
+    }
 
+    function renderCat(now, dt, rm) {
       if (F.repair) renderRepair(now, dt, now - F.repair.start);
       else if (F.ghosts) for (const gh of F.ghosts) gh.g.style.display = 'none';
 
@@ -652,7 +814,7 @@
       }
       F.kbRot = kr; F.kbTy = ky;
       if (!rm && now - F.kbShakeStart < 140) { kx += rand(-1.5, 1.5); ky += rand(-1.5, 1.5); }
-      E.keyboard.setAttribute('transform', `translate(${f1(kx)} ${f1(ky)}) rotate(${kr.toFixed(2)} 400 477)`);
+      E.keyboard.setAttribute('transform', `translate(${f1(kx)} ${f1(ky)}) rotate(${kr.toFixed(2)} ${kb.pivot.x} ${kb.pivot.y})`);
       show(E.crack, 'crack', F.broken);
       const bLeft = F.mouseBandageUntil - now;
       show(E.mouseBandage, 'mbandage', bLeft > 0 && !F.shattered);
@@ -676,6 +838,14 @@
         fx.g.setAttribute('transform', `translate(${f1(fx.x)} ${f1(fx.y)}) scale(${s.toFixed(3)})${fx.kind === 'sparkle' ? ` rotate(${(p * 90).toFixed(1)})` : ''}`);
         fx.g.setAttribute('opacity', (fx.kind === 'impact' ? 1 - p : 1).toFixed(3));
       }
+    }
+
+    function render(now, dt, rm) {
+      const m = mood();
+      renderMood(now, rm, m);
+      visual.renderDamage?.(now, rm);
+      renderBack(now, rm);
+      visual.render(now, dt, rm, m);
 
       // "哼"气泡
       for (let i = F.bubbles.length - 1; i >= 0; i--) {
@@ -702,9 +872,12 @@
 
     return {
       refresh, overrideState, block, keycapStyle, afterKeyDown, forcedPawTarget, pose, render,
+      onWake(now) { visual.onWake?.(now); },
+      keyboardChanged() { updateCrackTransform(); dog?.keyboardChanged(); },
+      blocksKeyboardChange: () => !!(F.rage || F.strike || F.repair),
       setWorkSeconds(v) { workSec = clamp(+v || 90, 1, 36000); },
       setRestSeconds(v) { restSec = clamp(+v || 20, 1, 36000); },
-      // 外部模块给猫添堵用（拉尾巴、被吵醒……）：涨一截疲劳，发飙 / 罢工 / 修理期间不算
+      // 外部模块给猫添堵用（拉尾巴、被吵醒、喝咖啡……）：涨一截疲劳，发飙 / 罢工 / 修理期间不算
       bump(dv) { if (!F.rage && !F.strike && !F.repair) F.v = clamp(F.v + (+dv || 0), 0, 1); },
       // 只读：给状态条用。fatigue = 疲劳值 0–1；phase = 'rage' | 'strike' | 'repair' | null；
       // rest = 罢工时已累计休息 / 需要休息的时长（0–1），不在罢工时为 null
@@ -721,6 +894,7 @@
         strikeRestLeft: () => (F.strike ? Math.max(0, restSec - F.strike.restMs / 1000) : null),
         workSeconds: () => workSec,
         restSeconds: () => restSec,
+        dogHoles: () => visual.holes?.() ?? 0,
       },
     };
   }

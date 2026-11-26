@@ -2,11 +2,13 @@
 (function () {
   'use strict';
 
+  const catRig = window.SillySpecies.get('cat').rig;
+  const mirrorX = 2 * catRig.turnX;
   const muzzle = '<path class="coat-light" d="M 400 204 C 380 196 356 213 358 235 Q 360 261 370 282 H 430 Q 440 261 442 235 C 444 213 420 196 400 204 Z"/>';
   const bib = '<ellipse class="coat-light" cx="400" cy="335" rx="44" ry="62"/>';
   const mirrorStripe = (d, width) => `
     <path class="coat-stripe" stroke-width="${width}" d="${d}"/>
-    <path class="coat-stripe" stroke-width="${width}" transform="translate(800 0) scale(-1 1)" d="${d}"/>`;
+    <path class="coat-stripe" stroke-width="${width}" transform="translate(${mirrorX} 0) scale(-1 1)" d="${d}"/>`;
   const cheeks = 'M 300 190 Q 288 191 270 185 M 302 204 Q 289 207 271 209';
   // 一头粗一头尖的实心条纹：粗端在 (x1,y1)、宽 w，经控制点 (cx,cy) 收成尖到 (x2,y2)
   const taper = (x1, y1, cx, cy, x2, y2, w) => {
@@ -18,21 +20,24 @@
   };
   const mirrorFill = (d) => `
     <path class="coat-solid-stripe" d="${d}"/>
-    <path class="coat-solid-stripe" transform="translate(800 0) scale(-1 1)" d="${d}"/>`;
+    <path class="coat-solid-stripe" transform="translate(${mirrorX} 0) scale(-1 1)" d="${d}"/>`;
 
-  function art(id, opts = {}) {
-    const head = { cx: 400, cy: 176, width: 300, ...opts.head };
+  function art(species, id, opts = {}) {
+    const defaults = window.SillySpecies.get(species).art;
+    const head = { ...defaults.head, ...opts.head };
     return {
       base: `art/${id}/`,
       head,
-      backHead: { ...head, ...opts.backHead },
+      backHead: { ...head, ...defaults.backHead, ...opts.backHead },
       headPath: opts.headPath,
-      imprint: { dx: 0, dy: 0, ...opts.imprint },
-      ear: { x: 278, y: 24, width: 110, ...opts.ear },
-      body: { cx: 400, y: 246, width: 240 },
-      paw: { cx: 0, cy: -2, width: 66, ...opts.paw },
-      arm: { width: 54, top: 18, bottom: 12, segments: 8, ...opts.arm },
-      tail: { fringe: 6, segments: 16, scale: 1, ...opts.tail },
+      imprint: { ...defaults.imprint, ...opts.imprint },
+      ear: { ...defaults.ear, ...opts.ear },
+      earBack: opts.earBack ? { ...defaults.earBack, ...opts.earBack } : defaults.earBack,
+      body: { ...defaults.body, ...opts.body },
+      backBody: defaults.backBody,
+      paw: { ...defaults.paw, ...opts.paw },
+      arm: { ...defaults.arm, ...opts.arm },
+      tail: { ...defaults.tail, ...opts.tail },
     };
   }
 
@@ -54,7 +59,7 @@
         taper(268, 140, 280, 141, 292, 138, 7),
       ].join(' '))}`,
     // 眼眶浅圈放进睁眼那组里：闭眼、眯眼笑时跟着眼睛一起隐藏，不会留下两个白圈
-    eye: (cx) => `<circle class="coat-rim" cx="${cx}" cy="178" r="34"/>`,
+    eye: (cx, cy = catRig.eyes.centers.L.y) => `<circle class="coat-rim" cx="${cx}" cy="${cy}" r="34"/>`,
     body: `
       <ellipse class="coat-belly" cx="400" cy="348" rx="52" ry="74"/>
       <path class="coat-stripe" stroke-width="8" d="M 346 290 Q 400 318 454 290 M 338 316 Q 400 348 462 316"/>
@@ -82,9 +87,9 @@
   };
 
   const coats = [
-    { id: 'cow', name: '奶牛猫', art: art('cow') },
+    { id: 'cow', name: '奶牛猫', species: 'cat' },
     {
-      id: 'orange', name: '橘猫', art: art('orange'),
+      id: 'orange', name: '橘猫', species: 'cat',
       head: `
         ${muzzle}
         <path class="coat-solid-stripe" d="M 395.5 78 Q 400 74 404.5 78 Q 405 105 400 128 Q 395 112 395.5 78 Z
@@ -111,7 +116,7 @@
       shape: { bodySX: 1.24, bodySY: 0.95, headSX: 1.08 }, // 十个橘猫九个胖：身体宽一圈、稍矮，脸也圆一点
     },
     {
-      id: 'lihua', name: '狸花猫', art: art('lihua'),
+      id: 'lihua', name: '狸花猫', species: 'cat',
       defs: `<linearGradient id="coat-lihua-ear" x2="0%" y2="100%">
         <stop offset="33%" class="coat-stop-stripe"/>
         <stop offset="33%" class="coat-stop-base"/>
@@ -119,12 +124,12 @@
       ...tabby,
     },
     {
-      id: 'siamese', name: '暹罗猫', art: art('siamese', {
+      id: 'siamese', name: '暹罗猫', species: 'cat', art: {
         head: { cx: 400.1, cy: 168.9, width: 241.3 }, backHead: { cx: 400.3, cy: 169, width: 240.5 }, ear: { x: 272, y: 22, width: 110, rotate: 12 },
         arm: { width: 46 }, paw: { width: 58 }, tail: { scale: 0.8 },
         headPath: 'M 518.0 172.0 L 517.8 179.2 L 517.3 185.0 L 516.5 190.4 L 515.4 195.4 L 514.1 200.3 L 512.6 204.9 L 510.8 209.4 L 508.8 213.7 L 506.7 217.9 L 504.3 222.0 L 501.8 225.9 L 499.2 229.7 L 496.3 233.3 L 493.3 236.8 L 490.2 240.2 L 487.0 243.4 L 483.6 246.5 L 480.2 249.4 L 476.6 252.2 L 472.9 254.9 L 469.2 257.4 L 465.4 259.8 L 461.5 262.0 L 457.5 264.0 L 453.4 265.9 L 449.3 267.6 L 445.1 269.2 L 440.8 270.6 L 436.4 271.9 L 432.0 273.0 L 427.4 273.9 L 422.6 274.7 L 417.7 275.2 L 412.5 275.7 L 407.0 275.9 L 400.0 276.0 L 393.0 275.9 L 387.5 275.7 L 382.3 275.2 L 377.4 274.7 L 372.6 273.9 L 368.0 273.0 L 363.6 271.9 L 359.2 270.6 L 354.9 269.2 L 350.7 267.6 L 346.6 265.9 L 342.5 264.0 L 338.5 262.0 L 334.6 259.8 L 330.8 257.4 L 327.1 254.9 L 323.4 252.2 L 319.8 249.4 L 316.4 246.5 L 313.0 243.4 L 309.8 240.2 L 306.7 236.8 L 303.7 233.3 L 300.8 229.7 L 298.2 225.9 L 295.7 222.0 L 293.3 217.9 L 291.2 213.7 L 289.2 209.4 L 287.4 204.9 L 285.9 200.3 L 284.6 195.4 L 283.5 190.4 L 282.7 185.0 L 282.2 179.2 L 282.0 172.0 L 282.1 164.3 L 282.4 158.2 L 282.9 152.6 L 283.5 147.2 L 284.4 142.1 L 285.4 137.2 L 286.7 132.4 L 288.1 127.9 L 289.7 123.4 L 291.5 119.1 L 293.4 115.0 L 295.6 111.0 L 297.9 107.2 L 300.4 103.5 L 303.1 99.9 L 305.9 96.5 L 309.0 93.2 L 312.1 90.1 L 315.5 87.1 L 319.0 84.3 L 322.7 81.7 L 326.5 79.2 L 330.5 76.8 L 334.6 74.7 L 338.9 72.7 L 343.3 70.8 L 347.9 69.2 L 352.6 67.7 L 357.6 66.3 L 362.6 65.2 L 367.9 64.2 L 373.4 63.4 L 379.1 62.8 L 385.2 62.4 L 391.8 62.1 L 400.0 62.0 L 408.2 62.1 L 414.8 62.4 L 420.9 62.8 L 426.6 63.4 L 432.1 64.2 L 437.4 65.2 L 442.4 66.3 L 447.4 67.7 L 452.1 69.2 L 456.7 70.8 L 461.1 72.7 L 465.4 74.7 L 469.5 76.8 L 473.5 79.2 L 477.3 81.7 L 481.0 84.3 L 484.5 87.1 L 487.9 90.1 L 491.0 93.2 L 494.1 96.5 L 496.9 99.9 L 499.6 103.5 L 502.1 107.2 L 504.4 111.0 L 506.6 115.0 L 508.5 119.1 L 510.3 123.4 L 511.9 127.9 L 513.3 132.4 L 514.6 137.2 L 515.6 142.1 L 516.5 147.2 L 517.1 152.6 L 517.6 158.2 L 517.9 164.3 Z',
         imprint: { dx: 36, dy: -14 },
-      }),
+      },
       defs: `<radialGradient id="coat-siamese-mask">
         <stop offset="38%" class="coat-stop-point"/>
         <stop offset="68%" class="coat-stop-transition"/>
@@ -134,10 +139,10 @@
       shape: { bodySX: 0.86, headSX: 1, ear: 1 }, // 毛绒版体型按图片调整
       lineShape: { bodySX: 0.9, headSX: 0.95, ear: 1.2 }, // 线条版脸窄、耳朵大
     },
-    { id: 'black', name: '黑猫', art: art('black') },
-    { id: 'calico', name: '三花猫', art: art('calico', {
+    { id: 'black', name: '黑猫', species: 'cat' },
+    { id: 'calico', name: '三花猫', species: 'cat', art: {
       head: { cx: 400, cy: 173.1, width: 266 }, backHead: { cx: 400.1, cy: 173.3, width: 264.3 },
-    }),
+    },
       head: `
         <path class="coat-calico-dark" d="M 250 54 C 299 43 357 42 391 62 C 388 88 394 107 388 134 C 385 156 386 175 374 193 C 360 216 335 220 311 216 C 284 212 263 199 248 181 Z"/>
         <path class="coat-calico-orange" d="M 409 62 C 450 43 512 45 552 58 L 550 187 C 532 205 507 217 482 219 C 458 221 432 209 420 190 C 406 169 414 157 410 135 C 404 107 412 84 409 62 Z"/>`,
@@ -151,32 +156,96 @@
         <path class="coat-calico-orange" d="M 290 279 C 316 267 351 270 365 291 C 380 312 368 330 351 343 C 338 353 343 375 324 388 C 303 402 278 386 274 360 Z"/>
         <path class="coat-calico-dark" d="M 520 280 C 492 262 460 268 448 294 C 439 310 450 330 461 344 C 473 359 455 380 476 396 C 494 409 520 397 533 381 Z"/>`,
     },
-    { id: 'blue', name: '英短蓝猫', art: art('blue', {
+    { id: 'blue', name: '英短蓝猫', species: 'cat', art: {
       head: { cx: 399.6, cy: 179.6, width: 291.3 }, backHead: { cx: 399.9, cy: 178.9, width: 293.8 },
       ear: { x: 276.3, y: 62.3, width: 75.5 }, // 小圆耳，分得开、长得低
       arm: { width: 62 }, paw: { width: 72 }, tail: { scale: 1.25 },
       headPath: 'M 534.0 182.0 L 534.0 189.2 L 533.9 195.0 L 533.5 200.4 L 533.0 205.4 L 532.2 210.3 L 531.3 214.9 L 530.1 219.4 L 528.7 223.7 L 527.0 227.9 L 525.2 232.0 L 523.1 235.9 L 520.9 239.7 L 518.4 243.3 L 515.7 246.8 L 512.8 250.2 L 509.6 253.4 L 506.3 256.5 L 502.7 259.4 L 499.0 262.2 L 495.0 264.9 L 490.8 267.4 L 486.4 269.8 L 481.9 272.0 L 477.1 274.0 L 472.1 275.9 L 466.9 277.6 L 461.6 279.2 L 456.0 280.6 L 450.2 281.9 L 444.2 283.0 L 438.0 283.9 L 431.5 284.7 L 424.7 285.2 L 417.5 285.7 L 409.7 285.9 L 400.0 286.0 L 390.3 285.9 L 382.5 285.7 L 375.3 285.2 L 368.5 284.7 L 362.0 283.9 L 355.8 283.0 L 349.8 281.9 L 344.0 280.6 L 338.4 279.2 L 333.1 277.6 L 327.9 275.9 L 322.9 274.0 L 318.1 272.0 L 313.6 269.8 L 309.2 267.4 L 305.0 264.9 L 301.0 262.2 L 297.3 259.4 L 293.7 256.5 L 290.4 253.4 L 287.2 250.2 L 284.3 246.8 L 281.6 243.3 L 279.1 239.7 L 276.9 235.9 L 274.8 232.0 L 273.0 227.9 L 271.3 223.7 L 269.9 219.4 L 268.7 214.9 L 267.8 210.3 L 267.0 205.4 L 266.5 200.4 L 266.1 195.0 L 266.0 189.2 L 266.0 182.0 L 266.1 174.6 L 266.4 168.7 L 267.0 163.3 L 267.7 158.1 L 268.7 153.2 L 269.9 148.4 L 271.3 143.9 L 272.9 139.5 L 274.7 135.2 L 276.8 131.1 L 279.0 127.1 L 281.4 123.2 L 284.1 119.5 L 286.9 116.0 L 290.0 112.5 L 293.2 109.2 L 296.6 106.1 L 300.2 103.1 L 304.0 100.2 L 308.0 97.5 L 312.2 95.0 L 316.5 92.6 L 321.0 90.3 L 325.7 88.2 L 330.6 86.3 L 335.6 84.5 L 340.8 82.9 L 346.2 81.5 L 351.8 80.2 L 357.6 79.1 L 363.6 78.1 L 369.8 77.4 L 376.3 76.8 L 383.2 76.3 L 390.7 76.1 L 400.0 76.0 L 409.3 76.1 L 416.8 76.3 L 423.7 76.8 L 430.2 77.4 L 436.4 78.1 L 442.4 79.1 L 448.2 80.2 L 453.8 81.5 L 459.2 82.9 L 464.4 84.5 L 469.4 86.3 L 474.3 88.2 L 479.0 90.3 L 483.5 92.6 L 487.8 95.0 L 492.0 97.5 L 496.0 100.2 L 499.8 103.1 L 503.4 106.1 L 506.8 109.2 L 510.0 112.5 L 513.1 116.0 L 515.9 119.5 L 518.6 123.2 L 521.0 127.1 L 523.2 131.1 L 525.3 135.2 L 527.1 139.5 L 528.7 143.9 L 530.1 148.4 L 531.3 153.2 L 532.3 158.1 L 533.0 163.3 L 533.6 168.7 L 533.9 174.6 Z',
-    }),
+    },
       shape: { bodySX: 1.15, bodySY: 0.96, headSX: 1, ear: 1 } }, // 包子脸、敦实
-    { id: 'white', name: '异瞳白猫', art: art('white') },
-    { id: 'maine', name: '缅因猫', art: art('maine', {
+    { id: 'white', name: '异瞳白猫', species: 'cat' },
+    { id: 'maine', name: '缅因猫', species: 'cat', art: {
       head: { cx: 400.4, cy: 178.1, width: 322.3 }, backHead: { cx: 400, cy: 177.9, width: 316.5 }, ear: { x: 278, y: 14, width: 110, rotate: 0 },
       arm: { width: 62 }, paw: { width: 74 }, tail: { scale: 1.45 },
       headPath: 'M 262 168 C 262 106, 322 66, 400 66 C 478 66, 538 106, 538 168 C 540 214, 532 248, 506 268 C 478 286, 440 290, 400 290 C 360 290, 322 286, 294 268 C 268 248, 260 214, 262 168 Z',
       imprint: { dx: 6, dy: -4 },
-    }),
+    },
       ...tabby,
       shape: { bodySX: 1.12, bodySY: 1.03, headSX: 1, ear: 1.15 } },
-    { id: 'sphynx', name: '无毛猫', art: art('sphynx', {
+    { id: 'sphynx', name: '无毛猫', species: 'cat', art: {
       head: { cx: 400.1, cy: 169.1, width: 255.3 }, ear: { x: 268, y: 34, width: 110, rotate: 16 },
       arm: { width: 48 }, paw: { width: 60 }, tail: { scale: 0.6 },
       headPath: 'M 274 158 C 272 102, 328 60, 400 60 C 472 60, 528 102, 526 158 C 525 194, 514 216, 494 230 C 482 238, 474 248, 464 258 C 446 272, 424 278, 400 278 C 376 278, 354 272, 336 258 C 326 248, 318 238, 306 230 C 286 216, 275 194, 274 158 Z',
       imprint: { dx: 30, dy: -16 },
-    }),
+    },
       shape: { bodySX: 0.96, headSX: 1, ear: 1.18 } },
-  ];
+    {
+      id: 'tianyuan', name: '大黄', species: 'dog', furOnly: true,
+      defs: `
+        <radialGradient id="coat-tianyuan-muzzle" cy="52%" r="64%">
+          <stop offset="32%" stop-color="var(--coat-light)"/>
+          <stop offset="100%" stop-color="#e9c88e"/>
+        </radialGradient>
+        <radialGradient id="coat-tianyuan-chest">
+          <stop offset="12%" stop-color="var(--coat-light)"/>
+          <stop offset="100%" stop-color="var(--coat-light)" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="coat-tianyuan-back">
+          <stop offset="20%" stop-color="var(--coat-back)"/>
+          <stop offset="100%" stop-color="var(--coat-back)" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="coat-tianyuan-arm" gradientUnits="userSpaceOnUse" x1="0" y1="298" x2="0" y2="452">
+          <stop offset="15%" stop-color="var(--coat-base)"/>
+          <stop offset="100%" stop-color="var(--coat-light)"/>
+        </linearGradient>
+        <linearGradient id="coat-tianyuan-tail" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="25%" stop-color="var(--coat-base)"/>
+          <stop offset="100%" stop-color="var(--coat-light)"/>
+        </linearGradient>`,
+      head: `
+        <path fill="url(#coat-tianyuan-muzzle)" d="${window.SillySpecies.get('dog').rig.head.muzzlePath}"/>`,
+      body: '<ellipse cx="400" cy="334" rx="78" ry="82" fill="url(#coat-tianyuan-chest)"/>',
+      backBody: '<ellipse cx="400" cy="337" rx="80" ry="100" fill="url(#coat-tianyuan-back)"/>',
+    },
+    {
+      id: 'corgi', name: '柯基', species: 'dog', furOnly: true,
+      headphones: { cupGap: -29, cupY: 0.38, bandY: 18 },
+      art: {
+        ear: { x: 290.5, y: 45.5, width: 90 },
+        earBack: { x: 295, y: 43, width: 79 },
+      },
+      defs: `<radialGradient id="coat-corgi-chest">
+        <stop offset="60%" stop-color="var(--coat-light)"/>
+        <stop offset="100%" stop-color="var(--coat-light)" stop-opacity="0"/>
+      </radialGradient>`,
+      head: `<path class="coat-light" d="M 400 92 Q 396 133 386 204 H 414 Q 404 133 400 92 Z"/>
+        <path class="coat-light" d="${window.SillySpecies.get('dog').rig.head.muzzlePath}"/>`,
+      body: '<ellipse fill="url(#coat-corgi-chest)" cx="400" cy="321" rx="65" ry="90"/>',
+    },
+    {
+      id: 'collie', name: '边牧', species: 'dog', furOnly: true,
+      headphones: { cupGap: -22, cupY: 0.46, bandY: 12 },
+      art: {
+        ear: { x: 286.5, y: 72.5, width: 84 },
+        earBack: { x: 295, y: 64, width: 74 },
+        tail: { scale: 1.08 },
+      },
+      defs: `<radialGradient id="coat-collie-chest">
+        <stop offset="60%" stop-color="var(--coat-light)"/>
+        <stop offset="100%" stop-color="var(--coat-light)" stop-opacity="0"/>
+      </radialGradient>`,
+      head: `<path class="coat-light" d="M 400 92 Q 388 133 378 204 H 422 Q 412 133 400 92 Z"/>
+        <path class="coat-light" d="${window.SillySpecies.get('dog').rig.head.muzzlePath}"/>`,
+      body: '<ellipse fill="url(#coat-collie-chest)" cx="400" cy="321" rx="65" ry="90"/>',
+      backBody: '<path class="coat-light" d="M 310 240 Q 400 300 490 240 L 490 267 Q 400 330 310 267 Z"/>',
+    },
+  ].map((coat) => ({
+    ...coat,
+    art: art(coat.species, coat.id, coat.art),
+    headphones: { ...window.SillySpecies.get(coat.species).headphones.fit, ...coat.headphones },
+  }));
 
-  const lineCoats = new Map(coats.map(({ art, lineShape, ...coat }) => [
+  const lineCoats = new Map(coats.filter((coat) => !coat.furOnly).map(({ art, lineShape, ...coat }) => [
     coat.id, lineShape ? { ...coat, shape: lineShape } : coat,
   ]));
   const root = document.documentElement;
@@ -198,17 +267,20 @@
         if (coat.backHead) backHead.insertAdjacentHTML('beforeend', `<g data-coat-pattern="${coat.id}">${coat.backHead}</g>`);
         if (coat.backBody) backBody.insertAdjacentHTML('beforeend', `<g data-coat-pattern="${coat.id}">${coat.backBody}</g>`);
         if (coat.eye) {
-          for (const [side, cx] of [['l', 345], ['r', 455]]) {
-            document.getElementById('eye-' + side + '-open')
-              .insertAdjacentHTML('afterbegin', `<g data-coat-pattern="${coat.id}">${coat.eye(cx)}</g>`);
+          const { centers } = window.SillySpecies.get(coat.species).rig.eyes;
+          for (const [side, { x, y }] of Object.entries(centers)) {
+            document.getElementById('eye-' + side.toLowerCase() + '-open')
+              .insertAdjacentHTML('afterbegin', `<g data-coat-pattern="${coat.id}">${coat.eye(x, y)}</g>`);
           }
         }
       }
       initialized = true;
     }
     const coat = coats.find((coat) => coat.id === id) || coats[0];
-    const next = artStyle === 'line' ? lineCoats.get(coat.id) : coat;
-    root.dataset.artStyle = artStyle;
+    const line = artStyle === 'line' ? lineCoats.get(coat.id) : null;
+    const next = line || coat;
+    window.SillySpecies.select(coat.species);
+    root.dataset.artStyle = line ? 'line' : 'fur';
     if (root.dataset.cat !== next.id) {
       document.getElementById('scene').setAttribute('aria-label', '坐在键盘后面的' + next.name);
       root.dataset.cat = next.id;
@@ -221,24 +293,24 @@
   }
 
   // 体型：身体宽高、头宽由 shapeModule 每帧乘进姿态（肩膀、手臂、尾巴遮罩跟着身体走）；
-  // 耳朵和罢工背影的身体、头是静态缩放，切换猫时设一次
-  const EAR_PIVOT = { l: '322 110', r: '478 110' };
+  // 耳朵和罢工背影的身体、头是静态缩放，切换毛色时设一次
   function applyShape(shape) {
-    const ear = shape.ear || 1;
-    for (const side of ['l', 'r']) {
-      const [px, py] = EAR_PIVOT[side].split(' ');
-      const tf = ear === 1 ? '' : `translate(${px} ${py}) scale(${ear}) translate(${-px} ${-py})`;
-      for (const g of document.querySelectorAll('#scene .ear-shape-' + side)) {
+    const { rig, coatShape } = window.SillySpecies.current;
+    const { ear = coatShape.ear, bodySX = coatShape.bodySX, bodySY = coatShape.bodySY, headSX = coatShape.headSX } = shape;
+    for (const [side, { x, y }] of Object.entries(rig.ears.pivots)) {
+      const tf = ear === 1 ? '' : `translate(${x} ${y}) scale(${ear}) translate(${-x} ${-y})`;
+      for (const g of document.querySelectorAll('#scene .ear-shape-' + side.toLowerCase())) {
         if (tf) g.setAttribute('transform', tf); else g.removeAttribute('transform');
       }
     }
-    const sx = shape.bodySX || 1, sy = shape.bodySY || 1;
     const body = document.getElementById('strike-body');
-    if (sx === 1 && sy === 1) body.removeAttribute('transform');
-    else body.setAttribute('transform', `translate(400 410) scale(${sx} ${sy}) translate(-400 -410)`);
-    const hx = shape.headSX || 1, head = document.getElementById('strike-head-shape');
-    if (hx === 1) head.removeAttribute('transform');
-    else head.setAttribute('transform', `translate(400 0) scale(${hx} 1) translate(-400 0)`);
+    const { x: bx, y: by } = rig.body.pivot;
+    if (bodySX === 1 && bodySY === 1) body.removeAttribute('transform');
+    else body.setAttribute('transform', `translate(${bx} ${by}) scale(${bodySX} ${bodySY}) translate(${-bx} ${-by})`);
+    const head = document.getElementById('strike-head-shape');
+    const { x: hx, y: hy } = rig.head.backScalePivot;
+    if (headSX === 1) head.removeAttribute('transform');
+    else head.setAttribute('transform', `translate(${hx} ${hy}) scale(${headSX} 1) translate(${-hx} ${-hy})`);
   }
 
   // 罢工背影的尾巴是描边画法，环纹用虚线描边：pathLength=100，按 tail.rings（从尾根量起的比例）排出 dash 和 gap
@@ -253,19 +325,19 @@
     el.style.strokeDasharray = parts.map((v) => Math.round(v * 10) / 10).join(' ');
   }
 
-  // createCat 的扩展模块：把当前这只猫的体型乘进每帧姿态
+  // createCat 的扩展模块：把当前毛色的体型乘进每帧姿态
   const shapeModule = () => ({
     pose(now, dt, rm, P) {
-      const shape = selected.shape;
-      if (!shape) return;
-      P.bodySX *= shape.bodySX || 1;
-      P.bodySY *= shape.bodySY || 1;
-      P.headSX *= shape.headSX || 1;
+      const { coatShape } = window.SillySpecies.current;
+      const shape = selected.shape || coatShape;
+      P.bodySX *= shape.bodySX ?? coatShape.bodySX;
+      P.bodySY *= shape.bodySY ?? coatShape.bodySY;
+      P.headSX *= shape.headSX ?? coatShape.headSX;
     },
   });
 
   window.SillyCoats = {
-    list: () => coats.map(({ id, name }) => ({ id, name })),
+    list: () => coats.map(({ id, name, species }) => ({ id, name, species })),
     apply,
     setArtStyle(style, id = selected.id) {
       artStyle = style === 'line' ? 'line' : 'fur';

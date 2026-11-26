@@ -30,7 +30,7 @@
     const inIgnored = (t) => !!(ignoreEl && isNode(t) && ignoreEl.contains(t));
     const onHead = (t) => {
       if (!isNode(t)) return false;
-      const h = headEls.find((n) => n.contains(t));
+      const h = headEls.find((n) => n.contains(t)) || opts.retrieveTarget?.(t);
       if (h) headEl = h;
       return !!h;
     };

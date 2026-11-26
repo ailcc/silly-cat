@@ -16,10 +16,15 @@
 
     // 耳机：复用游戏模式模板（去麦克风），和空闲听歌的耳机同款同位
     document.getElementById('cat-head').insertAdjacentHTML('beforeend',
-      `<g transform="translate(400 100) scale(1.35) translate(-400 -100)">${
+      `<g transform="${window.SillyGameModeEgg.phoneWrap(1.35)}">${
         window.SillyGameModeEgg.headphoneSVG('user-phones', false)}</g>`);
     const phones = document.getElementById('user-phones');
     if (!phones) return {};
+    const fitPhones = () => {
+      const g = phones.parentElement;
+      if (g) g.setAttribute('transform', window.SillyGameModeEgg.phoneWrap(1.35));
+    };
+    window.addEventListener('silly:species', fitPhones);
 
     const gaming = () => !!(window.SillyGameMode && window.SillyGameMode.active && window.SillyGameMode.active());
     window.SillyUserMusic = { create, active: () => A.on };

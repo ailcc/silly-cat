@@ -21,12 +21,17 @@
     const demo = opts.demo && opts.demo.name === 'listen' ? opts.demo : null;
     const A = { enabled: true, on: false, decidedFor: -1, nextNote: 0, noteAlt: false, doze: false, willDoze: false, dozeAt: 0 };
 
-    // 耳机：复用游戏模式模板（去麦克风），绕头顶放大 1.35 倍（头梁顶不超出画面）
+    // 耳机：复用游戏模式模板（去麦克风），绕头顶放大 1.35 倍（头梁顶不超出画面）；狗狗按物种缩放
     document.getElementById('cat-head').insertAdjacentHTML('beforeend',
-      `<g transform="translate(400 100) scale(1.35) translate(-400 -100)">${
+      `<g transform="${window.SillyGameModeEgg.phoneWrap(1.35)}">${
         window.SillyGameModeEgg.headphoneSVG('listen-phones', false)}</g>`);
     const phones = document.getElementById('listen-phones');
     if (!phones) return {}; // 插入失败就整个不启用
+    const fitPhones = () => {
+      const g = phones.parentElement;
+      if (g) g.setAttribute('transform', window.SillyGameModeEgg.phoneWrap(1.35));
+    };
+    window.addEventListener('silly:species', fitPhones);
 
     const gaming = () => !!(window.SillyGameMode && window.SillyGameMode.active && window.SillyGameMode.active());
     // 用户自己在听歌（usermusic 模式）时猫已经戴着耳机了，猫自己的空闲听歌不掺和

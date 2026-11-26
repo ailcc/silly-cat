@@ -6,7 +6,6 @@
   const easeOut = (t) => 1 - Math.pow(1 - t, 3);
   const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
   const DRIP_PERIOD = 3200, DRIP_GROW = 2400;
-  const ANCHOR = { x: 419, y: 227 };          // 嘴角（头部局部坐标）
   const LIFT_MS = 400, WIPE_MS = 650, IMPRINT_MS = 6000;
   const easeIn = (t) => t * t;
   const seg = (t, a, b) => Math.max(0, Math.min(1, (t - a) / (b - a)));
@@ -24,34 +23,32 @@
   const mix = (Q, k) => { const o = {}; for (const f of ADD) o[f] = Q[f] * k; for (const f of MUL) o[f] = 1 + (Q[f] - 1) * k; return o; };
 
   // nod 点头栽倒：点两次、一次比一次低、每次猛地抬回来一点，第三次直接栽到键盘上，落下小回弹
-  const NOD_Y = 160; // 头底边刚好压到爪子上半截，下半截爪尖露在下巴两侧
-  function nodPose(t) {
+  function nodPose(t, { dip, rebound, finalDip, land, bounce, pose: P }) {
     let hy;
-    if (t < 900) hy = 58 * easeIn(t / 900);
-    else if (t < 1100) hy = 58 - 46 * easeOut((t - 900) / 200);
-    else if (t < 1400) hy = 12;
-    else if (t < 2300) hy = 12 + 98 * easeIn((t - 1400) / 900);
-    else if (t < 2500) hy = 110 - 60 * easeOut((t - 2300) / 200);
-    else if (t < 2750) hy = 50 + 6 * (t - 2500) / 250;
-    else if (t < 3050) hy = 56 + (NOD_Y - 56) * easeIn((t - 2750) / 300);
-    else if (t < 3300) hy = NOD_Y - 9 * Math.sin(Math.PI * (t - 3050) / 250);
-    else hy = NOD_Y;
-    const k = hy / NOD_Y;
-    return { ...ZERO, hy, hx: -4 * k, hr: -3 * k, hsx: 1 + 0.03 * k, hsy: 1 - 0.04 * k, by: 18 * k, bsy: 1 - 0.06 * k, ear: 28 * k, amt: k };
+    if (t < 900) hy = dip[0] * easeIn(t / 900);
+    else if (t < 1100) hy = dip[0] - (dip[0] - rebound[0]) * easeOut((t - 900) / 200);
+    else if (t < 1400) hy = rebound[0];
+    else if (t < 2300) hy = rebound[0] + (dip[1] - rebound[0]) * easeIn((t - 1400) / 900);
+    else if (t < 2500) hy = dip[1] - (dip[1] - rebound[1]) * easeOut((t - 2300) / 200);
+    else if (t < 2750) hy = rebound[1] + (finalDip - rebound[1]) * (t - 2500) / 250;
+    else if (t < 3050) hy = finalDip + (land - finalDip) * easeIn((t - 2750) / 300);
+    else if (t < 3300) hy = land - bounce * Math.sin(Math.PI * (t - 3050) / 250);
+    else hy = land;
+    const k = hy / land;
+    return { ...ZERO, hy, hx: P.hx * k, hr: P.hr * k, hsx: 1 + P.hsx * k, hsy: 1 + P.hsy * k,
+      by: P.by * k, bsy: 1 + P.bsy * k, ear: P.ear * k, amt: k };
   }
   // melt 融化摊平：身体先慢慢变宽变扁，头稍晚一点顺势滑到键盘上，缓入缓出
-  function meltPose(t) {
+  function meltPose(t, P) {
     const pb = easeInOut(seg(t, 0, 2200)), ph = easeInOut(seg(t, 200, 2500));
     // 身体要摊得比头还宽，两侧才看得见"化开"的一圈
-    return { ...ZERO, hy: 190 * ph, hx: -2 * ph, hr: -5 * ph, hsx: 1 + 0.2 * ph, hsy: 1 - 0.2 * ph,
-      by: 4 * pb, bsx: 1 + 0.9 * pb, bsy: 1 - 0.55 * pb, ear: 40 * ph, amt: ph };
+    return { ...ZERO, hy: P.hy * ph, hx: P.hx * ph, hr: P.hr * ph, hsx: 1 + P.hsx * ph, hsy: 1 + P.hsy * ph,
+      by: P.by * pb, bsx: 1 + P.bsx * pb, bsy: 1 + P.bsy * pb, ear: P.ear * ph, amt: ph };
   }
   const POSES = { nod: nodPose, melt: meltPose };
-  const stylePose = (style, t) => POSES[style](Math.max(0, Math.min(t, STYLE_MS[style])));
+  const stylePose = (style, t) => POSES[style](Math.max(0, Math.min(t, STYLE_MS[style])),
+    window.SillySpecies.current.sleep.slump[style]);
 
-  // 头部轮廓近似成椭圆（头部局部坐标），用来算头压住了哪些键
-  const HEAD_E = { cx: 400, cy: 173, rx: 130, ry: 103 };
-  const ZZZ_ANCHOR = { x: 548, y: 84 }; // Zzz 跟着头上这个点走
   // ?demo=slump-in 时间轴（毫秒）：坐着睡 -> 趴下过渡 -> 趴好停一会 -> 快速起身 -> 清醒
   const slumpIn = (style) => {
     const sit = 300, land = sit + STYLE_MS[style];
@@ -86,7 +83,7 @@
       stage: null, cur: ZERO, wakePose: ZERO, landed: false, sunkOn: false,
       liftStart: -1e9, wipeStart: -1e9, imprintStart: -1e9,
       dripStart: 0, lastDrop: -1, drops: [], puddleN: 0, puddleX: 400, puddleY: 398, puddleFade: -1,
-      sunk: [], nextPressFx: 0, headOnTop: false, droolShown: false,
+      sunk: [], contactShape: null, nextPressFx: 0, headOnTop: false, droolShown: false,
       slumpStart: -1e9,
     };
 
@@ -120,14 +117,14 @@
       for (const c of M.sunk) kb.setSunk(c, true);
     }
 
-    function contactKeys() {
+    function contactKeys({ cx, cy, rx, ry }) {
       // 按头此刻的实际位置，落在头形里的键都算被压住
       const out = [];
       for (const code of kb.codes()) {
         const k = kb.center(code);
         if (!k) continue;
         const h = ctx.sceneToHead(k.x, k.y);
-        if (((h.x - HEAD_E.cx) / HEAD_E.rx) ** 2 + ((h.y - HEAD_E.cy) / HEAD_E.ry) ** 2 <= 1) out.push(code);
+        if (((h.x - cx) / rx) ** 2 + ((h.y - cy) / ry) ** 2 <= 1) out.push(code);
       }
       return out;
     }
@@ -178,7 +175,8 @@
     function softPawTarget(paw, now) {
       const tw = now - M.wipeStart;
       if (tw >= 0 && tw < WIPE_MS && paw === paws.R) {
-        const m = ctx.headToScene(410, 236);
+        const { x, y } = window.SillySpecies.current.sleep.wipeAnchor;
+        const m = ctx.headToScene(x, y);
         return { id: 'wipe', x: m.x + 12 * Math.sin(tw / WIPE_MS * Math.PI * 4), y: m.y + 10, tau: 30 };
       }
       return null;
@@ -188,8 +186,9 @@
     // 头部局部点在给定姿态下的画面位置（不含呼吸等小动作），用来让 Zzz 跟着头
     function mapHead(p, Q) {
       const rot = (S.headBaseRot + Q.hr) * Math.PI / 180, c = Math.cos(rot), s = Math.sin(rot);
-      const vx = (p.x - 400) * Q.hsx, vy = (p.y - 262) * Q.hsy;
-      return { x: 400 + vx * c - vy * s + S.headBaseX + Q.hx, y: 262 + vx * s + vy * c + S.headBaseY + Q.hy };
+      const { x, y } = window.SillySpecies.current.rig.head.pivot;
+      const vx = (p.x - x) * Q.hsx, vy = (p.y - y) * Q.hsy;
+      return { x: x + vx * c - vy * s + S.headBaseX + Q.hx, y: y + vx * s + vy * c + S.headBaseY + Q.hy };
     }
 
     function pose(now, dt, rm, P) {
@@ -216,7 +215,8 @@
       P.earDroop += Q.ear;
       P.breath *= 1 + 1.4 * Q.amt;
       if (Q !== ZERO) {
-        const a = mapHead(ZZZ_ANCHOR, Q), b = mapHead(ZZZ_ANCHOR, ZERO);
+        const anchor = window.SillySpecies.current.sleep.zzzAnchor;
+        const a = mapHead(anchor, Q), b = mapHead(anchor, ZERO);
         P.zzzDx += a.x - b.x; P.zzzDy += a.y - b.y;
       }
     }
@@ -236,6 +236,7 @@
       const active = S.state === STATES.ASLEEP && (M.stage === 'drool' || M.stage === 'slumped');
       if (active !== M.droolShown) { E.drool.style.display = active ? '' : 'none'; M.droolShown = active; }
       if (active) {
+        const anchor = window.SillySpecies.current.sleep.droolAnchor;
         let L;
         if (rm) L = 14;
         else {
@@ -245,19 +246,19 @@
           const k = Math.floor((t - DRIP_GROW) / DRIP_PERIOD);
           if (k > M.lastDrop) {
             M.lastDrop = k;
-            const a = ctx.headToScene(ANCHOR.x, ANCHOR.y);
+            const a = ctx.headToScene(anchor.x, anchor.y);
             spawnDrop(a.x, a.y + 34 + 4, now);
           }
         }
         const r = 2.6 + L * 0.07;
-        const d = `M ${ANCHOR.x} ${ANCHOR.y} Q ${ANCHOR.x + 1.5} ${f1(ANCHOR.y + L * 0.6)} ${ANCHOR.x} ${f1(ANCHOR.y + L)}`;
+        const d = `M ${anchor.x} ${anchor.y} Q ${anchor.x + 1.5} ${f1(anchor.y + L * 0.6)} ${anchor.x} ${f1(anchor.y + L)}`;
         E.strand.setAttribute('d', d);
         E.outline.setAttribute('d', d);
-        E.bulb.setAttribute('cx', ANCHOR.x);
-        E.bulb.setAttribute('cy', f1(ANCHOR.y + L + r * 0.5));
+        E.bulb.setAttribute('cx', anchor.x);
+        E.bulb.setAttribute('cy', f1(anchor.y + L + r * 0.5));
         E.bulb.setAttribute('r', f1(r));
         // 抵消头部旋转，让口水始终竖直往下垂
-        E.drool.setAttribute('transform', `rotate(${(-S.headTf.rot).toFixed(2)} ${ANCHOR.x} ${ANCHOR.y})`);
+        E.drool.setAttribute('transform', `rotate(${(-S.headTf.rot).toFixed(2)} ${anchor.x} ${anchor.y})`);
       }
 
       // 下落的口水滴
@@ -307,7 +308,13 @@
       }
       // 落到键盘上那一刻按头的实际位置压键
       const wantSunk = asleepSlumped && M.landed;
-      if (wantSunk !== M.sunkOn) { M.sunkOn = wantSunk; setSunk(wantSunk ? contactKeys() : []); }
+      const sleep = window.SillySpecies.current.sleep;
+      const contactShape = wantSunk ? sleep.contactShape : null;
+      if (wantSunk !== M.sunkOn || contactShape !== M.contactShape) {
+        M.sunkOn = wantSunk;
+        M.contactShape = contactShape;
+        setSunk(wantSunk ? contactKeys(contactShape) : []);
+      }
       renderDrool(now, dt, rm);
 
       // 脸颊上的键帽压痕
@@ -319,8 +326,9 @@
         E.tuft.style.display = ti < 3500 ? '' : 'none';
         const fade = ti < 2200 ? 0 : (ti - 2200) / (IMPRINT_MS - 2200);
         E.imprint.setAttribute('opacity', (0.42 * (1 - fade * fade)).toFixed(3));
-        const k = 1 - 0.18 * fade;
-        E.dents.setAttribute('transform', `translate(310 240) scale(${k.toFixed(3)}) translate(-310 -240)`);
+        const k = kb.heightScale * (1 - 0.18 * fade);
+        const { x, y } = sleep.imprintPivot;
+        E.dents.setAttribute('transform', `translate(${x} ${y}) scale(${k.toFixed(3)}) translate(${-x} ${-y})`);
       } else { E.imprint.style.display = 'none'; E.tuft.style.display = 'none'; }
 
       // 脸压出来的字
@@ -334,6 +342,7 @@
 
     return {
       afterState, onWake, softPawTarget, pose, render, overrideState, block,
+      keyboardChanged() { M.sunkOn = false; M.sunk = []; },
       setDroolSeconds(v) { droolSec = Number.isFinite(v) ? v : null; },
       setSlumpSeconds(v) { slumpSec = Number.isFinite(v) ? v : null; },
       debugProps: {

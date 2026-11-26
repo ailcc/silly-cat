@@ -1,7 +1,4 @@
-// 起床气：睡熟被吵醒会闹脾气——头压低、耳朵耷、尾巴狠狠地拍；摸摸头帮它消气（摸头时消气算三倍速，
-// 手在动的那段时间算全额）。独立于疲劳（fatigue.js 的发飙）：只在 onWake 记下唤醒，
-// 等睡眠模块的起身和甩头结束才开始计时。消气后眯眼笑 2 秒，头顶冒小心心。
-// 调试：?demo=grump&loop=1（被吵醒后干瞪眼）或 ?demo=grump-pet&loop=1（边闹边被摸到消气）
+// 起床气独立于疲劳。只在 onWake 记下唤醒，等睡眠模块的起身和甩头结束才开始计时。
 (function () {
   'use strict';
 
@@ -28,7 +25,7 @@
     let enabled = opts.enabled !== false;
     let anger = 0, last = -Infinity, wakeAt = Infinity, calmAt = -Infinity, paused = false;
     const busy = (now) => !!opts.fatigue?.statusInfo().phase ||
-      !!(opts.isPushing && opts.isPushing(now));
+      !!(ctx.species?.push?.snatch && opts.isPushing?.(now));
     const strength = () => demoFrame ? demoFrame.anger : anger;
     const canShow = (now) => enabled && !busy(now) && S.state !== STATES.ASLEEP;
 
@@ -36,6 +33,7 @@
     effect.setAttribute('id', 'grump-effect');
     effect.setAttribute('pointer-events', 'none');
     effect.setAttribute('aria-hidden', 'true');
+    effect.setAttribute('transform', 'translate(548 121)');
     effect.style.display = 'none';
     effect.innerHTML = `
       <path d="M-14-4 Q-6-6-4-14 M4-14 Q6-6 14-4 M14 4 Q6 6 4 14 M-4 14 Q-6 6-14 4"
@@ -115,7 +113,7 @@
       if (value > 0) {
         P.headY += 5 * value;
         P.earDroop += 38 * value;
-        P.look = FRONT;
+        P.look = ctx.species?.grump?.look ?? FRONT;
         if (!S.pet || value >= SMILE_AT) {
           P.lidMin = Math.max(P.lidMin, 0.45);
           P.suppressPetSmile = true;
@@ -140,7 +138,8 @@
       heart.style.display = heartOn ? '' : 'none';
       const time = pinned ? demo.at : now;
       const bounce = rm ? 0 : markOn ? Math.sin(time / 125) * 3 : -calm / 35;
-      effect.setAttribute('transform', `translate(548 ${f1(EFFECT_ORIGIN.y + bounce)})`);
+      const origin = ctx.species?.grump?.effect ?? EFFECT_ORIGIN;
+      effect.setAttribute('transform', `translate(${origin.x} ${f1(origin.y + bounce)})`);
       effect.setAttribute('opacity', f1(heartOn ? 1 - calm / 900 : 1));
     }
 

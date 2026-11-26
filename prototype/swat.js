@@ -1,7 +1,4 @@
-// 拍指针：醒着时，鼠标凑得太近又晃来晃去，猫会伸爪拍一下——拍中了原地炸开小星星，
-// 拍空了就盯着指针看一会儿（指针够距之外拍过去必定拍空）。连拍换手，拍完有冷却。
-// 发飙 / 推杯子 / 摸头 / 打字时不拍；函数式动画只使用画面坐标，真实指针位置由输入源提供。
-// 调试：?demo=swat&loop=1（先拍中、再拍一次指针躲开）或 &at=毫秒 冻结
+// 拍爪只使用画面坐标。真实指针位置由现有输入源提供。
 (function () {
   'use strict';
 
@@ -20,13 +17,16 @@
   }
 
   function create(ctx, opts = {}) {
-    const { S, STATES, kb, paws, choosePaw, keyPoint, restPoint, reducedMotion, clamp, f1, shoulders } = ctx;
+    const { S, STATES, kb, paws, choosePaw, keyPoint, restPoint, reducedMotion, pointerInScene, approach, f1 } = ctx;
+    const supported = () => ctx.species?.swat !== false;
     // 触发距离比爪子够距更远，远处的指针会让猫拍空。
     const reach = {}, pawReach = {};
-    let bottom, keyboardStyle;
+    let bottom, shoulders, keyboardStyle;
     function keyboardChanged() {
-      keyboardStyle = kb.codes().length;
-      const keys = keyboardStyle && kb.codes();
+      if (!supported()) return;
+      shoulders = ctx.shoulders;
+      keyboardStyle = kb.style;
+      const keys = kb.codes();
       for (const side of ['L', 'R']) {
         const points = keys.filter(code => code === 'Space' || choosePaw(code).side === side);
         const farthest = Math.max(...points.map(code => distance(shoulders[side], keyPoint(code, side))));
@@ -43,6 +43,7 @@
     let enabled = opts.enabled !== false;
     let run = null, impact = null, watchUntil = -Infinity, next = -Infinity, combo = null;
     let point = null, history = [], fakePointer = null;
+    let lookX = 0, lookY = 0;
     keyboardChanged();
     const layer = document.getElementById('fx-layer');
     function effect(id, markup) {
@@ -74,7 +75,7 @@
     }
 
     function samplePointer(now) {
-      point = S.pointer ? { x: S.pointer.x, y: S.pointer.y } : null;
+      point = S.pointer ? pointerInScene() : null;
       history = history.filter(entry => entry.at >= now - MOVE_MS);
       if (!point) return false;
       const moved = now - S.pointer.at <= MOVE_MS &&
@@ -86,8 +87,8 @@
 
     function canSwat(now) {
       return (S.state === STATES.AWAKE) && !S.pet && !S.pressed.size && !S.mouseButtons.size &&
-        now - S.lastKeyAt >= 1200 && now - S.shakeStart >= 420 &&
-        !(opts.isPushing && opts.isPushing(now));
+        !opts.pointerHeld?.() && now - S.lastKeyAt >= 1200 && now - S.shakeStart >= 420 &&
+        !opts.isPushing?.(now);
     }
 
     function cancel(now) {
@@ -95,6 +96,7 @@
       run = impact = combo = null;
       fakePointer = null;
       watchUntil = -Infinity;
+      lookX = lookY = 0;
     }
 
     function demoFrame(now, t) {
@@ -104,7 +106,7 @@
       const sh = shoulders[side];
       const dir = second ? 1 : -1;
       // 第二次起拍时在够距内；挥爪后假指针往外躲。
-      const retreat = second ? clamp((phase - 126) / 83, 0, 1) : 0;
+      const retreat = second ? ctx.clamp((phase - 126) / 83, 0, 1) : 0;
       fakePointer = point = {
         x: sh.x + dir * (175 + 153 * retreat + 12 * Math.sin(Math.min(208, phase) / 37)),
         y: 345 + 190 * retreat,
@@ -122,8 +124,8 @@
     }
 
     function afterState(now) {
-      if (!enabled || reducedMotion()) { cancel(now); history = []; return; }
-      if (keyboardStyle !== kb.codes().length) keyboardChanged();
+      if (!supported() || !enabled || reducedMotion()) { cancel(now); history = []; return; }
+      if (shoulders !== ctx.shoulders || keyboardStyle !== kb.style) keyboardChanged();
       if (demo) {
         const t = pinned ? demo.at : demo.loop ? (now - demoStart) % DEMO_END : now - demoStart;
         if (t < DEMO_END) { demoFrame(now, t); return; }
@@ -153,23 +155,37 @@
       run = makeRun(side, now, paws[side], !!combo, opts.anger?.() || 0);
     }
 
+    function demoActive(now) {
+      return supported() && enabled && !reducedMotion() && demo &&
+        (pinned ? demo.at < DEMO_END : demo.loop || now - demoStart < DEMO_END);
+    }
+
     function forcedPawTarget(paw, now) {
-      if (!run || run.side !== paw.side) return null;
+      if (!supported() || run?.side !== paw.side) return null;
       const t = now - run.start;
       if (t >= END) return null;
       const sh = shoulders[paw.side], limit = pawReach[paw.side];
       const target = withinReach(sh, point || run.origin, limit);
       let goal;
-      if (t < WINDUP) goal = blend(run.origin, run.back, ease(clamp(t / WINDUP, 0, 1)));
+      if (t < WINDUP) goal = blend(run.origin, run.back, ease(ctx.clamp(t / WINDUP, 0, 1)));
       else if (t < CONTACT) goal = blend(run.back, target, 1 - ((CONTACT - t) / (CONTACT - WINDUP)) ** 3);
       else if (t < HOLD) goal = run.goal || target;
       else goal = blend(run.goal || target, restPoint(paw.side), ease((t - HOLD) / (END - HOLD)));
-      return { id: 'swat', ...withinReach(sh, goal, limit), tau: t >= WINDUP && t < HOLD ? 6 : 14 };
+      // 伸到最远时也保留肘弯，收爪途中逐渐交还给平时的曲率。
+      const armBend = t < HOLD ? 36 : 36 * (1 - (t - HOLD) / (END - HOLD));
+      return { id: 'swat', ...withinReach(sh, goal, limit), armBend, tau: pinned ? 1 : t >= WINDUP && t < HOLD ? 6 : 14 };
     }
 
     function pose(now, dt, rm, P) {
       const looking = !!run || now < watchUntil;
-      if (looking && point) P.look = point;
+      const target = looking && (point || (S.pointer && pointerInScene()));
+      if (!target) { lookX = lookY = 0; return; }
+      P.look = target;
+      const dir = SillyHeadFollow.direction(target);
+      lookX = pinned ? dir.x : approach(lookX, dir.x, dt, 80);
+      lookY = pinned ? dir.y : approach(lookY, dir.y, dt, 80);
+      SillyHeadFollow.turn(P, lookX, lookY);
+      if (run && now - run.start < END) P.earDroop += 10;
     }
 
     function settleImpact(at, pawCenter) {
@@ -194,10 +210,20 @@
       if (fakePointer) cursor.setAttribute('transform', `translate(${f1(fakePointer.x)} ${f1(fakePointer.y)})`);
     }
 
+    const isActing = (now) => supported() && !!run && now - run.start < END;
     return {
       afterState, forcedPawTarget, pose, render,
+      overrideState(now) {
+        if (demoActive(now) && !S.pet) {
+          S.lastInput = now;
+          return STATES.AWAKE;
+        }
+        return null;
+      },
       afterKeyDown(code, now) { if (run || combo || now < watchUntil) cancel(now); },
       keyboardChanged,
+      blocksKeyboardChange: isActing,
+      isActing,
       setEnabled(v) { enabled = !!v; },
       debugProps: {
         swat: () => {

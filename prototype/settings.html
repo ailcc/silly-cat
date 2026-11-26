@@ -386,6 +386,9 @@
 <script src="stats.js"></script>
 <script src="affection.js"></script>
 <script src="settings.js"></script>
+<script src="species.js"></script>
+<script src="species-cat.js"></script>
+<script src="species-dog.js"></script>
 <script src="coats.js"></script>
 <script>
 (function () {
@@ -399,6 +402,7 @@
   const artStyleInput = document.getElementById('f-art-style');
   const avatars = new Map();
   const catNames = new Map(window.SillyCoats.list().map(({ id, name }) => [id, name]));
+  const catSpecies = new Map(window.SillyCoats.list().map(({ id, species }) => [id, species || 'cat']));
   for (const id of S.CATS) {
     const label = document.createElement('label');
     label.className = 'cat-option';
@@ -408,7 +412,7 @@
     input.value = id;
     const img = document.createElement('img');
     img.alt = '';
-    avatars.set(id, img);
+    avatars.set(id, { img, species: catSpecies.get(id) || 'cat' });
     const name = document.createElement('span');
     name.textContent = catNames.get(id);
     label.append(input, img, name);
@@ -457,8 +461,10 @@
 
   const fmt = (v) => String(Math.round(v * 100) / 100);
   function refreshAvatars(style) {
-    const directory = style === 'line' ? 'cats/line' : 'cats';
-    for (const [id, img] of avatars) img.src = `${directory}/${id}.svg`;
+    for (const [id, { img, species }] of avatars) {
+      const directory = species === 'cat' && style === 'line' ? 'cats/line' : 'cats';
+      img.src = `${directory}/${id}.svg`;
+    }
   }
   function fill(s) {
     form.elements.cat.value = s.cat;

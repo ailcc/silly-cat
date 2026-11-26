@@ -17,20 +17,29 @@
       <path id="clip-head-path" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
     </clipPath>
     <clipPath id="clip-body">
-      <path d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/>
+      <path/>
     </clipPath>
     <clipPath id="clip-back-head"><path d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/></clipPath>
-    <clipPath id="clip-back-body"><path d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/></clipPath>
+    <clipPath id="clip-back-body"><path/></clipPath>
     <clipPath id="clip-eye-l"><circle cx="345" cy="178" r="29"/></clipPath>
     <clipPath id="clip-eye-r"><circle cx="455" cy="178" r="29"/></clipPath>
+    <clipPath id="clip-puppy-l"><circle cx="363.108" cy="182" r="15"/></clipPath>
+    <clipPath id="clip-puppy-r"><circle cx="436.892" cy="182" r="15"/></clipPath>
+    <!-- 小狗眼：暖棕虹膜，中间浅、外圈深，中间压一颗黑瞳孔 -->
+    <radialGradient id="puppy-iris" cx=".5" cy=".56" r=".6">
+      <stop stop-color="#8a5630"/>
+      <stop offset=".55" stop-color="#5b341b"/>
+      <stop offset=".85" stop-color="#2e1a0d"/>
+      <stop offset="1" stop-color="#170d06"/>
+    </radialGradient>
     <!-- 前面那份尾巴的遮罩：盖掉身体（连同描边）那一块，尾巴从身后出来的部分仍被身体挡住。变换由 cat.js 跟着身体设置 -->
     <mask id="mask-tail-front" maskUnits="userSpaceOnUse" x="-20" y="-50" width="840" height="690">
       <rect x="-20" y="-50" width="840" height="690" fill="#fff"/>
-      <path id="mask-tail-body" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z" fill="#000" stroke="#000" stroke-width="5"/>
+      <path id="mask-tail-body" fill="#000" stroke="#000" stroke-width="5"/>
     </mask>
   </defs>
 
-  <ellipse class="shadow" cx="400" cy="594" rx="300" ry="20"/>
+  <ellipse id="ground-shadow" class="shadow" cx="400" cy="594" rx="300" ry="20"/>
 
   <!-- 尾巴：黑色带白尖，轮廓由 cat.js 每帧按中线算（平时在身后摆，动鼠标时绕到前面搭在鼠标上） -->
   <g id="tail">
@@ -41,27 +50,22 @@
 
   <!-- 身体：白底梨形，观众右侧腰上一块鞍状黑斑 -->
   <g id="cat-body">
-    <path class="coat-base" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/>
+    <path class="coat-base"/>
     <g id="coat-body-patterns" clip-path="url(#clip-body)">
       <path class="coat-cow-marking" d="M 470 288 C 494 290, 512 320, 512 352 C 512 378, 500 394, 486 390 C 474 386, 478 366, 474 350 C 470 332, 460 318, 462 302 C 463 292, 466 288, 470 288 Z"/>
     </g>
-    <path class="ink-line" fill="none" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412"/>
+    <path class="ink-line" fill="none"/>
     <!-- 后腿的大腿弧线 -->
-    <path class="ink-thin" fill="none" d="M 312 350 Q 326 372 352 380 M 488 350 Q 474 372 448 380"/>
+    <path class="ink-thin" fill="none"/>
   </g>
 
   <!-- 头：大、歪 4 度 -->
   <g id="cat-head">
     <!-- ear-shape-*：每只猫的耳朵大小（coats.js 设静态缩放）；外层 ear-* 的旋转由 cat.js 每帧设 -->
-    <g id="ear-l"><g class="ear-shape-l">
-      <path class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 L 380 150 L 300 160 Z"/>
-      <path class="coat-inner-ear" d="M 302 108 L 304 58 L 341 86 Z"/>
-    </g></g>
-    <g id="ear-r"><g class="ear-shape-r">
-      <path class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 L 420 150 L 500 160 Z"/>
-      <path class="coat-inner-ear" d="M 498 108 L 496 58 L 459 86 Z"/>
-    </g></g>
+    <g id="ear-l"><g class="ear-shape-l" data-part="ear-l"></g></g>
+    <g id="ear-r"><g class="ear-shape-r" data-part="ear-r"></g></g>
 
+    <g id="head-rear-accessories"></g>
     <path id="head-fill" class="coat-base" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
     <g id="coat-head-patterns" clip-path="url(#clip-head)">
       <!-- 黑色帽子：盖住头顶，在观众左侧向下包住一只眼 -->
@@ -69,50 +73,89 @@
     </g>
     <path id="head-line" class="ink-line" fill="none" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
 
-    <ellipse class="blush" cx="318" cy="232" rx="13" ry="7"/>
-    <ellipse class="blush" cx="484" cy="226" rx="13" ry="7"/>
-
-    <!-- 左眼（黑斑里） -->
-    <g id="eye-l-open">
-      <circle class="sclera" cx="345" cy="178" r="29"/>
-      <g clip-path="url(#clip-eye-l)">
-        <circle id="iris-l" class="iris" cx="345" cy="178" r="21"/>
-        <circle id="pupil-l" class="pupil" cx="345" cy="179" r="13"/>
-        <circle id="shine-l" class="shine" cx="339" cy="173" r="5"/>
-        <rect id="lid-l" class="lid-l" x="314" y="147" width="62" height="10"/>
-        <line id="lidline-l" class="lid-line" x1="314" x2="376" y1="157" y2="157"/>
-      </g>
-      <circle class="eye-ring" cx="345" cy="178" r="29"/>
+    <g id="face-cat-blush" data-species-face="cat">
+      <ellipse class="blush" cx="318" cy="232" rx="13" ry="7"/>
+      <ellipse class="blush" cx="484" cy="226" rx="13" ry="7"/>
     </g>
-    <path id="eye-l-closed" class="eye-arc-l" style="display:none" d="M 323 180 Q 345 196 367 180"/>
-    <path id="eye-l-happy" class="eye-arc-l" style="display:none" d="M 323 186 Q 345 164 367 186"/>
 
-    <!-- 右眼（白脸上） -->
-    <g id="eye-r-open">
-      <circle class="sclera" cx="455" cy="178" r="29"/>
-      <g clip-path="url(#clip-eye-r)">
-        <circle id="iris-r" class="iris" cx="455" cy="178" r="21"/>
-        <circle id="pupil-r" class="pupil" cx="455" cy="179" r="13"/>
-        <circle id="shine-r" class="shine" cx="449" cy="173" r="5"/>
-        <rect id="lid-r" class="lid-r" x="424" y="147" width="62" height="10"/>
-        <line id="lidline-r" class="lid-line" x1="424" x2="486" y1="157" y2="157"/>
+    <g class="gaze-features">
+      <!-- 左眼（黑斑里） -->
+      <g id="eye-l-open">
+        <circle class="sclera" cx="345" cy="178" r="29"/>
+        <g clip-path="url(#clip-eye-l)">
+          <circle id="iris-l" class="iris" cx="345" cy="178" r="21"/>
+          <circle id="pupil-l" class="pupil" cx="345" cy="179" r="13"/>
+          <circle id="shine-l" class="shine" cx="339" cy="173" r="5"/>
+          <rect id="lid-l" class="lid-l" x="314" y="147" width="62" height="10"/>
+          <line id="lidline-l" class="lid-line" x1="314" x2="376" y1="157" y2="157"/>
+        </g>
+        <circle class="eye-ring" cx="345" cy="178" r="29"/>
       </g>
-      <circle class="eye-ring" cx="455" cy="178" r="29"/>
+      <path id="eye-l-closed" class="eye-arc-l" style="display:none" d="M 323 180 Q 345 196 367 180"/>
+      <path id="eye-l-happy" class="eye-arc-l" style="display:none" d="M 323 186 Q 345 164 367 186"/>
+
+      <!-- 右眼（白脸上） -->
+      <g id="eye-r-open">
+        <circle class="sclera" cx="455" cy="178" r="29"/>
+        <g clip-path="url(#clip-eye-r)">
+          <circle id="iris-r" class="iris" cx="455" cy="178" r="21"/>
+          <circle id="pupil-r" class="pupil" cx="455" cy="179" r="13"/>
+          <circle id="shine-r" class="shine" cx="449" cy="173" r="5"/>
+          <rect id="lid-r" class="lid-r" x="424" y="147" width="62" height="10"/>
+          <line id="lidline-r" class="lid-line" x1="424" x2="486" y1="157" y2="157"/>
+        </g>
+        <circle class="eye-ring" cx="455" cy="178" r="29"/>
+      </g>
+      <path id="eye-r-closed" class="eye-arc-r" style="display:none" d="M 433 180 Q 455 196 477 180"/>
+      <path id="eye-r-happy" class="eye-arc-r" style="display:none" d="M 433 186 Q 455 164 477 186"/>
     </g>
-    <path id="eye-r-closed" class="eye-arc-r" style="display:none" d="M 433 180 Q 455 196 477 180"/>
-    <path id="eye-r-happy" class="eye-arc-r" style="display:none" d="M 433 186 Q 455 164 477 186"/>
 
-    <!-- 歪的小胡子斑 -->
-    <ellipse class="coat-cow-marking" cx="421" cy="214" rx="11" ry="6.5" transform="rotate(-22 421 214)"/>
+    <g id="puppy-l-open" clip-path="url(#clip-puppy-l)" style="display:none">
+      <circle id="puppy-l-pupil" class="puppy-pupil"/>
+      <circle id="puppy-l-dot" class="puppy-dot"/>
+      <circle id="puppy-l-shine" fill="#fff8e8"/>
+      <circle id="puppy-l-glint" fill="#f5dfc5"/>
+      <rect id="puppy-l-lid" class="lid-l"/>
+      <line id="puppy-l-lidline" class="puppy-lid-line"/>
+    </g>
+    <g id="puppy-r-open" clip-path="url(#clip-puppy-r)" style="display:none">
+      <circle id="puppy-r-pupil" class="puppy-pupil"/>
+      <circle id="puppy-r-dot" class="puppy-dot"/>
+      <circle id="puppy-r-shine" fill="#fff8e8"/>
+      <circle id="puppy-r-glint" fill="#f5dfc5"/>
+      <rect id="puppy-r-lid" class="lid-r"/>
+      <line id="puppy-r-lidline" class="puppy-lid-line"/>
+    </g>
 
-    <!-- 胡须 -->
-    <path class="whisker" d="M 300 226 L 256 218 M 302 236 L 259 242"/>
-    <path class="whisker" d="M 500 224 L 546 214 M 499 234 L 543 240"/>
+    <g id="face-cat" data-species-face="cat">
+      <!-- 歪的小胡子斑 -->
+      <ellipse class="coat-cow-marking" cx="421" cy="214" rx="11" ry="6.5" transform="rotate(-22 421 214)"/>
 
-    <!-- 鼻子、坏笑的 w 嘴和小尖牙 -->
-    <path class="fang" d="M 404 232 L 408 242 L 412 231 Z"/>
-    <path class="ink-thin coat-mouth-line" fill="none" d="M 400 219 L 400 228 M 383 227 Q 391 237 400 228 Q 410 237 420 224"/>
-    <path class="ink-thin coat-nose" d="M 389 206 Q 400 201 411 206 Q 409 216 400 220 Q 391 216 389 206 Z"/>
+      <!-- 胡须 -->
+      <path class="whisker" d="M 300 226 L 256 218 M 302 236 L 259 242"/>
+      <path class="whisker" d="M 500 224 L 546 214 M 499 234 L 543 240"/>
+
+      <g class="gaze-features">
+        <!-- 鼻子、坏笑的 w 嘴和小尖牙 -->
+        <path class="fang" d="M 404 232 L 408 242 L 412 231 Z"/>
+        <path class="ink-thin coat-mouth-line" fill="none" d="M 400 219 L 400 228 M 383 227 Q 391 237 400 228 Q 410 237 420 224"/>
+        <path class="ink-thin coat-nose" d="M 389 206 Q 400 201 411 206 Q 409 216 400 220 Q 391 216 389 206 Z"/>
+      </g>
+    </g>
+    <g id="face-dog" data-species-face="dog" style="display:none" transform="translate(0 12)">
+      <g id="dog-mouth-open">
+        <path d="M369 227 C377 238 389 231 400 229 C411 231 423 238 431 227 C420 255 381 255 369 227 Z" fill="#57372e" stroke="#442e25" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M400 220 V229" stroke="#442e25" stroke-width="2.8"/>
+        <g id="dog-tongue">
+          <path d="M389 241 Q400 237 411 241 L410 248 C408 257 392 257 390 248 Z" fill="#df9493" stroke="#5f3930" stroke-width="1.4"/>
+          <path d="M400 241 v6" stroke="#bb7175" fill="none" stroke-linecap="round"/>
+        </g>
+      </g>
+      <path id="dog-mouth-closed" style="display:none" d="M400 222 V235 M372 230 C374 235 377 236 381 235 C389 234 393 235 400 235 C407 235 411 234 419 235 C423 236 426 235 428 230" fill="none" stroke="#442e25" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M374 205 C374 198 386 197 400 197 S426 198 427 204 C428 211 418 219 411 222 Q400 226 389 222 C382 219 373 212 374 205 Z" fill="#2e2624" stroke="#32251f" stroke-width="1.6"/>
+      <path d="M379 208 Q381 201 389 206 Q391 211 385 212 Q381 212 379 208 Z M421 208 Q419 201 411 206 Q409 211 415 212 Q419 212 421 208 Z" fill="#171313"/>
+      <path d="M384 201.5 Q390 199.5 397 200" fill="none" stroke="#947e70" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
 
     <!-- 以下由 sleep.js / fatigue.js 控制显示 -->
     <!-- 口水：半透明浅蓝白，细描边 -->
@@ -123,7 +166,7 @@
     </g>
     <!-- 趴醒后脸颊上的键帽压痕：只在贴键盘的那侧脸颊，裁在头形里 -->
     <g id="imprint" style="display:none" clip-path="url(#clip-head)">
-      <ellipse class="imprint-flush" cx="318" cy="240" rx="40" ry="24"/>
+      <ellipse class="imprint-flush"/>
       <g id="imprint-dents">
         <g transform="rotate(-14 300 232)"><rect class="dent" x="284" y="224" width="15" height="13" rx="4"/><rect class="dent-in" x="285.6" y="225.6" width="12" height="10" rx="3"/></g>
         <g transform="rotate(-8 318 230)"><rect class="dent" x="302" y="223" width="15" height="13" rx="4"/><rect class="dent-in" x="303.6" y="224.6" width="12" height="10" rx="3"/>
@@ -135,13 +178,10 @@
       </g>
     </g>
     <!-- 被压扁后翘起的两根毛（在轮廓上） -->
-    <path id="imprint-tuft" class="tuft" style="display:none" d="M 284 248 L 272 249 M 290 256 L 281 263"/>
+    <path id="imprint-tuft" class="tuft" style="display:none"/>
     <!-- 累了 / 生气：眉毛下压（黑斑上那条用浅色） -->
-    <g id="brows" style="display:none">
-      <path class="brow-light" d="M 321 138 L 363 151"/>
-      <path class="brow" d="M 479 138 L 437 151"/>
-    </g>
-    <path id="sweat" class="sweat" style="display:none" d="M 502 124 Q 494 138 495 143 A 7.5 7.5 0 0 0 510 143 Q 511 138 502 124 Z"/>
+    <g id="brows" style="display:none" data-part="brows"></g>
+    <path id="sweat" class="sweat" style="display:none"/>
     <!-- 叹气：从嘴角出来（坐标由 fatigue.js 每帧设置） -->
     <g id="sigh" style="display:none">
       <circle id="sigh-a" class="sigh" cx="406" cy="234" r="6"/>
@@ -166,23 +206,24 @@
     </g>
     <!-- strike-body：背影的身体，按每只猫的体型静态缩放（coats.js），和正面身体一致 -->
     <g id="strike-body">
-      <path class="coat-base" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412 Z"/>
+      <path class="coat-base"/>
       <g id="coat-back-body-patterns" clip-path="url(#clip-back-body)">
         <path class="coat-cow-marking" d="M 334 284 C 304 286, 284 318, 284 354 C 284 380, 298 396, 316 392 C 334 388, 330 364, 336 346 C 342 326, 352 310, 348 296 C 346 288, 340 284, 334 284 Z"/>
       </g>
-      <path class="ink-line" fill="none" d="M 300 412 C 290 352, 318 266, 400 258 C 482 266, 510 352, 500 412"/>
+      <path class="ink-line" fill="none"/>
     </g>
     <!-- 尾巴从身体底部伸出，贴着桌面甩向观众右侧，一下一下拍桌面 -->
     <g id="strike-tail">
-      <path class="tail-outline" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
-      <path class="tail-fill" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
+      <path class="tail-outline"/>
+      <path class="tail-fill"/>
       <!-- 环纹：虚线描边，dasharray 由 coats.js 按每只猫的 tail.rings 算（pathLength=100，从尾根量起） -->
-      <path id="strike-tail-rings" class="strike-tail-rings" pathLength="100" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
-      <path class="tail-tip" pathLength="100" d="M 400 404 C 446 392, 500 378, 556 376 C 598 374, 626 356, 622 326"/>
+      <path id="strike-tail-rings" class="strike-tail-rings" pathLength="100"/>
+      <path class="tail-tip" pathLength="100"/>
     </g>
     <g id="strike-head"><g id="strike-head-shape">
-      <g class="ear-shape-l"><g id="strike-ear-l" transform="rotate(-12 322 110)"><path class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z"/></g></g>
-      <g class="ear-shape-r"><g id="strike-ear-r" transform="rotate(12 478 110)"><path class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z"/></g></g>
+      <g class="ear-shape-l"><g id="strike-ear-l" transform="rotate(-12 322 110)" data-part="back-ear-l"></g></g>
+      <g class="ear-shape-r"><g id="strike-ear-r" transform="rotate(12 478 110)" data-part="back-ear-r"></g></g>
+      <g id="back-head-rear-accessories"></g>
       <path class="coat-base" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
       <g id="coat-back-head-patterns" clip-path="url(#clip-back-head)">
         <path class="coat-cow-marking" d="M 250 40 H 550 V 236 C 516 240, 484 222, 466 192 C 448 160, 436 128, 396 116 C 352 104, 300 108, 250 122 Z"/>
@@ -245,14 +286,8 @@
     <path id="arm-r-fill" class="arm-fill-r" d="M 462 318 L 452 470"/>
     <path id="arm-r-stripes" class="arm-stripes" d="M 462 318 L 452 470"/>
   </g>
-  <g id="paw-l" transform="translate(332 478)">
-    <ellipse class="coat-paw-l ink" cx="0" cy="0" rx="21" ry="15"/>
-    <path class="toe-l" d="M -7 5 L -7 12 M 7 5 L 7 12"/>
-  </g>
-  <g id="paw-r" transform="translate(452 478)">
-    <ellipse class="coat-paw-r ink" cx="0" cy="0" rx="21" ry="15"/>
-    <path class="toe-r" d="M -7 5 L -7 12 M 7 5 L 7 12"/>
-  </g>
+  <g id="paw-l" transform="translate(332 478)" data-part="paw-l"></g>
+  <g id="paw-r" transform="translate(452 478)" data-part="paw-r"></g>
   <!-- 发飙时飞散的键帽、罢工时的"哼" -->
   <g id="debris-layer" pointer-events="none"></g>
   <g id="bubble-layer" pointer-events="none"></g>
@@ -282,7 +317,74 @@
   <span id="rest-hint" class="ctl rest-hint" style="display:none"></span>
 </footer>
 
+<template id="parts-cat">
+  <svg>
+    <g data-part="ear-l">
+      <path class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 L 380 150 L 300 160 Z"/>
+      <path class="coat-inner-ear" d="M 302 108 L 304 58 L 341 86 Z"/>
+    </g>
+    <g data-part="back-ear-l">
+      <path class="coat-ear ink" d="M 286 128 L 290 44 Q 293 30 306 37 L 362 84 Z"/>
+    </g>
+    <g data-part="paw-l">
+      <ellipse class="coat-paw-l ink" cx="0" cy="0" rx="21" ry="15"/>
+      <path class="toe-l" d="M -7 5 L -7 12 M 7 5 L 7 12"/>
+    </g>
+    <g data-part="ear-r">
+      <path class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 L 420 150 L 500 160 Z"/>
+      <path class="coat-inner-ear" d="M 498 108 L 496 58 L 459 86 Z"/>
+    </g>
+    <g data-part="back-ear-r">
+      <path class="coat-ear ink" d="M 514 128 L 510 44 Q 507 30 494 37 L 438 84 Z"/>
+    </g>
+    <g data-part="paw-r">
+      <ellipse class="coat-paw-r ink" cx="0" cy="0" rx="21" ry="15"/>
+      <path class="toe-r" d="M -7 5 L -7 12 M 7 5 L 7 12"/>
+    </g>
+    <g data-part="brows">
+      <path class="brow-light" d="M 321 138 L 363 151"/>
+      <path class="brow" d="M 479 138 L 437 151"/>
+    </g>
+  </svg>
+</template>
+
+<template id="parts-dog">
+  <svg>
+    <g data-part="ear-l">
+      <path class="coat-ear ink dog-ear-outline"/>
+      <path class="coat-inner-ear"/>
+    </g>
+    <g data-part="back-ear-l">
+      <path class="coat-ear ink dog-ear-outline"/>
+    </g>
+    <g data-part="ear-r">
+      <g transform="translate(800 0) scale(-1 1)">
+        <path class="coat-ear ink dog-ear-outline"/>
+        <path class="coat-inner-ear"/>
+      </g>
+    </g>
+    <g data-part="back-ear-r">
+      <path class="coat-ear ink dog-ear-outline" transform="translate(800 0) scale(-1 1)"/>
+    </g>
+    <g data-part="paw-l paw-r">
+      <path class="coat-light ink" d="M -26 5 C -26 -9 -16 -17 0 -17 C 16 -17 26 -9 26 5 Q 26 15 17 15 Q 11 20 5 17 Q 0 21 -5 17 Q -11 20 -17 15 Q -26 15 -26 5 Z"/>
+      <g fill="var(--coat-pad, #cfab82)">
+        <ellipse cx="-17" cy="6" rx="4" ry="4.5"/>
+        <ellipse cx="-6" cy="9" rx="4.5" ry="5"/>
+        <ellipse cx="6" cy="9" rx="4.5" ry="5"/>
+        <ellipse cx="17" cy="6" rx="4" ry="4.5"/>
+      </g>
+    </g>
+    <g data-part="brows">
+      <path class="brow" d="M 348.725 152 Q 359.56 150 377.79 163 M 451.275 152 Q 440.44 150 422.21 163"/>
+    </g>
+  </svg>
+</template>
+
 <script src="keyboard.js"></script>
+<script src="species.js"></script>
+<script src="species-cat.js"></script>
+<script src="species-dog.js"></script>
 <script src="art.js"></script>
 <script src="art/cow/manifest.js"></script>
 <script src="art/orange/manifest.js"></script>
@@ -294,13 +396,22 @@
 <script src="art/white/manifest.js"></script>
 <script src="art/maine/manifest.js"></script>
 <script src="art/sphynx/manifest.js"></script>
+<script src="art/tianyuan/manifest.js"></script>
+<script src="art/corgi/manifest.js"></script>
+<script src="art/collie/manifest.js"></script>
 <script src="coats.js"></script>
 <script src="cat.js"></script>
+<script src="head-follow.js"></script>
 <script src="sleep.js"></script>
 <script src="sounds.js"></script>
+<script src="dog-mischief.js"></script>
 <script src="fatigue.js"></script>
+<script src="dog-snatch.js"></script>
 <script src="pounce.js"></script>
 <script src="push.js"></script>
+<script src="grump.js"></script>
+<script src="swat.js"></script>
+<script src="purr.js"></script>
 <script src="idle-gestures.js"></script>
 <script src="easter-words.js"></script>
 <script src="typerhythm.js"></script>
@@ -336,9 +447,6 @@
 <script src="hindpaws.js"></script>
 <script src="listenmusic.js"></script>
 <script src="usermusic.js"></script>
-<script src="grump.js"></script>
-<script src="swat.js"></script>
-<script src="purr.js"></script>
 <script src="statusbar.js"></script>
 <script src="input.js"></script>
 <script src="updater.js"></script>
@@ -348,6 +456,7 @@
 (function () {
   'use strict';
   const params = new URLSearchParams(location.search);
+  SillySpecies.select('cat');
   const desktopMode = SillyDesktopInput.isDesktop();
   if (!desktopMode) {
     const catSelect = document.getElementById('cat-select');
@@ -372,13 +481,22 @@
   const slumpStyle = params.get('slump-style');
 
   // 状态条：默认显示；?statusbar=0 关掉（网页版没有设置窗口）
-  const statusBarParam = params.has('statusbar') ? !/^(0|false|off|no)$/i.test(params.get('statusbar')) : null;
-  const pushParam = params.has('push') ? !/^(0|false|off|no)$/i.test(params.get('push')) : null;
-  const soundsParam = params.has('sounds') ? !/^(0|false|off|no)$/i.test(params.get('sounds')) : null;
-  const eyesParam = params.has('eyes') ? !/^(0|false|off|no)$/i.test(params.get('eyes')) : null;
+  const toggle = (key) => params.has(key) ? !/^(0|false|off|no)$/i.test(params.get(key)) : null;
+  const statusBarParam = toggle('statusbar'), pushParam = toggle('push'), eyesParam = toggle('eyes');
+  const soundsParam = toggle('sounds'), grumpParam = toggle('grump'), swatParam = toggle('swat'), purrParam = toggle('purr');
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
-  const kb = SillyKeyboard.build(document.getElementById('keyboard'));
+  const keyboardParam = params.get('kb');
+  const kb = SillyKeyboard.build(document.getElementById('keyboard'), keyboardParam ?? SillySettings.DEFAULTS.keyboard);
+  function updateGroundShadow() {
+    const shadow = document.getElementById('ground-shadow');
+    const full = kb.style === 'full';
+    shadow.setAttribute('cy', full ? 560 : 594);
+    shadow.setAttribute('rx', full ? 310 : 300);
+    shadow.setAttribute('ry', full ? 18 : 20);
+  }
+  updateGroundShadow();
+
   let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null, quip = null, sit = null, visitor = null, tailSlapMod = null, kbdFlowMod = null, headTurnMod = null, hindPawsMod = null, listenMod = null, userMusicMod = null, grumpMod = null, swatMod = null, purrMod = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep, eyesFollow: eyesParam ?? SillySettings.DEFAULTS.eyesFollow, demo,
@@ -387,10 +505,17 @@
       (ctx) => (sleepMod = SillySleep.create(ctx, { droolSeconds: num('drool') ?? NaN, slumpSeconds: num('slump') ?? NaN, slumpStyle, demo })),
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
       (ctx) => SillyPounce.create(ctx, { demo }),
-      (ctx) => (push = SillyPush.create(ctx, { enabled: pushParam ?? true, everySeconds: pushEveryParam, demo })),
-      (ctx) => (grumpMod = SillyGrump.create(ctx, { fatigue, isPushing: (now) => push.pushing(now), demo })),
-      (ctx) => (swatMod = SillySwat.create(ctx, { demo, isPushing: (now) => push.pushing(now), anger: () => grumpMod.anger() })),
-      (ctx) => (purrMod = SillyPurr.create(ctx, { canPurr: () => grumpMod.canPurr() })),
+      (ctx) => (push = SillyPush.create(ctx, {
+        enabled: pushParam ?? true, everySeconds: pushEveryParam, demo,
+        blocked: () => grumpMod?.active?.() || swatMod?.isActing?.(performance.now()),
+        canSnatch() {
+          const { fatigue: value, phase } = fatigue.statusInfo();
+          return !phase && value < 0.6;
+        },
+      })),
+      (ctx) => (grumpMod = SillyGrump.create(ctx, { fatigue, enabled: grumpParam ?? SillySettings.DEFAULTS.grump, demo, isPushing: (now) => push.isActing(now) })),
+      (ctx) => (swatMod = SillySwat.create(ctx, { enabled: swatParam ?? SillySettings.DEFAULTS.swat, demo, anger: () => grumpMod.anger(), isPushing: (now) => push.isActing(now) })),
+      (ctx) => (purrMod = SillyPurr.create(ctx, { enabled: purrParam ?? SillySettings.DEFAULTS.purr, volume: SillySettings.DEFAULTS.purrVolume, canPurr: () => grumpMod.canPurr() })),
       (ctx) => SillyIdleGestures.create(ctx, { demo }),
       (ctx) => SillyEasterWords.create(ctx, { demo }),
       (ctx) => SillyTypeRhythm.create(ctx, { demo }),
@@ -431,19 +556,25 @@
     ],
   });
   const headEl = [document.getElementById('cat-head'), document.getElementById('strike-head')];
+  // 狗狗叼走鼠标后：点它身上任意部位把鼠标要回来
+  function retrieveTarget(target) {
+    if (!push.canRetrieve()) return null;
+    return target?.closest?.('#cat-body, #arm-l, #arm-r, #paw-l, #paw-r, #tail, #snatch-back') || null;
+  }
   if (desktopMode) {
     // 桌面外壳：全局键鼠代替页面内的键鼠事件（不同时挂两份，避免一次按键算两次）
-    const desktop = SillyDesktopInput.create(cat, { headEl, sceneEl: document.getElementById('scene') });
+    const desktop = SillyDesktopInput.create(cat, { headEl, retrieveTarget, sceneEl: document.getElementById('scene') });
     Object.defineProperty(window, '__desktop', { value: desktop.debug, writable: false, configurable: false });
 
-    // 启动时读 settings.json 再显示猫，之后每次保存都会发 silly:settings 事件过来，立即生效。
-    // 猫的品种和画风只读设置。其他支持 URL 的字段在启动时优先用 URL 参数，之后以设置窗口为准。
+    // 启动时读 settings.json 再显示，之后每次保存都会发 silly:settings 事件过来，立即生效。
+    // 品种和画风只读设置。其他支持 URL 的字段在启动时优先用 URL 参数，之后以设置窗口为准。
     const applySettings = (raw, skipUrl) => {
       const s = SillySettings.sanitize(raw);
       // 窗口外层缩放（settings.size 由 Tauri 窗口层 set_size 实现）会把 scene 里所有元素一起缩。
       // 把 size 暴露给模块，让番茄钟等小部件做逆缩放保持固定视觉大小。
       window.__catSize = s.size || 1;
       SillyCoats.setArtStyle(s.artStyle, s.cat);
+      if (!(skipUrl && SillyKeyboard.isStyle(keyboardParam))) cat.setKeyboardStyle(s.keyboard);
       const use = (k) => !(skipUrl && num(k) !== null);
       if (use('sleep')) cat.setSleepSeconds(s.sleep);
       if (use('drool')) sleepMod.setDroolSeconds(s.drool ?? NaN); // NaN = 自动（入睡时间 × 2）
@@ -472,13 +603,23 @@
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
     const T = window.__TAURI__;
-    T.core.invoke('load_settings')
-      .then((raw) => { if (raw) applySettings(raw, true); else SillyCoats.apply('cow'); })
-      .catch(() => SillyCoats.apply('cow'));
-    T.event.listen('silly:settings', (ev) => applySettings(ev.payload, false));
+    let settingsChanged = false;
+    T.event.listen('silly:settings', (ev) => {
+      settingsChanged = true;
+      applySettings(ev.payload, false);
+    })
+      .catch((error) => console.warn('订阅桌宠设置失败', error))
+      .then(() => T.core.invoke('load_settings'))
+      .catch(() => null)
+      .then((raw) => {
+        if (settingsChanged) return;
+        if (raw) applySettings(raw, true);
+        else SillyCoats.apply('cow');
+      });
   } else {
     SillyInput.createBrowserInput(cat, {
       headEl,
+      retrieveTarget,
       ignoreEl: document.getElementById('controls'),
       stageEl: document.getElementById('stage'),
     });

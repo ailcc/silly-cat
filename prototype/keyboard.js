@@ -3,12 +3,15 @@
 (function () {
   'use strict';
   const NS = 'http://www.w3.org/2000/svg';
-  const U = 30;          // 1u 键宽
-  const X0 = 175;        // 主键区左边
-  const Y0 = 414;        // 数字行顶边
-  const PITCH = 32;      // 行距
-  const KH = 28;         // 键高
-  const GAP = 3;
+  const COMPACT = {
+    unit: 30, x: 175, y: 414, pitch: 32, height: 28, gap: 3, radius: 5, labelDy: 3.2,
+    bounds: { x: 163, y: 374, w: 474, h: 206 },
+  };
+  const FULL = {
+    unit: 22, x: 152.5, y: 413.5, pitch: 23.5, height: 20.5, gap: 2.5, radius: 4, labelDy: 2.5,
+    bounds: { x: 140.5, y: 374, w: 519, h: 170 },
+  };
+  const isStyle = (style) => style === 'compact' || style === 'full';
 
   const letters = (s) => s.split('').map((c) => ['Key' + c, c]);
   const digits = '1234567890'.split('').map((c) => ['Digit' + c, c]);
@@ -22,11 +25,6 @@
       ['AltRight', 'Alt', 1.25], ['MetaRight', '⌘', 1.25], ['ContextMenu', 'Menu', 1.25], ['ControlRight', 'Ctrl', 1.25]],
   ];
 
-  const CASE = { x: 163, y: 374, w: 474, h: 206 };
-  const PIVOT = { x: CASE.x + CASE.w / 2, y: CASE.y + CASE.h / 2 };
-  // 键盘本地坐标（用户视角布局）-> 画面坐标（转 180°）
-  const toScreen = (p) => ({ x: 2 * PIVOT.x - p.x, y: 2 * PIVOT.y - p.y });
-
   function mk(tag, attrs, parent) {
     const n = document.createElementNS(NS, tag);
     for (const k in attrs) n.setAttribute(k, attrs[k]);
@@ -34,27 +32,82 @@
     return n;
   }
 
-  function build(group) {
+  // 接口保持同一个对象，模块继续查询当前布局。只替换键盘节点，保留裂纹等效果层。
+  function build(group, initialStyle = 'compact') {
+    let nodes = [];
+    const keyboard = { setStyle };
+    function setStyle(style) {
+      if (!isStyle(style) || style === keyboard.style) return;
+      const layout = buildLayout(style);
+      for (const node of layout.nodes) {
+        if (nodes.length) group.insertBefore(node, nodes[0]);
+        else group.appendChild(node);
+      }
+      for (const node of nodes) node.remove();
+      nodes = layout.nodes;
+      Object.assign(keyboard, layout.api);
+      group.classList.toggle('kb-full', style === 'full');
+    }
+    setStyle(isStyle(initialStyle) ? initialStyle : 'compact');
+    return keyboard;
+  }
+
+  function buildLayout(style) {
+    const full = style === 'full';
+    const { unit: U, x: X0, y: Y0, pitch: PITCH, height: KH, gap: GAP, radius, labelDy, bounds } = full ? FULL : COMPACT;
+    const pivot = { x: bounds.x + bounds.w / 2, y: bounds.y + bounds.h / 2 };
+    const toScreen = (p) => ({ x: 2 * pivot.x - p.x, y: 2 * pivot.y - p.y });
     const keys = new Map(); // code -> { el, cx, cy }
 
-    mk('rect', { x: CASE.x, y: CASE.y + 8, width: CASE.w, height: CASE.h, rx: 16, class: 'kb-lip' }, group);
-    mk('rect', { x: CASE.x, y: CASE.y, width: CASE.w, height: CASE.h, rx: 16, class: 'kb-case' }, group);
+    const lip = mk('rect', { x: bounds.x, y: bounds.y + 8, width: bounds.w, height: bounds.h, rx: 16, class: 'kb-lip' });
+    const shell = mk('rect', { x: bounds.x, y: bounds.y, width: bounds.w, height: bounds.h, rx: 16, class: 'kb-case' });
     // 键盘朝向猫：键区整体相对观众转 180°（空格行靠猫，数字行靠观众，字是倒的）
-    const keysG = mk('g', { class: 'kb-keys', transform: `rotate(180 ${PIVOT.x} ${PIVOT.y})` }, group);
+    const keysG = mk('g', { class: 'kb-keys', transform: `rotate(180 ${pivot.x} ${pivot.y})` });
 
     function addKey(code, label, w, x, y, h) {
       const g = mk('g', { class: 'key', 'data-code': code }, keysG);
       const rx = x + GAP / 2, kw = w * U - GAP;
-      mk('rect', { x: rx, y, width: kw, height: h, rx: 5, class: 'key-cap' }, g);
+      mk('rect', { x: rx, y, width: kw, height: h, rx: radius, class: 'key-cap' }, g);
       if (label) {
-        const t = mk('text', { x: rx + kw / 2, y: y + h / 2 + 3.2, class: 'key-label' }, g);
+        const t = mk('text', { x: rx + kw / 2, y: y + h / 2 + labelDy, class: 'key-label' }, g);
         t.textContent = label;
       }
       keys.set(code, { el: g, cx: rx + kw / 2, cy: y + h / 2 });
     }
 
-    // 独立的 Esc 小键
-    addKey('Escape', 'Esc', 1, X0, 383, 24);
+    if (full) addFullKeys();
+    else addKey('Escape', 'Esc', 1, X0, 383, 24);
+
+    function addFullKeys() {
+      const fy = 386, nav = X0 + 15.25 * U, pad = X0 + 18.5 * U;
+      const rowY = (row) => Y0 + row * PITCH;
+      const tall = KH + PITCH;
+      function addRow(caps, x, y) {
+        caps.forEach(([code, label], i) => addKey(code, label, 1, x + i * U, y, KH));
+      }
+
+      addKey('Escape', 'Esc', 1, X0, fy, KH);
+      for (let i = 0; i < 12; i++) {
+        const code = 'F' + (i + 1);
+        addKey(code, code, 1, X0 + (2 + i + Math.floor(i / 4) * 0.5) * U, fy, KH);
+      }
+
+      addRow([['PrintScreen', 'Prt'], ['ScrollLock', 'Scr'], ['Pause', 'Pau']], nav, fy);
+      addRow([['Insert', 'Ins'], ['Home', 'Hm'], ['PageUp', 'PU']], nav, rowY(0));
+      addRow([['Delete', 'Del'], ['End', 'End'], ['PageDown', 'PD']], nav, rowY(1));
+      addKey('ArrowUp', '↑', 1, nav + U, rowY(3), KH);
+      addRow([['ArrowLeft', '←'], ['ArrowDown', '↓'], ['ArrowRight', '→']], nav, rowY(4));
+
+      addRow([['Power', 'Pwr'], ['Sleep', 'Slp'], ['WakeUp', 'Wk'], ['LaunchApp2', 'Calc']], pad, fy);
+      addRow([['NumLock', 'Num'], ['NumpadDivide', '/'], ['NumpadMultiply', '*'], ['NumpadSubtract', '-']], pad, rowY(0));
+      for (const [row, digits] of [[1, '789'], [2, '456'], [3, '123']]) {
+        addRow([...digits].map((digit) => ['Numpad' + digit, digit]), pad, rowY(row));
+      }
+      addKey('NumpadAdd', '+', 1, pad + 3 * U, rowY(1), tall);
+      addKey('NumpadEnter', 'Ent', 1, pad + 3 * U, rowY(3), tall);
+      addKey('Numpad0', '0', 2, pad, rowY(4), KH);
+      addKey('NumpadDecimal', '.', 1, pad + 2 * U, rowY(4), KH);
+    }
 
     ROWS.forEach((row, r) => {
       let off = 0;
@@ -65,10 +118,14 @@
       }
     });
 
-    const left = CASE.x + 4, right = CASE.x + CASE.w - 4;
-    const top = CASE.y + 4, bottom = CASE.y + CASE.h - 6;
+    const left = bounds.x + 4, right = bounds.x + bounds.w - 4;
+    const top = bounds.y + 4, bottom = bounds.y + bounds.h - 6;
 
-    return {
+    const api = {
+      style,
+      pivot,
+      heightScale: KH / COMPACT.height,
+      caseScale: { x: bounds.w / COMPACT.bounds.w, y: bounds.h / COMPACT.bounds.h },
       has: (code) => keys.has(code),
       // 返回画面坐标
       center(code) {
@@ -110,8 +167,9 @@
       },
       isGone: (code) => { const k = keys.get(code); return !!(k && k.el.classList.contains('gone')); },
       codes: () => [...keys.keys()],
-      bounds: { ...CASE },
+      bounds: { ...bounds },
     };
+    return { api, nodes: [lip, shell, keysG] };
 
     function localEdge(code, physSide) {
         let x, y;
@@ -136,5 +194,5 @@
 
   function clampN(v, a, b) { return Math.max(a, Math.min(b, v)); }
 
-  window.SillyKeyboard = { build };
+  window.SillyKeyboard = { build, isStyle };
 })();

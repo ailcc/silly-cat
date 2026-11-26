@@ -1,0 +1,1 @@
+SillyArt.register("corgi", {"head": [768, 697], "ear": [290, 392], "body": [768, 708], "back-head": [768, 712], "ear-back": [254, 384], "back-body": [768, 708], "arm-l": [251, 509], "arm-r": [251, 509], "paw-l": [330, 236], "paw-r": [330, 236], "tail": [139, 399]});

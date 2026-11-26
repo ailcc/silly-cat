@@ -3,8 +3,7 @@
 //   sleepy  困了：犯困（drowsy）期间，进度 = 犯困以来的无输入时长 / 入睡时间的后一半，满了就睡着
 //   annoyed 烦躁：疲劳值 ≥ 0.5 时（不在发飙、罢工、修理中），进度 = 疲劳值本身，满了就发飙
 //   calming 消气中：罢工期间，进度 = 已累计休息时长 / 需要休息的时长，满了就转回来修键盘
-//   grump / grumpCalm 起床气 / 消气了：grump.js 的被吵醒怒气与消气后的眯眼笑
-// 同一时刻只显示一条：grump > calming > annoyed > sleepy。出现、消失、换种类都淡入淡出（prefers-reduced-motion 下直接切）。
+// 同一时刻只显示一条：罢工消气 > 起床气或刚消气 > 烦躁 > 犯困。
 (function () {
   'use strict';
 
@@ -13,6 +12,7 @@
     sleepy: { label: '困了', cls: 'sb-sleepy' },
     annoyed: { label: '烦躁', cls: 'sb-annoyed' },
     calming: { label: '消气中', cls: 'sb-calming' },
+    rage: { cls: 'sb-annoyed' },
     grump: { label: '起床气', cls: 'sb-annoyed' },
     grumpCalm: { label: '消气了', cls: 'sb-calming' },
   };
@@ -25,7 +25,6 @@
   function create(ctx, opts = {}) {
     const { S, STATES, clamp, f1 } = ctx;
     const fatigue = opts.fatigue || null;
-    const grump = opts.grump || null;
     let enabled = opts.enabled !== false;
 
     // ---------- 节点 ----------
@@ -48,12 +47,19 @@
 
     // ---------- 取值：此刻应该显示哪一条、进度多少 ----------
     const info = () => (fatigue && fatigue.statusInfo ? fatigue.statusInfo() : { fatigue: 0, phase: null, rest: null });
+    const status = () => window.SillySpecies.current.fatigue.status;
+    function labelFor(kind, progress) {
+      const labels = status();
+      if (kind === 'calming' && labels && progress < labels.calmAt) return labels.strike;
+      return labels?.[kind] || KINDS[kind]?.label || '';
+    }
     function current(now) {
       if (!enabled) return { kind: 'none', progress: 0 };
-      const g = grump && grump.status ? grump.status(now) : null;
-      if (g) return g;
       const I = info();
+      if (I.phase === 'rage' && status()?.rage) return { kind: 'rage', progress: 1 };
       if (I.phase === 'strike') return { kind: 'calming', progress: I.rest };
+      const grump = opts.grump?.status(now);
+      if (grump) return grump;
       if (!I.phase && I.fatigue >= 0.5) return { kind: 'annoyed', progress: I.fatigue };
       // 再核对一次无输入时长：修理结束那一帧 fatigue.js 刚把 lastInput 重置，S.state 还留着重置前算出的 drowsy
       if (S.state === STATES.DROWSY && now - S.lastInput >= S.sleepMs / 2) return { kind: 'sleepy', progress: valueOf('sleepy', now) };
@@ -69,9 +75,10 @@
         return clamp((now - S.lastInput - half) / half, 0, 1);
       }
       const I = info();
+      if (kind === 'rage') return 1;
       if (kind === 'annoyed') return I.fatigue;
       if (kind === 'calming') return I.rest === null ? 1 : I.rest;
-      if (kind === 'grump') return grump?.anger?.() ?? 0;
+      if (kind === 'grump') return opts.grump?.anger() ?? 0;
       if (kind === 'grumpCalm') return 1;
       return 0;
     }
@@ -104,8 +111,9 @@
         R.drawnKind = R.shown;
         const K = KINDS[R.shown];
         g.setAttribute('class', 'status-bar ' + K.cls);
-        label.textContent = K.label;
       }
+      const caption = labelFor(R.shown, R.shown === want.kind ? want.progress : R.p);
+      if (label.textContent !== caption) label.textContent = caption;
       const p = clamp(R.p, 0, 1);
       if (Math.abs(p - R.drawnP) > 0.001) {
         R.drawnP = p;
@@ -130,7 +138,7 @@
         statusBar: () => {
           const c = current(performance.now());
           return Object.freeze({
-            kind: c.kind, progress: Math.round(c.progress * 1000) / 1000, enabled,
+            kind: c.kind, label: labelFor(c.kind, c.progress), progress: Math.round(c.progress * 1000) / 1000, enabled,
             shown: R.display ? R.shown : 'none', opacity: Math.round(R.op * 1000) / 1000,
           });
         },

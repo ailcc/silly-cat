@@ -1,4 +1,4 @@
-// 推桌上的物件：猫的动作可以收回，已经脱手的物件按自己的时间轴走完。
+// 猫推杯子、狗叼鼠标沿用同一个开关、随机间隔和演示入口。
 (function () {
   'use strict';
 
@@ -10,14 +10,13 @@
   const IDLE_MIN = 2500, IDLE_MAX = 20000;
   // 杯底中心：猫身旁、和猫坐的高度一样（身体底边 y≈412），在键盘右上角后面，爪子往旁边一伸就够得着
   const MUG = { x: 655, y: 410 };
-  const FRONT = { x: 400, y: 178 };
   const DEMOS = ['push', 'push-back'];
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const lerp = (a, b, t) => a + (b - a) * t;
 
   function create(ctx, opts = {}) {
-    const { S, STATES, paws, mousePaw, restPoint, reducedMotion, clamp, f1 } = ctx;
+    const { S, STATES, kb, paws, mouseHome, mousePoint, mousePaw, restPoint, reducedMotion, clamp, f1 } = ctx;
     const demo = opts.demo && DEMOS.includes(opts.demo.name) ? opts.demo : null;
     const pinned = demo && Number.isFinite(demo.at);
     const t0 = performance.now();
@@ -25,10 +24,17 @@
     const interval = (v) => Number.isFinite(v) ? clamp(v, 5, 36000) : 600;
     let everySec = interval(opts.everySeconds);
     const newDeadline = (now) => now + rand(0.5, 1.5) * everySec * 1000;
+    const pushSpec = () => window.SillySpecies.current.push;
+    const snatch = () => !!pushSpec()?.snatch;
+    const dog = window.SillyDogSnatch;
+    const canSnatch = opts.canSnatch ?? (() => true);
+    let activeSpec = pushSpec();
+    let dogScene;
     let nextPush = newDeadline(t0);
     let run = null, offset = 0, settling = null, backAt = -Infinity;
-    const cupDir = () => S.mouseSide === 'left' ? -1 : 1;
-    let dir = cupDir();
+    let demoBackAt = -Infinity, returnFrom;
+    const actionDir = () => snatch() ? Math.sign(mouseHome().x - ctx.rig.turnX) : S.mouseSide === 'left' ? -1 : 1;
+    let dir = actionDir();
 
     const $ = (id) => document.getElementById(id);
     // 画在键盘前面的那层之前：杯子在键盘后面（被键盘挡住），手臂和爪子仍盖在杯子上
@@ -55,7 +61,11 @@
     const unit = (p) => clamp(p, 0, 1);
     const ease = (p) => { const u = unit(p); return u * u * (3 - 2 * u); };
     const blendPoint = (a, b, p) => ({ x: lerp(a.x, b.x, p), y: lerp(a.y, b.y, p) });
-    const cupX = (d, distance) => 400 + d * (MUG.x - 400 + distance);
+    const cupX = (d, distance) => {
+      // 杯的影子半宽 26px，给外壳描边和杯身摆动留空。
+      const x = kb.style === 'full' ? kb.bounds.x + kb.bounds.w + 31 : MUG.x;
+      return 400 + d * (x - 400 + distance);
+    };
 
     // 同一份采样用于正常播放、打断时保留位移，以及 demo 跳到指定帧。
     function sequence(t, from, d, acting) {
@@ -78,14 +88,31 @@
       return { dir: d, offset: distance, wobble, opacity, fall: 0, phase: visible ? 'idle' : 'gone', acting: false };
     }
 
-    const demoPeriod = demo && demo.name === 'push-back' ? FADE_MS + 700 : END + FADE_MS + 500;
+    const actionEnd = () => snatch() ? dog.END : END;
     function demoTime(now) {
       if (pinned) return demo.at;
       const elapsed = Math.max(0, now - t0);
+      const returnDuration = snatch() ? dog.RETURN_DURATION : FADE_MS;
+      const demoPeriod = demo.name === 'push-back' ? returnDuration + 700 : actionEnd() + returnDuration + 500;
       return demo.loop ? elapsed % demoPeriod : elapsed;
     }
 
+    function dogRest(age) {
+      return dog.returning(age, returnFrom ?? dog.END, dir, mouseHome());
+    }
+
     function view(now) {
+      if (!pushSpec()) return { ...resting(dir, 0, 0, 0, false), phase: 'disabled' };
+      if (snatch()) {
+        if (demo) {
+          const t = demoTime(now);
+          if (demoBackAt !== -Infinity) return dogRest(now - demoBackAt);
+          if (demo.name === 'push-back') return dogRest(t);
+          const returnTime = dog.END + (demo.loop ? 0 : RETURN_MS);
+          return t < returnTime ? dog.sample(t, dir, mouseHome()) : dogRest(t - returnTime);
+        }
+        return run ? dog.sample(now - run.start, run.dir, run.home) : dogRest(now - backAt);
+      }
       if (demo) {
         const t = demoTime(now);
         if (demo.name === 'push-back') return resting(dir, 0, 0, unit(t / FADE_MS), true);
@@ -105,18 +132,45 @@
       nextPush = now + rand(30, 90) * 1000;
     }
 
+    function finishSnatch(now, returnMouse, from) {
+      run = null;
+      returnFrom = from;
+      backAt = returnMouse ? now : now + RETURN_MS;
+      nextPush = Math.max(backAt, newDeadline(now));
+    }
+
     function overrideState(now) {
-      if (S.pet) return null;
-      if (demo) return (pinned || demoTime(now) < (demo.name === 'push' ? END : FADE_MS)) ? STATES.AWAKE : null;
-      return run && run.acting && now - run.start < END ? STATES.AWAKE : null;
+      if (!pushSpec() || S.pet) return null;
+      if (demo) return (pinned || (demoBackAt === -Infinity && demoTime(now) < (demo.name === 'push' ? actionEnd() : FADE_MS))) ? STATES.AWAKE : null;
+      return run && run.acting && now - run.start < actionEnd() ? STATES.AWAKE : null;
     }
 
     function afterState(now) {
-      const newDir = cupDir();
+      const newDir = actionDir();
+      if (activeSpec !== pushSpec()) {
+        activeSpec = pushSpec();
+        run = null; settling = null; offset = 0; backAt = -Infinity;
+        demoBackAt = -Infinity; returnFrom = undefined;
+        nextPush = newDeadline(now);
+      }
+      if (!activeSpec) return;
       if (demo) { dir = newDir; return; }
-      if (run) {
+      if (snatch()) {
+        if (!enabled || reducedMotion()) {
+          if (run || backAt !== -Infinity) nextPush = newDeadline(now);
+          run = null; backAt = -Infinity;
+        } else if (run) {
+          const t = now - run.start;
+          if (t >= dog.END) finishSnatch(run.start + dog.END, false);
+          else if (!canSnatch() || S.state !== STATES.AWAKE || (t < dog.GRIP && (S.mouseButtons.size || newDir !== dir ||
+              now - S.lastPointerMove < 150))) {
+            if (t >= dog.GRIP) finishSnatch(now, false);
+            else { run = null; nextPush = newDeadline(now); }
+          }
+        }
+      } else if (run) {
         const t = now - run.start;
-        if (S.state !== STATES.AWAKE || !enabled || reducedMotion() || newDir !== dir) {
+        if (S.state !== STATES.AWAKE || !enabled || opts.blocked?.() || reducedMotion() || newDir !== dir) {
           if (t < SHOVE) cancel(now);
           else run.acting = false;
         }
@@ -135,26 +189,48 @@
       }
       if (now >= backAt && backAt !== -Infinity) {
         offset = 0;
-        if (now >= backAt + FADE_MS) backAt = -Infinity;
+        const returned = snatch() ? !canSnatch() || S.state !== STATES.AWAKE || !view(now).acting
+          : now >= backAt + FADE_MS;
+        if (returned) backAt = -Infinity;
       }
       if (settling && now - settling.at >= SETTLE_MS) settling = null;
       const sinceKey = now - S.lastKeyAt;
-      if (enabled && !run && now >= nextPush && backAt === -Infinity && S.state === STATES.AWAKE &&
+      if (enabled && !run && !opts.blocked?.() && now >= nextPush && backAt === -Infinity && S.state === STATES.AWAKE &&
           !reducedMotion() && sinceKey >= IDLE_MIN && sinceKey <= IDLE_MAX &&
-          now - S.lastInput >= IDLE_MIN && !S.pressed.size && !S.mouseButtons.size) {
+          now - S.lastInput >= IDLE_MIN && !S.pressed.size && !S.mouseButtons.size &&
+          (!snatch() || (canSnatch() && now - S.lastPointerMove >= IDLE_MIN))) {
         run = { start: now, from: offset, dir, acting: true };
+        if (snatch()) run.home = mousePoint();
       }
     }
 
     function afterKeyDown(code, now) {
       if (!run) return;
-      if (now - run.start < SHOVE) cancel(now);
+      if (snatch()) {
+        if (now - run.start < dog.GRIP) { run = null; nextPush = newDeadline(now); }
+      } else if (now - run.start < SHOVE) cancel(now);
       else run.acting = false;
+    }
+
+    function handlePetStart(now) {
+      if (!snatch()) return false;
+      const frame = view(now);
+      if (frame.phase === 'return') return true;
+      if (frame.held || frame.hidden) {
+        const from = frame.held && frame.dir === dir ? frame.t : undefined;
+        if (demo) { demoBackAt = now; returnFrom = from; }
+        else finishSnatch(now, true, from);
+        return true;
+      } else if (run) {
+        run = null;
+        nextPush = newDeadline(now);
+      }
     }
 
     function pawTarget(frame, paw) {
       const { t, dir: d, offset: distance, beat } = frame;
-      const hover = { x: cupX(d, distance) - 34 * d, y: MUG.y - 30 };
+      const reach = pushSpec().paw;
+      const hover = { x: cupX(d, distance) + reach.hover.x * d, y: MUG.y + reach.hover.y };
       if (t < TAP) {
         return { ...blendPoint(restPoint(paw.side), hover, ease((t - REACH) / 300)), pressing: false };
       }
@@ -162,45 +238,61 @@
         // 回撤、拍到杯身、再收回来，每一拍最后回到悬停的位置。
         const windup = ease(beat / 0.20) * (1 - ease((beat - 0.20) / 0.23));
         const press = ease((beat - 0.20) / 0.23) * (1 - ease((beat - 0.70) / 0.30));
-        return { x: hover.x + d * (5 * press - 16 * windup), y: hover.y + 5 * press - 8 * windup,
+        return { x: hover.x + d * (reach.press.x * press + reach.windup.x * windup),
+          y: hover.y + reach.press.y * press + reach.windup.y * windup,
           pressing: beat >= 0.43 && beat < 0.70 };
       }
       if (t < SHOVE) return { ...hover, pressing: false };
       const sweep = ease((t - SHOVE) / 230);
-      return { x: hover.x + d * 64 * sweep, y: hover.y + 7 * sweep, pressing: t < RELEASE + 70 };
+      return { x: hover.x + d * reach.shove.x * sweep, y: hover.y + reach.shove.y * sweep, pressing: t < RELEASE + 70 };
     }
 
     function forcedPawTarget(paw, now) {
+      if (snatch()) {
+        const frame = view(now);
+        return frame.acting ? dog.pawTarget(ctx, frame, paw) : null;
+      }
       if (paw === mousePaw()) return null;
       const frame = view(now);
       if (!frame.acting || frame.t < REACH || frame.t >= WATCH) return null;
-      return { id: 'push', ...pawTarget(frame, paw), tau: frame.t >= SHOVE ? 9 : 16 };
+      return { id: 'push', ...pawTarget(frame, paw), armBend: kb.style === 'full' ? 52 : 0, tau: frame.t >= SHOVE ? 9 : 16 };
     }
 
     function pose(now, dt, rm, P) {
       const frame = view(now);
+      if (snatch()) {
+        dogScene ??= dog.create(ctx);
+        dogScene.pose(frame, P, pinned ? demo.at : NaN);
+        return;
+      }
       const { t, dir: d } = frame;
       if (frame.acting) {
+        const { lookFront, headTilt, watchDip, proudLift, tail } = pushSpec();
         const cup = { x: cupX(d, frame.offset), y: MUG.y - 36 };
-        if (t < REACH) P.look = FRONT;
-        else if (t < STARE) P.look = blendPoint(FRONT, cup, ease((t - REACH) / 170));
+        if (t < REACH) P.look = lookFront;
+        else if (t < STARE) P.look = blendPoint(lookFront, cup, ease((t - REACH) / 170));
         else if (t < SHOVE) {
-          P.look = blendPoint(cup, FRONT, ease((t - STARE) / 140));
+          P.look = blendPoint(cup, lookFront, ease((t - STARE) / 140));
           P.lidMin = Math.max(P.lidMin, 0.47 * Math.sin(Math.PI * (t - STARE) / (SHOVE - STARE)));
-        } else if (t < WATCH) P.look = blendPoint(FRONT, cup, ease((t - SHOVE) / 100));
+        } else if (t < WATCH) P.look = blendPoint(lookFront, cup, ease((t - SHOVE) / 100));
         else P.look = blendPoint(cup, { x: 400 + 400 * d, y: 700 }, ease((t - WATCH) / 210));
 
-        P.headRot += d * 3 * ease(t / 200) * (1 - ease((t - SHOVE) / 300));
-        if (t >= WATCH && t < SMUG) P.headY += 6 * Math.sin(Math.PI * (t - WATCH) / (SMUG - WATCH));
+        if (kb.style === 'full') {
+          const lean = ease((t - REACH) / 300) * (1 - ease((t - WATCH) / 230));
+          P.bodyX += 14 * d * lean;
+          P.headX += 5 * d * lean;
+        }
+        P.headRot += d * headTilt * ease(t / 200) * (1 - ease((t - SHOVE) / 300));
+        if (t >= WATCH && t < SMUG) P.headY += watchDip * Math.sin(Math.PI * (t - WATCH) / (SMUG - WATCH));
         if (t >= SMUG) {
           P.eyesHappy = true;
           const proud = Math.sin(Math.PI * (t - SMUG) / (END - SMUG));
-          P.headY -= 5 * proud;
-          P.tailAmp = 9 + 5 * proud;
-          P.tailSpeed = 0.015;
+          P.headY -= proudLift * proud;
+          P.tailAmp = tail.amp + tail.ampBoost * proud;
+          P.tailSpeed = tail.speed;
         }
       }
-      if (pinned) freezePose(now, rm, P, frame);
+      if (pinned && pushSpec()) freezePose(now, rm, P, frame);
     }
 
     function freezePose(now, rm, P, frame) {
@@ -219,19 +311,18 @@
         paw.x = point.x; paw.y = point.y; paw.press = point.pressing ? 1 : 0; paw.lift = 0;
       }
       const t = demoTime(now);
-      P.tailAmp = P.tailAmp ?? (rm ? 0 : 9);
+      const { rig, push } = window.SillySpecies.current;
+      const idleTail = rig.tail.wag.awake;
+      P.tailAmp = P.tailAmp ?? (rm ? 0 : idleTail.amp);
       P.tailSpeed = 0;
-      S.tailPhase = t * 0.003 + Math.max(0, Math.min(t, END) - SMUG) * 0.012;
+      S.tailPhase = t * idleTail.speed + Math.max(0, Math.min(t, END) - SMUG) * (push.tail.speed - idleTail.speed);
       S.tailAngle = P.tailAmp * Math.sin(S.tailPhase);
     }
 
-    function render(now, dt, rm) {
+    function render(now, dt, rm, P) {
       const frame = view(now);
-      if (run && run.acting && !run.counted && now - run.start >= SHOVE) {
-        run.counted = true;
-        if (window.SillyStats) window.SillyStats.addPush(); // 小账本：真把杯子推出去了 +1
-      }
-      const shown = (enabled || demo) && frame.opacity > 0;
+      dogScene?.render(snatch() ? frame : null, P);
+      const shown = !snatch() && (enabled || demo) && frame.opacity > 0;
       E.mug.style.display = shown ? '' : 'none';
       if (!shown) return;
       const { dir: d, offset: distance, fall } = frame;
@@ -253,10 +344,27 @@
     }
 
     return {
-      overrideState, afterState, afterKeyDown, forcedPawTarget, pose, render,
-      block() { return pinned; },
-      // 起床气 / 拍指针用：此刻是否正在推杯子（推的时候不凑热闹，猫一次只做一件事）
-      pushing(now) { return !!view(now).acting; },
+      overrideState, afterState, afterKeyDown, handlePetStart, forcedPawTarget, pose, render,
+      block(kind, arg, now) {
+        if (pinned && pushSpec()) return true;
+        if (!snatch() || kind !== 'pointerDown') return false;
+        const frame = view(now);
+        return frame.held || frame.hidden || frame.phase === 'return';
+      },
+      canRetrieve() {
+        if (!snatch() || pinned) return false;
+        const frame = view(performance.now());
+        return frame.held || frame.hidden;
+      },
+      blocksMouseReach(now) {
+        if (!snatch()) return false;
+        const frame = view(now);
+        return frame.acting || frame.hidden || frame.phase === 'return';
+      },
+      isActing(now) { return view(now).acting; },
+      blocksKeyboardChange(now) {
+        return !!run || view(now).acting || !!settling;
+      },
       setEnabled(v) { enabled = v; },
       setEverySeconds(v) {
         const seconds = interval(v);
@@ -266,8 +374,12 @@
       },
       debugProps: {
         pushPhase: () => view(performance.now()).phase,
-        mugOffset: () => view(performance.now()).offset,
-        nextPushIn: () => Math.round(Math.max(0, nextPush - performance.now()) / 100) / 10,
+        mugOffset: () => view(performance.now()).offset ?? 0,
+        mouseSnatched: () => {
+          const frame = snatch() && view(performance.now());
+          return !!(frame.held || frame.hidden);
+        },
+        nextPushIn: () => pushSpec() ? Math.round(Math.max(0, nextPush - performance.now()) / 100) / 10 : null,
       },
     };
   }
