@@ -60,6 +60,12 @@
       scarfBand: { x: 314, y: 275, w: 162, h: 64 },
       scarfTail: { x: 406, y: 315, w: 31,  h: 62 },
       bell:      { x: 400, y: 330, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 橘猫
     orange: {
@@ -68,6 +74,12 @@
       scarfBand: { x: 314, y: 270, w: 152, h: 64 },
       scarfTail: { x: 406, y: 310, w: 31,  h: 62 },
       bell:      { x: 400, y: 325, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 狸花猫
     lihua: {
@@ -76,6 +88,12 @@
       scarfBand: { x: 314, y: 270, w: 165, h: 64 },
       scarfTail: { x: 406, y: 310, w: 31,  h: 62 },
       bell:      { x: 400, y: 325, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 暹罗猫
     siamese: {
@@ -84,6 +102,12 @@
       scarfBand: { x: 314, y: 255, w: 132, h: 64 },
       scarfTail: { x: 406, y: 290, w: 31,  h: 62 },
       bell:      { x: 400, y: 307, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 黑猫
     black: {
@@ -92,6 +116,12 @@
       scarfBand: { x: 314, y: 265, w: 152, h: 64 },
       scarfTail: { x: 406, y: 300, w: 31,  h: 62 },
       bell:      { x: 400, y: 318, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 三花猫
     calico: {
@@ -100,6 +130,12 @@
       scarfBand: { x: 314, y: 250, w: 152, h: 64 },
       scarfTail: { x: 406, y: 285, w: 31,  h: 62 },
       bell:      { x: 400, y: 302, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 英短蓝猫
     blue: {
@@ -108,6 +144,12 @@
       scarfBand: { x: 314, y: 255, w: 152, h: 64 },
       scarfTail: { x: 406, y: 290, w: 31,  h: 62 },
       bell:      { x: 400, y: 308, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 异瞳白猫
     white: {
@@ -116,6 +158,12 @@
       scarfBand: { x: 314, y: 270, w: 152, h: 64 },
       scarfTail: { x: 406, y: 308, w: 31,  h: 62 },
       bell:      { x: 400, y: 320, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 缅因猫
     maine: {
@@ -124,14 +172,26 @@
       scarfBand: { x: 314, y: 270, w: 152, h: 64 },
       scarfTail: { x: 406, y: 310, w: 31,  h: 62 },
       bell:      { x: 400, y: 324, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 无毛猫
     sphynx: {
       headphone: { x: 400, y: 75, scale: 1 },
       crown:     { x: 400, y: 55,  scale: 1 },
-      scarfBand: { x: 314, y: 285, w: 172, h: 64 },
-      scarfTail: { x: 406, y: 330, w: 31,  h: 62 },
-      bell:      { x: 400, y: 354, size: 10 },
+      scarfBand: { x: 314, y: 245, w: 152, h: 64 },
+      scarfTail: { x: 406, y: 280, w: 31,  h: 62 },
+      bell:      { x: 400, y: 297, size: 10 },
+      // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
+      holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
+      holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
+      holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
+      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 大黄（土狗）
     tianyuan: {
@@ -140,6 +200,12 @@
       scarfBand: { x: 298, y: 270, w: 204, h: 64 },
       scarfTail: { x: 406, y: 328, w: 31,  h: 56 },
       bell:      { x: 400, y: 339, size: 10 },
+      // 节日装扮按狗头身的初值，微调直接改数字
+      holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
+      holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
+      holidayCoat:    { x: 336, y: 300, w: 128, h: 106 },
+      holidayCape:    { x: 294, y: 286, w: 212, h: 146 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 柯基
     corgi: {
@@ -148,6 +214,12 @@
       scarfBand: { x: 298, y: 270, w: 204, h: 64 },
       scarfTail: { x: 406, y: 328, w: 31,  h: 56 },
       bell:      { x: 400, y: 339, size: 10 },
+      // 节日装扮按狗头身的初值，微调直接改数字
+      holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
+      holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
+      holidayCoat:    { x: 336, y: 300, w: 128, h: 106 },
+      holidayCape:    { x: 294, y: 286, w: 212, h: 146 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 边牧
     collie: {
@@ -156,6 +228,12 @@
       scarfBand: { x: 298, y: 270, w: 204, h: 64 },
       scarfTail: { x: 406, y: 328, w: 31,  h: 56 },
       bell:      { x: 400, y: 339, size: 10 },
+      // 节日装扮按狗头身的初值，微调直接改数字
+      holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
+      holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
+      holidayCoat:    { x: 336, y: 300, w: 128, h: 106 },
+      holidayCape:    { x: 294, y: 286, w: 212, h: 146 },
+      holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
   };
 
