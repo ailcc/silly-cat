@@ -335,6 +335,7 @@
 <script src="affection.js"></script>
 <script src="hindpaws.js"></script>
 <script src="listenmusic.js"></script>
+<script src="usermusic.js"></script>
 <script src="statusbar.js"></script>
 <script src="input.js"></script>
 <script src="updater.js"></script>
@@ -418,6 +419,7 @@
       (ctx) => SillyPrivacyMode.create(ctx, { demo }),
       (ctx) => (hindPawsMod = SillyHindPaws.create(ctx, { demo })),
       (ctx) => (listenMod = SillyListenMusic.create(ctx, { demo })),
+      (ctx) => SillyUserMusic.create(ctx),
       (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, enabled: statusBarParam ?? true })),
       SillyCoats.shapeModule,
     ],

@@ -7,6 +7,7 @@
 mod autostart;
 mod game_detect;
 mod mcp;
+mod music_detect;
 mod privacy;
 mod updater;
 
@@ -647,7 +648,8 @@ fn main() {
             updater::check_update,
             updater::install_update,
             updater::updater_configured,
-            updater::update_status
+            updater::update_status,
+            music_detect::user_music_active
         ])
         .setup(|app| {
             updater::setup(app.handle());
@@ -704,6 +706,8 @@ fn main() {
             input::start(app.handle().clone());
             // 游戏模式：后台轮询前台窗口，发现全屏游戏就通知前端（猫戴耳机睡觉）
             game_detect::start(app.handle().clone());
+            // 用户听歌：后台轮询进程列表，发现音乐软件就通知前端（猫戴耳机陪着，软件退出才摘）
+            music_detect::start(app.handle().clone());
             // 密码隐私模式：焦点进密码框就通知前端（猫捂眼不看）
             privacy::start(app.handle().clone());
             // MCP 外观接口：本地回环 HTTP 服务（设置里默认关，开了才放行请求）

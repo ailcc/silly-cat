@@ -29,12 +29,14 @@
     if (!phones) return {}; // 插入失败就整个不启用
 
     const gaming = () => !!(window.SillyGameMode && window.SillyGameMode.active && window.SillyGameMode.active());
+    // 用户自己在听歌（usermusic 模式）时猫已经戴着耳机了，猫自己的空闲听歌不掺和
+    const userMusic = () => !!(window.SillyUserMusic && window.SillyUserMusic.active && window.SillyUserMusic.active());
     window.SillyListenMusic = { create, listening: () => A.on, bobbing: () => A.on && !A.doze };
 
     function pose(now, dt, rm, P) {
       const idleEnough = demo ? true : now - S.lastInput >= S.sleepMs;
-      if (A.on && (!A.enabled || !idleEnough || gaming())) { A.on = false; A.doze = false; A.willDoze = false; }
-      if (!A.on && A.enabled && !gaming() && idleEnough && !S.pet) {
+      if (A.on && (!A.enabled || !idleEnough || gaming() || userMusic())) { A.on = false; A.doze = false; A.willDoze = false; }
+      if (!A.on && A.enabled && !gaming() && !userMusic() && idleEnough && !S.pet) {
         // 每个空闲期只掷一次签（以 lastInput 为期号）；掷中一半概率听歌
         if (demo || A.decidedFor !== S.lastInput) {
           A.decidedFor = S.lastInput;
