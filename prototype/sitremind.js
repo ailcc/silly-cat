@@ -35,9 +35,9 @@
       <g id="sit-sign" style="opacity:0">
         <rect class="sit-post" x="-5" y="-96" width="10" height="120" rx="4"/>
         <g id="sit-board">
-          <rect class="sit-board" x="-72" y="-160" width="144" height="66" rx="10"/>
-          <text class="sit-text" x="0" y="-120">起来动动！</text>
-          <text id="sit-sub" class="sit-sub" x="0" y="-104">坐 45 分钟啦</text>
+          <rect class="sit-board" x="-88" y="-172" width="176" height="82" rx="13"/>
+          <text class="sit-text" x="0" y="-124">起来动动！</text>
+          <text id="sit-sub" class="sit-sub" x="0" y="-102">坐 45 分钟啦</text>
         </g>
       </g>`);
     const E = { sign: $('sit-sign'), board: $('sit-board'), sub: $('sit-sub') };

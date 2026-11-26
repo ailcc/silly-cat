@@ -368,8 +368,8 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 /* 久坐举牌 */
 #scene .sit-post { fill: #8a6d4f; stroke: var(--ink); stroke-width: 4; }
 #scene .sit-board { fill: var(--cream); stroke: var(--ink); stroke-width: 4.5; }
-#scene .sit-text { fill: var(--ink); font-size: 26px; font-weight: 800; text-anchor: middle; font-family: inherit; }
-#scene .sit-sub { fill: var(--coral); font-size: 15px; font-weight: 700; text-anchor: middle; font-family: inherit; }
+#scene .sit-text { fill: var(--ink); font-size: 32px; font-weight: 800; text-anchor: middle; font-family: inherit; }
+#scene .sit-sub { fill: var(--coral); font-size: 18px; font-weight: 700; text-anchor: middle; font-family: inherit; }
 
 /* 喝水提醒的水杯 */
 #scene .wc-body { fill: #dff1ff; stroke: var(--ink); stroke-width: 4.5; stroke-linejoin: round; }
@@ -440,9 +440,9 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 
 /* 浮起的键名 */
 #fx-layer, #fx-layer * { pointer-events: none; }
-#scene .keycap-fx rect { fill: var(--cream); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+#scene .keycap-fx rect { fill: var(--cream); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
 #scene .keycap-fx.hot rect { fill: var(--coral); }
-#scene .keycap-fx text { fill: var(--ink); font-size: 14px; font-weight: 700; text-anchor: middle; font-family: inherit; }
+#scene .keycap-fx text { fill: var(--ink); font-size: 18px; font-weight: 700; text-anchor: middle; font-family: inherit; }
 
 #cat-head { cursor: grab; }
 #cat-head:active { cursor: grabbing; }
@@ -489,9 +489,9 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 
 #scene .sign-post { fill: #d9bd93; stroke: var(--ink); stroke-width: 4; }
 #scene .sign-board { fill: var(--cream); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
-#scene .sign-text { fill: var(--ink); font-size: 26px; font-weight: 800; text-anchor: middle; font-family: inherit; letter-spacing: 2px; }
-#scene .hmph-bubble { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
-#scene .hmph text { fill: var(--ink); font-size: 17px; font-weight: 800; text-anchor: middle; font-family: inherit; }
+#scene .sign-text { fill: var(--ink); font-size: 32px; font-weight: 800; text-anchor: middle; font-family: inherit; letter-spacing: 2px; }
+#scene .hmph-bubble { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
+#scene .hmph text { fill: var(--ink); font-size: 20px; font-weight: 800; text-anchor: middle; font-family: inherit; }
 #strike-head { cursor: grab; }
 
 /* 底部疲劳条与消气提示 */
@@ -544,9 +544,9 @@ html.desktop #arm-l, html.desktop #arm-r, html.desktop #paw-l, html.desktop #paw
 html.desktop #strike-head { cursor: grab; }
 /* 收不到键盘输入时猫旁边的提示气泡（只在桌面模式由 input-desktop.js 创建） */
 html.desktop #perm-bubble { cursor: pointer; }
-#scene .perm-bubble-shape { fill: var(--fur-white); stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
-#scene .perm-bubble-text { fill: var(--ink); font-size: 26px; font-weight: 800; text-anchor: middle; font-family: inherit; }
-#scene .perm-bubble-sub { fill: var(--coral); font-size: 20px; font-weight: 700; text-anchor: middle; font-family: inherit; }
+#scene .perm-bubble-shape { fill: var(--fur-white); stroke: var(--ink); stroke-width: 5; stroke-linejoin: round; }
+#scene .perm-bubble-text { fill: var(--ink); font-size: 32px; font-weight: 800; text-anchor: middle; font-family: inherit; }
+#scene .perm-bubble-sub { fill: var(--coral); font-size: 24px; font-weight: 700; text-anchor: middle; font-family: inherit; }
 #scene #perm-bubble:hover .perm-bubble-shape { fill: var(--cream); }
 
 #scene .art-replaced { display: none !important; }

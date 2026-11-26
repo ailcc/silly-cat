@@ -213,6 +213,12 @@
         document.getElementById('cat-head').insertAdjacentHTML('beforeend', HAT_HTML);
         E.hat = document.getElementById('pomo-hat');
       }
+      // 窗口外层按 settings.size 整体缩放 scene。番茄钟 chip 是左上角的小计数牌，
+      // 猫缩到 50% 时时间数字也缩到 50% 就看不清了——所以用逆缩放抵消，视觉保持固定大小。
+      // chip 几何中心：rect x=14 width=140 y=20 height=44 → cx=84 cy=42
+      const size = window.__catSize || 1;
+      const inv = size === 1 ? '' : `translate(84 42) scale(${(1 / size).toFixed(4)}) translate(-84 -42)`;
+      E.chip.setAttribute('transform', inv);
       // 庆祝的帽子跟星星不依赖番茄钟总开关，关掉后也要能收拾干净
       const cheering = W.on && W.phase === 'rest' && now - W.cheerAt < CHEER_MS;
       E.hat.style.display = cheering && W.cheerHat ? '' : 'none';

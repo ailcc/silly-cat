@@ -30,11 +30,11 @@
       bubble.setAttribute('class', 'keycap-fx angry');
       bubble.setAttribute('transform', 'translate(400 88)');
       bubbleRect = document.createElementNS(SVG_NS, 'rect');
-      bubbleRect.setAttribute('y', -13);
-      bubbleRect.setAttribute('height', 26);
-      bubbleRect.setAttribute('rx', 7);
+      bubbleRect.setAttribute('y', -17);
+      bubbleRect.setAttribute('height', 34);
+      bubbleRect.setAttribute('rx', 9);
       bubbleText = document.createElementNS(SVG_NS, 'text');
-      bubbleText.setAttribute('y', 5);
+      bubbleText.setAttribute('y', 6.5);
       bubble.appendChild(bubbleRect);
       bubble.appendChild(bubbleText);
       layer.appendChild(bubble);
@@ -43,7 +43,7 @@
     bubbleText.textContent = text;
     let w = 12 + text.length * 9; // 兜底估算
     try { w = bubbleText.getBBox().width; } catch { /* 量不出来就按估算 */ }
-    w = Math.max(26, w + 16);
+    w = Math.max(34, w + 20);
     bubbleRect.setAttribute('x', (-w / 2).toFixed(1));
     bubbleRect.setAttribute('width', w.toFixed(1));
     bubble.setAttribute('opacity', '1');

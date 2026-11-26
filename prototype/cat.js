@@ -185,16 +185,16 @@
       const g = document.createElementNS(SVG_NS, 'g');
       g.setAttribute('class', 'keycap-fx' + (style ? ' ' + style : ''));
       const r = document.createElementNS(SVG_NS, 'rect');
-      r.setAttribute('y', -13); r.setAttribute('height', 26); r.setAttribute('rx', 7);
+      r.setAttribute('y', -17); r.setAttribute('height', 34); r.setAttribute('rx', 9);
       const t = document.createElementNS(SVG_NS, 'text');
-      t.setAttribute('x', 0); t.setAttribute('y', 5);
+      t.setAttribute('x', 0); t.setAttribute('y', 6.5);
       t.textContent = text;
       g.appendChild(r); g.appendChild(t);
       layer.appendChild(g);
       // 边框宽度按渲染出来的实际文字量（中文字比估算宽得多，纯估算会溢出）
       let tw = 12 + text.length * 9;
       try { tw = t.getBBox().width; } catch { /* 量不出来退回估算 */ }
-      const w = Math.max(26, tw + 16);
+      const w = Math.max(34, tw + 20);
       r.setAttribute('x', -w / 2); r.setAttribute('width', w);
       g.setAttribute('opacity', '0');
       live.push({
