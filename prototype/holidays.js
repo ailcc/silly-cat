@@ -102,11 +102,13 @@
         return;
       }
       // 其余装扮按原始框平移缩放；南瓜是场景物件（x/y = 中心 + scale）
+      // 注意：DOM 元素 id 是连字符（holiday-bdayhat），decor-fit 参数名是驼峰（holidayBdayhat），
+      // 之前把元素 id 直接传给 fit() 导致查不到参数、四个装扮的拟合从未生效
       const item = { halloween: 'holiday-pumpkin', christmas: 'holiday-hat', spring: 'holiday-coat', birthday: 'holiday-bdayhat' }[W.mode];
       if (!item) return;
       const el = document.getElementById(item);
       if (!el) return;
-      const cfg = fit(item);
+      const cfg = fit({ 'holiday-pumpkin': 'holidayPumpkin', 'holiday-hat': 'holidayHat', 'holiday-coat': 'holidayCoat', 'holiday-bdayhat': 'holidayBdayhat' }[item]);
       if (!cfg) return;
       const base = FIT_BASE[item];
       let t;
