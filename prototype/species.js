@@ -12,6 +12,7 @@
   window.SillySpecies = {
     register(id, definition) {
       if (definitions.has(id)) throw new Error('Duplicate pet species: ' + id);
+      definition.id = id; // 物种定义带上自己的 id，模块按物种分支（梦话词、装扮几何）直接读 current.id
       definitions.set(id, definition);
       current ??= definition;
     },

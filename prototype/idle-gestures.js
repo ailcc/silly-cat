@@ -16,6 +16,9 @@
     const { S, STATES, clamp } = ctx;
     const $ = (id) => document.getElementById(id);
     const demo = opts.demo && DEMOS.includes(opts.demo.name) ? opts.demo : null;
+    // 狗不舔爪子洗脸（那是猫的仪式感），只能伸懒腰和打哈欠；demo 参数照常可单独看某个动作
+    const dog = () => ctx.species.id === 'dog';
+    const pool = () => (dog() ? DEMOS.filter((name) => name !== 'groom') : DEMOS);
 
     // 嘴上的小道具：挂在头部组里跟着头一起动。哈欠张大嘴，舔毛吐舌头。
     $('cat-head').insertAdjacentHTML('beforeend', `
@@ -26,7 +29,7 @@
     const E = { mouth: $('ig-mouth'), hole: $('ig-yawn-hole'), tongue: $('ig-tongue') };
 
     const G = { next: performance.now() + (demo ? 800 : 2500), act: null };
-    const pick = () => (demo ? demo.name : DEMOS[Math.floor(Math.random() * DEMOS.length)]);
+    const pick = () => (demo ? demo.name : pool()[Math.floor(Math.random() * pool().length)]);
     const schedule = (now, gap) => { G.next = now + (gap ?? rand(EVERY[0], EVERY[1])); };
 
     function hideMouth() {
