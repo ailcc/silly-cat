@@ -352,9 +352,7 @@
     // 睡着、发飙、罢工、修理时，鼠标动作让位给相应姿态。
     const mouseAvailable = () =>
       (S.state === STATES.AWAKE || S.state === STATES.DROWSY || S.state === STATES.PETTED);
-    // 鼠标由谁操纵：mousePaw 物种用爪够鼠标；显式开了 tailMouse 的（都没有）才用尾巴。
-    // 都没开时宠物只用眼睛跟着指针看，不伸爪也不伸尾。
-    const tailWanted = (now) => currentSpecies().tailMouse === true && now < S.mouseActiveUntil && mouseAvailable();
+    const tailWanted = (now) => !currentSpecies().mousePaw && now < S.mouseActiveUntil && mouseAvailable();
 
     function pawMouseTarget(paw, now, P) {
       if (!currentSpecies().mousePaw || paw !== mousePaw() || !mouseAvailable() || P?.mouseAbs || P?.mouseHidden || P?.hideCat || ask('blocksMouseReach', now)) return null;

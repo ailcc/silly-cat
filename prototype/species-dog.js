@@ -119,11 +119,7 @@
       tail: { fringe: 4, top: 3, bottom: 2, segments: 24, overlap: 1.35, scale: 0.94 },
     },
     coatShape: { ...cat.coatShape },
-    // 狗不伸爪碰鼠标（爪子跟指针、身体倾斜够鼠标都是猫的戏）：鼠标跟狗的互动只有
-    // 嘴——叼走鼠标（dog-snatch）。眼睛仍会跟着指针看。
-    // mouseReach 只保留鼠标摆放位置（inset/rise）和演示模式的倾斜参数：
-    // mousePaw 为 false 时真实使用中 lean 恒为 0，狗不会朝鼠标倾身。
-    mousePaw: false,
+    mousePaw: true,
     mouseReach: {
       inset: 23, rise: 79, degrees: 8, slide: 8, shoulderX: 2, shoulderY: -15,
       stretch: 3, bend: 17, tau: 85,
@@ -133,6 +129,7 @@
     petTongue: true,
     swat: false,
     purr: false,
+    knead: false, // 踩奶是猫的仪式感，狗不踩
     grump: { look: { x: 400, y: 182 }, effect: { x: 520, y: 121 } },
     push: { snatch: true },
     sleep: {

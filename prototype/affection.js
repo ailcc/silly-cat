@@ -105,13 +105,14 @@
           } else if (Math.floor(after / HEART_EVERY) > Math.floor(before / HEART_EVERY)) {
             fx.spawn('♥', 400 + rand(-34, 34), 92 + rand(-8, 8), 'hot', now);
           }
-          // 第一次攒满：来一场一次性庆祝——爱心雨 + 主动踩奶呼噜（记在存档里，只办一次）
+          // 第一次攒满：来一场一次性庆祝——爱心雨 + 主动踩奶呼噜（记在存档里，只办一次）；
+          // 踩奶只属于猫（species.knead !== false），狗的庆祝只有爱心雨和台词
           if (after >= AFFECTION_MAX && !data.celebrated) {
             data.celebrated = true;
             dirty = true;
             F.celebrateUntil = now + 3200;
             F.nextCelebHeart = now;
-            startKnead(now);
+            if (ctx.species?.knead !== false) startKnead(now);
             fx.spawn('这下赖上你了', 400 + rand(-24, 24), 96, 'hot', now);
           }
           if (now < F.celebrateUntil && now >= F.nextCelebHeart) {
@@ -159,7 +160,8 @@
           if (S.pressed.size || S.mouseButtons.size) endKnead(now); // 你回来了，先不踩了
           return;
         }
-        if (data.v >= KNEAD_AT && now >= F.nextKnead && S.state === STATES.AWAKE && !S.pet &&
+        if (data.v >= KNEAD_AT && ctx.species?.knead !== false &&
+            now >= F.nextKnead && S.state === STATES.AWAKE && !S.pet &&
             !S.pressed.size && !S.mouseButtons.size &&
             // 听歌时不踩奶：踩奶会把 lastInput 拉到当前，听歌就被当成"用户有输入"掐断了
             !(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening()) &&
