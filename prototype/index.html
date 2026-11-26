@@ -11,7 +11,7 @@
 <header class="hint">在这页上随便敲键盘</header>
 
 <main id="stage">
-<svg id="scene" viewBox="0 0 800 620" role="img" aria-label="坐在键盘后面的奶牛猫">
+<svg id="scene" viewBox="0 0 800 620" role="img" aria-label="坐在键盘后面的奶牛猫" data-hp-color="strawberry">
   <defs>
     <clipPath id="clip-head">
       <path id="clip-head-path" d="M 270 176 C 268 98, 328 70, 400 70 C 472 70, 532 98, 530 176 C 529 240, 476 276, 400 276 C 324 276, 271 240, 270 176 Z"/>
@@ -379,7 +379,7 @@
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null, quip = null, sit = null, visitor = null, tailSlapMod = null, kbdFlowMod = null, headTurnMod = null, hindPawsMod = null, listenMod = null, grumpMod = null, swatMod = null, purrMod = null;
+  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null, quip = null, sit = null, visitor = null, tailSlapMod = null, kbdFlowMod = null, headTurnMod = null, hindPawsMod = null, listenMod = null, userMusicMod = null, grumpMod = null, swatMod = null, purrMod = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep, eyesFollow: eyesParam ?? SillySettings.DEFAULTS.eyesFollow, demo,
     modules: [
@@ -425,7 +425,7 @@
       (ctx) => SillyPrivacyMode.create(ctx, { demo }),
       (ctx) => (hindPawsMod = SillyHindPaws.create(ctx, { demo })),
       (ctx) => (listenMod = SillyListenMusic.create(ctx, { demo })),
-      (ctx) => SillyUserMusic.create(ctx),
+      (ctx) => (userMusicMod = SillyUserMusic.create(ctx)),
       (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, grump: grumpMod, enabled: statusBarParam ?? true })),
       SillyCoats.shapeModule,
     ],
@@ -463,6 +463,8 @@
       if (headTurnMod) headTurnMod.setEnabled(s.headTurn);
       if (hindPawsMod) hindPawsMod.setEnabled(s.hindPaws);
       if (listenMod) listenMod.setEnabled(s.listenMusic);
+      if (userMusicMod) userMusicMod.setEnabled(s.userMusic);
+      document.getElementById('scene').setAttribute('data-hp-color', s.headphoneColor);
       if (grumpMod) grumpMod.setEnabled(s.grump);
       if (swatMod) swatMod.setEnabled(s.swat);
       if (purrMod) { purrMod.setEnabled(s.purr); purrMod.setVolume(s.purrVolume); }

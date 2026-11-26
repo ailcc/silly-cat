@@ -9,9 +9,11 @@
   'use strict';
 
   // 耳机模板抽成共享构造器：听歌模式复用同款画法（可去掉麦克风、外面套 scale 放大）。
-  // 猫的耳朵长在头顶两侧（耳根 y≈110），耳罩要罩在耳朵上，不是人耳的位置——整体比人类戴法高一截
+  // 猫的耳朵长在头顶两侧（耳根 y≈110），耳罩要罩在耳朵上，不是人耳的位置——整体比人类戴法高一截。
+  // 颜色由外层（#scene 的 data-hp-color）给的 CSS 变量决定，见 style.css 的耳机配色表。
   const headphoneSVG = (id, withMic = true) => `
       <g id="${id}" style="display:none">
+        <path class="gp-band-outline" d="M 303 86 C 310 24, 490 24, 497 86"/>
         <path class="gp-band" d="M 303 86 C 310 24, 490 24, 497 86"/>
         <path class="gp-band-in" d="M 311 90 C 319 40, 481 40, 489 90"/>
         <rect class="gp-cup" x="284" y="70" width="36" height="52" rx="15"/>

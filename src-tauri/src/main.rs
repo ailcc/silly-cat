@@ -6,6 +6,12 @@
 
 mod autostart;
 mod game_detect;
+#[cfg(target_os = "macos")]
+mod media_mac;
+#[cfg(windows)]
+mod media_worker;
+#[cfg(windows)]
+mod media_win;
 mod mcp;
 mod music_detect;
 mod privacy;
@@ -760,7 +766,8 @@ fn main() {
             updater::install_update,
             updater::updater_configured,
             updater::update_status,
-            music_detect::user_music_active
+            music_detect::user_music_active,
+            music_detect::set_user_music_enabled
         ])
         .setup(|app| {
             updater::setup(app.handle());
@@ -826,7 +833,7 @@ fn main() {
             input::start(app.handle().clone());
             // 游戏模式：后台轮询前台窗口，发现全屏游戏就通知前端（猫戴耳机睡觉）
             game_detect::start(app.handle().clone());
-            // 用户听歌：后台轮询进程列表，发现音乐软件就通知前端（猫戴耳机陪着，软件退出才摘）
+            // 用户听歌：后台检测系统音频有没有真的在出声，出声才通知前端（猫戴耳机陪着，静音就摘）
             music_detect::start(app.handle().clone());
             // 密码隐私模式：焦点进密码框就通知前端（猫捂眼不看）
             privacy::start(app.handle().clone());

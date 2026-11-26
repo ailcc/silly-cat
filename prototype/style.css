@@ -347,11 +347,19 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .visitor-eye { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
 #scene .visitor-eye-dot, #scene .visitor-nose { fill: var(--ink); stroke: none; }
 
-/* 游戏模式的耳机：画在猫头上（深炭灰 + 珊瑚色装饰环，贴合手绘描边风） */
-#scene .gp-band { fill: none; stroke: var(--ink); stroke-width: 9; stroke-linecap: round; }
-#scene .gp-band-in { fill: none; stroke: #3a3a44; stroke-width: 4; stroke-linecap: round; }
-#scene .gp-cup { fill: #2b2b33; stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
-#scene .gp-cup-ring { fill: none; stroke: var(--coral); stroke-width: 3.5; }
+/* 耳机配色：草莓奶 / 薄荷 / 奶咖 / 天蓝（设置里的耳机颜色，写在 #scene 上）
+   游戏模式、空闲听歌、用户听歌三处耳机共用同一套变量 */
+[data-hp-color="strawberry"] { --hp-cup: #ffb4c6; --hp-plate: #ff8fab; --hp-band: #ff8fab; --hp-band-in: rgba(255, 255, 255, 0.55); }
+[data-hp-color="mint"] { --hp-cup: #a6e3cc; --hp-plate: #74cfab; --hp-band: #67c9a5; --hp-band-in: rgba(255, 255, 255, 0.55); }
+[data-hp-color="latte"] { --hp-cup: #fbf6ea; --hp-plate: #e9c9a8; --hp-band: #b98b6a; --hp-band-in: rgba(255, 255, 255, 0.45); }
+[data-hp-color="sky"] { --hp-cup: #b9d8ff; --hp-plate: #8fbdf5; --hp-band: #7fb2f0; --hp-band-in: rgba(255, 255, 255, 0.55); }
+
+/* 游戏模式的耳机：画在猫头上（描边手绘风 + 上面那套配色） */
+#scene .gp-band-outline { fill: none; stroke: var(--ink); stroke-width: 13; stroke-linecap: round; }
+#scene .gp-band { fill: none; stroke: var(--hp-band, var(--ink)); stroke-width: 9; stroke-linecap: round; }
+#scene .gp-band-in { fill: none; stroke: var(--hp-band-in, #3a3a44); stroke-width: 4; stroke-linecap: round; }
+#scene .gp-cup { fill: var(--hp-cup, #2b2b33); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
+#scene .gp-cup-ring { fill: none; stroke: var(--hp-plate, var(--coral)); stroke-width: 3.5; }
 #scene .gp-mic { fill: #2b2b33; stroke: var(--ink); stroke-width: 2.5; }
 
 /* 成长等级：小红围巾 + 小皇冠 */

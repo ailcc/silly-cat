@@ -67,6 +67,30 @@
   .cat-option:hover { background: rgba(0, 0, 0, .04); }
   .cat-option:has(input:checked) { border-color: var(--accent); background: rgba(255, 122, 89, .08); color: var(--ink); font-weight: 700; }
   .cat-option:has(input:focus-visible) { outline: 2px solid rgba(255, 122, 89, .45); outline-offset: 2px; }
+  /* 耳机颜色：4 个色块，色值和主界面的耳机配色一致 */
+  [data-hp-color="strawberry"] { --hp-cup: #ffb4c6; --hp-plate: #ff8fab; --hp-band: #ff8fab; }
+  [data-hp-color="mint"] { --hp-cup: #a6e3cc; --hp-plate: #74cfab; --hp-band: #67c9a5; }
+  [data-hp-color="latte"] { --hp-cup: #fbf6ea; --hp-plate: #e9c9a8; --hp-band: #b98b6a; }
+  [data-hp-color="sky"] { --hp-cup: #b9d8ff; --hp-plate: #8fbdf5; --hp-band: #7fb2f0; }
+  #hp-color-options { gap: 6px; }
+  .hp-color-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .hp-color-option input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; opacity: 0; }
+  .hp-color-option svg { display: block; width: 26px; height: 26px; }
+  .hp-color-option:hover { background: rgba(0, 0, 0, .04); }
+  .hp-color-option:has(input:checked) { border-color: var(--accent); background: rgba(255, 122, 89, .08); }
+  .hp-color-option:has(input:focus-visible) { outline: 2px solid rgba(255, 122, 89, .45); outline-offset: 2px; }
+  .hp-sw-band { fill: none; stroke: var(--hp-band); stroke-width: 3; stroke-linecap: round; }
+  .hp-sw-cup { fill: var(--hp-cup); stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+  .hp-sw-ring { fill: none; stroke: var(--hp-plate); stroke-width: 1.6; }
   .push-interval { justify-content: flex-start; margin-top: 6px; }
   .unit { color: var(--muted); }
   #size-percent { width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
@@ -308,6 +332,16 @@
       <span class="field"><input id="f-listenMusic" type="checkbox" aria-describedby="listen-music-hint"></span></div>
     <div id="listen-music-hint" class="hint">电脑空闲到原本该睡着时，猫有一半概率不睡，戴上耳机跟着节拍点头听歌（后脚也打拍子，头顶冒音符）；任何输入就摘下耳机。另一半概率照常睡觉。</div>
   </div>
+  <div class="row" data-bool="userMusic">
+    <div class="head"><label for="f-userMusic">电脑出声时戴耳机</label>
+      <span class="field"><input id="f-userMusic" type="checkbox" aria-describedby="user-music-hint"></span></div>
+    <div id="user-music-hint" class="hint">电脑真的在出声（音乐、视频）时，猫戴上耳机陪着你；静音或暂停几秒后自己摘下来，再出声又戴上。通话、会议软件的声音不算。只看有没有声音，不录音、不读取内容。桌面版才有这项。</div>
+  </div>
+  <div class="row" data-hp-color>
+    <div class="head"><span id="hp-color-label">耳机颜色</span>
+      <div id="hp-color-options" class="field" role="radiogroup" aria-labelledby="hp-color-label"></div></div>
+    <div class="hint">游戏模式和两种听歌场景戴的耳机都用这个颜色。</div>
+  </div>
   <div class="row" data-bool="mcpServer">
     <div class="head"><label for="f-mcpServer">MCP 外观接口</label>
       <span class="field"><input id="f-mcpServer" type="checkbox" aria-describedby="mcp-hint"></span></div>
@@ -380,6 +414,22 @@
     label.append(input, img, name);
     catOptions.append(label);
   }
+  const hpColorOptions = document.getElementById('hp-color-options');
+  for (const [id, name] of Object.entries(S.HEADPHONE_COLORS)) {
+    const label = document.createElement('label');
+    label.className = 'hp-color-option';
+    label.dataset.hpColor = id;
+    label.title = name;
+    label.innerHTML = `<input type="radio" name="headphoneColor" value="${id}" aria-label="${name}" title="${name}">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <path class="hp-sw-band" d="M 8 25 V 19 C 8 10 32 10 32 19 V 25"/>
+        <rect class="hp-sw-cup" x="4" y="22" width="9" height="13" rx="4.5"/>
+        <rect class="hp-sw-ring" x="6.4" y="24.4" width="4.2" height="8.2" rx="2.1"/>
+        <rect class="hp-sw-cup" x="27" y="22" width="9" height="13" rx="4.5"/>
+        <rect class="hp-sw-ring" x="29.4" y="24.4" width="4.2" height="8.2" rx="2.1"/>
+      </svg>`;
+    hpColorOptions.append(label);
+  }
   const rows = {};
   for (const k of S.KEYS) {
     const row = document.querySelector(`.row[data-key="${k}"]`);
@@ -413,6 +463,7 @@
   function fill(s) {
     form.elements.cat.value = s.cat;
     artStyleInput.value = s.artStyle;
+    form.elements.headphoneColor.value = s.headphoneColor;
     refreshAvatars(s.artStyle);
     for (const k of S.KEYS) {
       const { input, f } = rows[k];
@@ -427,7 +478,7 @@
   }
   // 时间项按秒读；可选项留空 = null（自动），其他时间项留空 = NaN（校验报错）
   function read() {
-    const s = { cat: form.elements.cat.value, artStyle: artStyleInput.value };
+    const s = { cat: form.elements.cat.value, artStyle: artStyleInput.value, headphoneColor: form.elements.headphoneColor.value };
     for (const k of S.KEYS) {
       const { input, f } = rows[k];
       const t = input.value.trim();
