@@ -16,6 +16,7 @@
       ['流口水', 'drool'],
       ['刚醒压痕', 'wake-marks'],
       ['听歌戴耳机', 'listen'], // 听 8 秒后自动睡着
+      ['听歌睡着', 'listen&doze=1'], // 戴着耳机直接睡着（&doze=1 跳过 8 秒等待）
       ['踩奶', 'knead&at=800'], // knead 演示必须带 at 才会进入踩奶冻结帧
     ]],
     ['情绪与疲劳', [
@@ -140,7 +141,8 @@
       const b = document.createElement('button');
       b.textContent = label;
       if (currentDemo === demo.split('&')[0]) b.classList.add('on');
-      b.title = label === '听歌戴耳机' ? '戴上耳机听歌，8 秒后自动睡着' : demo;
+      b.title = label === '听歌戴耳机' ? '戴上耳机听歌，8 秒后自动睡着'
+        : label === '听歌睡着' ? '戴着耳机直接睡着，不听点头的' : demo;
       b.addEventListener('click', () => go(demo));
       grid.appendChild(b);
     }

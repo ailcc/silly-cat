@@ -42,7 +42,7 @@
     const gaming = () => !!(window.SillyGameMode && window.SillyGameMode.active && window.SillyGameMode.active());
     // 用户自己在听歌（usermusic 模式）时猫已经戴着耳机了，猫自己的空闲听歌不掺和
     const userMusic = () => !!(window.SillyUserMusic && window.SillyUserMusic.active && window.SillyUserMusic.active());
-    window.SillyListenMusic = { create, listening: () => A.on, bobbing: () => A.on && !A.doze };
+    window.SillyListenMusic = { create, listening: () => A.on, bobbing: () => A.on && !A.doze, dozing: () => A.on && A.doze };
 
     function pose(now, dt, rm, P) {
       const idleEnough = demo ? true : now - S.lastInput >= S.sleepMs;
@@ -54,11 +54,11 @@
           if (demo || Math.random() < 0.5) {
             A.on = true;
             window.SillyHeadphoneColor?.onWear?.(); // 随机配色：戴上时才换色，戴着期间不变
-            // 这轮听歌只有 DOZE_CHANCE 概率最后听着睡着（demo 必睡，8 秒）；
+            // 这轮听歌只有 DOZE_CHANCE 概率最后听着睡着（demo 必睡，8 秒；&doze=1 直接睡着）；
             // 没掷中的就一直清醒听到有输入
             A.doze = false;
             A.willDoze = demo || Math.random() < DOZE_CHANCE;
-            A.dozeAt = now + (demo ? DOZE_DEMO : DOZE_MIN + Math.random() * (DOZE_MAX - DOZE_MIN));
+            A.dozeAt = now + (demo ? (demo.doze ? 100 : DOZE_DEMO) : DOZE_MIN + Math.random() * (DOZE_MAX - DOZE_MIN));
           }
         }
       }

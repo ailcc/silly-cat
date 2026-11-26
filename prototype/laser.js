@@ -85,7 +85,10 @@
           }
         } else if (!W.phase && now >= W.next) { start(now); }
       } else {
-        const idleOk = S.state === STATES.AWAKE && !S.pet && !S.excited && now - S.lastInput >= IDLE_MIN;
+        // 戴耳机听歌（清醒或睡着）时不自娱玩激光：听歌睡着后 lastInput 不再更新，
+        // 空闲条件恒成立，会把睡着的猫拉起来扑红点
+        const listening = !!(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening());
+        const idleOk = S.state === STATES.AWAKE && !S.pet && !S.excited && now - S.lastInput >= IDLE_MIN && !listening;
         if (!W.phase && idleOk && now >= W.next) start(now);
       }
       if (!W.phase) return;
