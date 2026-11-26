@@ -148,6 +148,26 @@
   #perm-msg { margin: 6px 0 0; font-size: 12px; color: var(--ok); }
   #perm-msg.bad { color: var(--error); }
   #perm-msg:empty { display: none; }
+  /* 检查更新的一行提示（按钮下面那栏） */
+  #update-status { margin-top: 6px; color: var(--muted); font-size: 12px; }
+  #update-status[hidden] { display: none; }
+  /* ---------- 调试模式：连点 10 次检查更新开启，设置窗口右侧展开调试栏 ---------- */
+  body.debug-on { max-width: 400px; } /* 设置内容保持原宽，不被右侧调试栏挤宽 */
+  #debug-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 252px; overflow-y: auto;
+    background: #20232e; color: #e8e8f0; border-left: 1px solid #3a3f52;
+    padding: 10px 12px; z-index: 40;
+    font: 12px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  #debug-panel[hidden] { display: none; }
+  #debug-panel .dp-head { display: flex; justify-content: space-between; align-items: center; font-weight: 600; margin-bottom: 6px; }
+  #debug-panel h4 { margin: 9px 0 4px; font-size: 11px; color: #9aa0b5; font-weight: 600; }
+  #debug-panel .dbg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  #debug-panel button { padding: 3px 4px; border: 0; border-radius: 6px; background: #3c4157; color: #e8e8f0; }
+  #debug-panel button:hover { background: #4c5273; }
+  #debug-panel button.on { background: #c2572f; }
+  #debug-exit { padding: 3px 10px !important; background: #6e2740 !important; }
+  #debug-panel .dp-hint { margin-top: 10px; color: #9aa0b5; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -167,6 +187,8 @@
   <button id="check-update" type="button">检查更新</button>
   <button id="qq-group" type="button">QQ 群</button>
 </div>
+<!-- 检查更新的一行提示：就在按钮下面；查完没更新会自动消失，避免用户没看到提示而狂点 -->
+<div id="update-status" hidden aria-live="polite"></div>
 <div class="duo">
   <div class="row" data-stats>
     <div class="head"><strong>小账本</strong>
@@ -420,6 +442,12 @@
 <footer>
   <span id="status"></span>
 </footer>
+<!-- 调试模式的面板（连点 10 次检查更新开启；按钮内容由 settings.js 填充） -->
+<aside id="debug-panel" hidden>
+  <div class="dp-head"><span>调试面板</span><button id="debug-exit" type="button">退出调试</button></div>
+  <div id="debug-groups"></div>
+  <div class="dp-hint">点按钮让桌面上的猫进入对应状态，再点「恢复正常」或退出调试回到普通模式。调试模式下设置窗口关不掉，先退出调试。</div>
+</aside>
 
 <script src="updater.js"></script>
 <script src="stats.js"></script>
@@ -429,6 +457,7 @@
 <script src="species-cat.js"></script>
 <script src="species-dog.js"></script>
 <script src="coats.js"></script>
+<script src="debug-states.js"></script>
 <script>
 (function () {
   'use strict';
@@ -610,11 +639,86 @@
   });
   form.addEventListener('submit', (e) => e.preventDefault());
   document.getElementById('reset').addEventListener('click', () => { fill(S.DEFAULTS); onEdit(); });
-  // 检查更新：桌面版直接触发 Rust 侧的检查，结果会通过 silly:update 事件显示在页面顶部的 update-result 区
+  // ---------- 调试模式：设置窗口右侧的调试栏 ----------
+  // 入口（藏起来不给普通用户）：3 秒内连点 10 次「检查更新」。开启后窗口右侧展开调试栏，
+  // 宽度加大 252px；开着时设置窗口关不掉（标题栏关闭被拦截、Esc 变成退出调试），
+  // 点「退出调试」/关调试栏才退出，退出时让猫回到普通模式。
+  // 按钮通过 silly:debug-demo 事件指挥主窗口带 ?demo= 参数重载（复用网页版调试面板机制）。
+  const DEBUG_W = 252;
+  let debugOn = false;
+  let lastCheckInvoke = 0;
+  const debugPanel = document.getElementById('debug-panel');
+  function enterDebug() {
+    if (debugOn || !invoke) return;
+    debugOn = true;
+    document.body.classList.add('debug-on');
+    buildDebugPanel();
+    debugPanel.hidden = false;
+    fitWindow();
+    setStatus('调试模式已开启（Esc 或「退出调试」结束）', 'ok');
+  }
+  function exitDebug() {
+    if (!debugOn) return;
+    debugOn = false;
+    document.body.classList.remove('debug-on');
+    debugPanel.hidden = true;
+    fitWindow();
+    if (T && T.event) T.event.emit('silly:debug-demo', { spec: null });
+    setStatus('');
+  }
+  function buildDebugPanel() {
+    if (debugPanel.dataset.built) return;
+    debugPanel.dataset.built = '1';
+    const groupsBox = document.getElementById('debug-groups');
+    const buttons = [];
+    for (const [title, items] of window.SillyDebugStates || []) {
+      const h = document.createElement('h4');
+      h.textContent = title;
+      groupsBox.appendChild(h);
+      const grid = document.createElement('div');
+      grid.className = 'dbg-grid';
+      for (const [label, spec] of items) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = label;
+        if (spec === 'listen') b.title = '戴上耳机听歌，8 秒后自动睡着';
+        else if (spec === 'listen&doze=1') b.title = '戴着耳机直接睡着，不点头不冒音符';
+        else if (spec === 'knead&at=800') b.title = '按着胸口踩奶';
+        b.addEventListener('click', () => {
+          for (const x of buttons) x.classList.remove('on');
+          b.classList.add('on');
+          if (T && T.event) T.event.emit('silly:debug-demo', { spec });
+        });
+        buttons.push(b);
+        grid.appendChild(b);
+      }
+      groupsBox.appendChild(grid);
+    }
+    document.getElementById('debug-exit').addEventListener('click', exitDebug);
+  }
+  // 检查更新：桌面版直接触发 Rust 侧的检查，结果会通过 silly:update 事件显示在按钮下面那栏
+  // 或顶部的 update-result 区；3 秒内连点 10 次打开调试模式
+  const updateStatusEl = document.getElementById('update-status');
+  let updateHideTimer = 0;
+  let checkClicks = [];
+  function setUpdateStatus(text) {
+    clearTimeout(updateHideTimer);
+    updateStatusEl.hidden = !text;
+    updateStatusEl.textContent = text;
+  }
   document.getElementById('check-update').addEventListener('click', () => {
+    const now = performance.now();
+    if (!debugOn) {
+      checkClicks = checkClicks.filter((t) => now - t < 3000);
+      checkClicks.push(now);
+      if (invoke && checkClicks.length >= 10) { enterDebug(); return; }
+    }
     if (!invoke) { setStatus('网页版没有内置更新机制，桌面版可用', 'bad'); return; }
-    setStatus('正在检查更新…');
-    invoke('check_update').catch((e) => setStatus('检查失败：' + e, 'bad'));
+    if (now - lastCheckInvoke >= 400) { // 狂点时别真的一秒发 10 次检查
+      lastCheckInvoke = now;
+      setUpdateStatus('正在检查更新…');
+      invoke('check_update').catch((e) => { setUpdateStatus(''); setStatus('检查失败：' + e, 'bad'); });
+    }
   });
 
   // QQ 群：桌面版先让 Rust 唤起 QQ 的加群卡片（QQ 装了且在登录态时直接跳到群卡片，点「申请加群」即可）；
@@ -638,8 +742,19 @@
     } catch { /* 剪贴板不可用就靠 user-select:all 手动选 */ }
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && T && T.window) T.window.getCurrentWindow().close().catch(() => {});
+    if (e.key === 'Escape') {
+      if (debugOn) { exitDebug(); return; } // 调试模式里 Esc 是退出调试，不是关窗口
+      if (T && T.window) T.window.getCurrentWindow().close().catch(() => {});
+    }
   });
+  // 调试模式开着时拦下标题栏的关闭请求（设置窗口关不掉，先退出调试）
+  if (T && T.window && T.window.getCurrentWindow) {
+    try {
+      T.window.getCurrentWindow().onCloseRequested((event) => {
+        if (debugOn) event.preventDefault();
+      });
+    } catch { /* 旧接口没有 onCloseRequested 就不管 */ }
+  }
 
   fill(S.DEFAULTS);
   // ---------- 鼠标穿透：状态存在 Rust 侧（独立文件），不写进 settings.json ----------
@@ -708,8 +823,22 @@
     const updateResult = document.getElementById('update-result');
     const install = document.getElementById('update-install');
     const renderUpdate = (notice) => {
-      updateResult.hidden = !notice;
-      if (!notice) return;
+      if (!notice) { updateResult.hidden = true; setUpdateStatus(''); return; }
+      if (notice.kind === 'checking') { // 检查中：显示在按钮下面那栏
+        updateResult.hidden = true;
+        setUpdateStatus('正在检查更新…');
+        return;
+      }
+      if (notice.kind === 'result') { // 查完没更新：提示一下就自动收起，用户就不会因为没看到提示而狂点
+        updateResult.hidden = true;
+        setUpdateStatus(notice.title || '已是最新版本');
+        clearTimeout(updateHideTimer);
+        updateHideTimer = setTimeout(() => setUpdateStatus(''), 2600);
+        return;
+      }
+      // 有更新 / 下载进度 / 失败：显示在 update-result 区
+      setUpdateStatus('');
+      updateResult.hidden = false;
       document.getElementById('update-title').textContent = notice.title;
       document.getElementById('update-detail').textContent = notice.kind === 'offer' ? '' : notice.detail;
       install.hidden = !notice.installable;
@@ -820,7 +949,8 @@
     const availHeight = window.screen?.availHeight;
     const maxH = availHeight ? Math.max(1, availHeight - 40) : Infinity;
     h = Math.min(Math.ceil(h), maxH);
-    win.setSize(new Size(BASE_W, h)).catch(() => {});
+    // 调试模式开着时窗口加宽 252px（右侧调试栏的宽度）
+    win.setSize(new Size(debugOn ? BASE_W + DEBUG_W : BASE_W, h)).catch(() => {});
   }
   function showPerm(show) {
     if (perm.hidden === !show) return;

@@ -459,6 +459,26 @@
   const params = new URLSearchParams(location.search);
   SillySpecies.select('cat');
   const desktopMode = SillyDesktopInput.isDesktop();
+  // 桌面版调试模式：设置窗口（连点 10 次检查更新开启）发 silly:debug-demo 过来，
+  // 主窗口带 ?demo= 参数重载进入对应状态（复用网页版调试面板的 URL 参数机制）
+  if (desktopMode && window.__TAURI__ && window.__TAURI__.event) {
+    window.__TAURI__.event.listen('silly:debug-demo', (ev) => {
+      const spec = ev.payload && ev.payload.spec;
+      const p = new URLSearchParams(location.search);
+      if (spec) {
+        const [name, ...extra] = spec.split('&');
+        p.set('demo', name);
+        p.set('loop', '1');
+        for (const kv of extra) {
+          const eq = kv.indexOf('=');
+          p.set(eq === -1 ? kv : kv.slice(0, eq), eq === -1 ? '1' : kv.slice(eq + 1));
+        }
+      } else {
+        for (const k of ['demo', 'loop', 'at', 'doze']) p.delete(k);
+      }
+      location.href = location.pathname + '?' + p.toString();
+    }).catch(() => {});
+  }
   // 耳机颜色：headphoneColor = 'random' 时每次戴上随机挑一个，戴着期间不变（摘了下次戴再随机）。
   // 当前生效颜色记在 hpColor 里；设置换成固定色时立即生效，换成随机时保留当前色到下次戴上。
   let hpColor = 'strawberry';
@@ -683,6 +703,7 @@
 })();
 </script>
 <!-- 调试面板要在内联引导之后加载：它读当前毛色来初始化皮肤下拉框 -->
+<script src="debug-states.js"></script>
 <script src="debug-panel.js"></script>
 </body>
 </html>
