@@ -1,5 +1,6 @@
 // 激光笔：你闲下来时，一个红点会出现在键盘附近。猫瞳孔放大、死死盯着，
-// 扑上去——红点一溜烟跳走；再扑一次，要么终于按住（开心，涨好感），要么彻底跑了（甩尾巴生气）。
+// 扑上去——红点一溜烟跳走；再扑一次，要么终于按住（开心），要么彻底跑了（甩尾巴生气）。
+// 抓住不涨好感：这是猫自己打发时间，好感的分只来自你和它的互动。
 // 调试：?demo=laser&loop=1（到点自动演）或 &at=毫秒 冻结在第二扑的瞬间
 (function () {
   'use strict';
@@ -58,7 +59,7 @@
       W.endUntil = now + 1600;
       ctx.fx.spawn(caught ? '抓住了！' : '哼，跑了', caught ? W.dot.x : 400, caught ? W.dot.y - 26 : 104, caught ? 'hot' : 'angry', performance.now());
       if (caught) {
-        if (window.SillyAffection) window.SillyAffection.add(3);
+        // 猫自己玩的，不给好感分（只有摸头/逗猫棒/零食这类用户互动才涨）
         if (window.SillySounds) window.SillySounds.play('meow');
       }
       if (!demo) W.next = now + rand(EVERY[0], EVERY[1]);

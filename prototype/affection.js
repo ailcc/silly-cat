@@ -1,11 +1,15 @@
 // 好感度：摸头会攒好感，攒够了头顶冒爱心；够亲了，猫会在你发呆时趴下踩奶。
-// 连戳它、拉它尾巴会掉好感。存在 localStorage 里，设置窗口里展示、可清零。
+// 只有用户互动才涨分：摸头、逗猫棒（按住 F）、喂零食；猫自己玩（激光笔等）不涨。
+// 100 分之后每天最多再涨 20（按自然日重置）。连戳它、拉它尾巴会掉好感。
+// 存在 localStorage 里，设置窗口里展示、可清零。
 // 全局 API 在载入即挂到 window.SillyAffection；create(ctx) 是给主画面的模块。
 (function () {
   'use strict';
 
   const KEY = 'sillycat-affection-v1';
   const AFFECTION_MAX = 200;     // 好感度封顶：满了之后摸头照样冒爱心，但数值不再涨
+  const DAILY_AFTER = 100;       // 100 分之后开始限额
+  const DAILY_MAX = 20;          // 100 之后每天最多再涨 20（摸头/逗猫棒/零食共用额度）
   const HEART_EVERY = 10;        // 每攒 10 点冒一颗爱心
   const KNEAD_AT = 60;           // 好感度到"亲近"才解锁踩奶
   const KNEAD_IDLE = 9000;       // 你停手 9 秒后才踩（别耽误打字）
@@ -33,11 +37,24 @@
     try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* 隐私模式下存不了就算了 */ }
   }
   function add(n) {
-    data.v = Math.max(0, Math.min(AFFECTION_MAX, (data.v || 0) + n));
+    let gain = +n || 0;
+    if (gain > 0 && (data.v || 0) >= DAILY_AFTER) {
+      // 100 之后每天限领 20：按自然日重置额度，超了的部分默默不涨（猫不告诉你）
+      if (data.day !== todayKey()) { data.day = todayKey(); data.gained = 0; }
+      const room = Math.max(0, DAILY_MAX - (data.gained || 0));
+      gain = Math.min(gain, room);
+      data.gained = (data.gained || 0) + gain;
+    }
+    data.v = Math.max(0, Math.min(AFFECTION_MAX, (data.v || 0) + gain));
     dirty = true;
     if (!add.timer) add.timer = setTimeout(() => { add.timer = 0; save(); }, 3000);
   }
   window.addEventListener('pagehide', () => { if (dirty) save(); });
+
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
 
   const tierOf = (v) => TIERS.find((t) => v >= t.min).name;
   const rand = (a, b) => a + Math.random() * (b - a);
