@@ -559,3 +559,220 @@ jobs:
             [[ -n $ok ]] || { echo "##[error]$n 三次都没传上去"; exit 1; }
           done
           echo "Gitee 同步完成：https://gitee.com/$GITEE_REPO/releases"
+
+  # Windows 7 / 8 / 8.1 兼容版（Electron 22，不依赖 WebView2）。
+  # 和正式版共用同一套 Tauri 更新密钥签名；构建产物、.sig 和 latest-electron.json 挂到同一个草稿 Release。
+  electron:
+    needs: build
+    if: ${{ !cancelled() }}
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      HAS_UPDATE_KEYS: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' && secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD != '' }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v6
+        with:
+          # 固定 22（npm 10）：lts/* 已到 Node 26，它的 npm 默认不跑依赖的安装脚本，
+          # electron 本体、koffi、uiohook-napi 都靠安装脚本准备，跳过后自检直接失败。
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            electron/package-lock.json
+
+      - name: 安装 Tauri CLI
+        run: npm ci
+
+      - name: 安装 Electron 依赖
+        working-directory: electron
+        run: npm ci
+
+      - name: 检查版本一致性
+        id: version
+        shell: bash
+        run: |
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          electron_version=$(node -p "require('./electron/package.json').version")
+          if [[ $electron_version != "$version" ]]; then
+            echo "::error file=electron/package.json::请将 electron/package.json 和 electron/package-lock.json 的版本从 $electron_version 改为 $version，与 src-tauri/tauri.conf.json 一致。"
+            exit 1
+          fi
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+
+      - name: 检查更新签名配置
+        shell: bash
+        run: |
+          if [[ $HAS_UPDATE_KEYS != true ]]; then
+            message='请同时配置 TAURI_SIGNING_PRIVATE_KEY 和 TAURI_SIGNING_PRIVATE_KEY_PASSWORD。'
+            if [[ $GITHUB_EVENT_NAME == push ]]; then
+              echo "::error::$message"
+              exit 1
+            fi
+            echo "::warning::${message}本次手动构建跳过更新签名及更新清单。"
+          fi
+
+      - name: 运行无界面自检
+        shell: bash
+        working-directory: electron
+        run: |
+          node selftest.js --selftest
+          node tools/test-input-hook.cjs
+          ELECTRON_RUN_AS_NODE=1 ./node_modules/electron/dist/electron.exe updater-test.js
+
+      - name: 运行窗口自检
+        id: electron-window
+        continue-on-error: true
+        timeout-minutes: 3
+        working-directory: electron
+        run: |
+          npx --no-install electron . --selftest --selftest-out "$env:RUNNER_TEMP/electron-selftest"
+          exit $LASTEXITCODE
+
+      - name: 记录窗口自检结果
+        if: ${{ !cancelled() && (steps.electron-window.outcome == 'success' || steps.electron-window.outcome == 'failure') }}
+        env:
+          WINDOW_OUTCOME: ${{ steps.electron-window.outcome }}
+        run: |
+          "### Electron 窗口自检（$env:WINDOW_OUTCOME）" >> $env:GITHUB_STEP_SUMMARY
+          $report = Join-Path $env:RUNNER_TEMP 'electron-selftest/selftest.json'
+          if (Test-Path $report) {
+            '~~~json' >> $env:GITHUB_STEP_SUMMARY
+            Get-Content -Raw -Encoding utf8 $report >> $env:GITHUB_STEP_SUMMARY
+            '~~~' >> $env:GITHUB_STEP_SUMMARY
+          } else {
+            '窗口自检未生成报告，请查看该步骤日志。' >> $env:GITHUB_STEP_SUMMARY
+          }
+          if ($env:WINDOW_OUTCOME -ne 'success') {
+            Write-Output '::warning::Electron 窗口自检未通过，请查看步骤日志和摘要。'
+          }
+
+      - name: 安装音频检测程序的 Win7 工具链
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.77.2
+          targets: x86_64-pc-windows-msvc
+
+      # 静态链接 C 运行库：检测程序放在 resources/audio-probe/ 下单独启动，找不到 Electron 目录里的 DLL；
+      # 动态链接会依赖 vcruntime140.dll（VC++ 运行库）和 api-ms-win-crt（Win7 要 KB2999226），没装的机器上起不来。
+      - name: 构建音频检测程序
+        shell: bash
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: |
+          cargo +1.77.2 build --release --locked --manifest-path tools/audio-probe/Cargo.toml
+          python -m pip install pefile
+          exe=tools/audio-probe/target/release/silly-audio-probe.exe
+          dlls=$(python -c "import pefile,sys; pe=pefile.PE(sys.argv[1]); print(' '.join(e.dll.decode() for e in pe.DIRECTORY_ENTRY_IMPORT))" "$exe")
+          echo "检测程序导入的 DLL：$dlls"
+          if grep -qiE 'vcruntime|msvcp|api-ms-win-crt|ucrtbase' <<< "$dlls"; then
+            echo "::error file=$exe::检测程序仍依赖 VC++ 运行库或 UCRT，没装的机器上起不来"
+            exit 1
+          fi
+
+      - name: 构建兼容版安装包和免安装包
+        working-directory: electron
+        # 用 bash：PowerShell 会把 -c.win.xxx 从点处拆成 -c 和 .win.xxx，electron-builder 会把后者当配置文件路径。
+        shell: bash
+        run: npm run dist -- -c.win.signAndEditExecutable=true --publish never
+
+      - name: 检查兼容版的原生模块导入表
+        shell: bash
+        env:
+          PYTHONUTF8: '1'
+        run: |
+          python -m pip install pefile
+          mkdir -p out
+          report=out/electron-imports-report.txt
+          : > "$report"
+          modules=electron/dist/win-unpacked/resources/app.asar.unpacked/node_modules
+          failed=0
+          for module in \
+            "electron/dist/win-unpacked/resources/audio-probe/silly-audio-probe.exe" \
+            "$modules/@koromix/koffi-win32-x64/win32_x64/koffi.node" \
+            "$modules/uiohook-napi/prebuilds/win32-x64/uiohook-napi.node"; do
+            if ! python tools/win7-check-imports.py "$module" >> "$report" 2>&1; then
+              failed=1
+            fi
+          done
+          cat "$report"
+          {
+            echo '### Electron 原生模块导入表检查'
+            echo '```text'
+            cat "$report"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$failed"
+
+      - name: 整理兼容版产物
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          mkdir -p out
+          base="SillyCat_${VERSION}_electron_x64"
+          test -s "electron/dist/$base-setup.exe"
+          test -s "electron/dist/$base.zip"
+          cp "electron/dist/$base-setup.exe" "electron/dist/$base.zip" out/
+
+      - name: 生成兼容版更新签名
+        if: env.HAS_UPDATE_KEYS == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          installer="out/SillyCat_${VERSION}_electron_x64-setup.exe"
+          npm run tauri -- signer sign --app-version "$VERSION" "$installer"
+
+      - name: 复核签名并生成更新清单
+        if: env.HAS_UPDATE_KEYS == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          name="SillyCat_${VERSION}_electron_x64-setup.exe"
+          ELECTRON_RUN_AS_NODE=1 ./electron/node_modules/electron/dist/electron.exe \
+            electron/tools/verify-update-signature.cjs "out/$name" "out/$name.sig" "$VERSION"
+          tag=v$VERSION
+          if [[ $GITHUB_EVENT_NAME == push ]]; then tag=$GITHUB_REF_NAME; fi
+          node electron/tools/make-electron-manifest.mjs "$VERSION" "$tag" "$name" "out/$name.sig" out/latest-electron.json
+
+      - name: 上传到草稿 Release
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          id=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" |
+            jq -r --arg tag "$GITHUB_REF_NAME" '[.[][] | select(.tag_name == $tag and .draft)][0].id // empty')
+          if [[ -z $id ]]; then
+            echo "::error::找不到标签 $GITHUB_REF_NAME 对应的草稿 Release"
+            exit 1
+          fi
+          base="SillyCat_${VERSION}_electron_x64"
+          for n in "$base-setup.exe" "$base-setup.exe.sig" "$base.zip" latest-electron.json; do
+            test -s "out/$n"
+            old=$(gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases/$id/assets?per_page=100" |
+              jq -r --arg name "$n" '.[][] | select(.name == $name) | .id')
+            if [[ -n $old ]]; then gh api --method DELETE "repos/$GITHUB_REPOSITORY/releases/assets/$old"; fi
+            curl -sS --fail -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"out/$n" --url-query "name=$n" \
+              "https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$id/assets" > /dev/null
+            echo "已上传 $n"
+          done
+
+      - name: 上传 workflow artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: SillyCat-electron
+          path: out/*
+          if-no-files-found: warn

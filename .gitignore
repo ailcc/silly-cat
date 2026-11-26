@@ -3,6 +3,12 @@ node_modules/
 src-tauri/target/
 src-tauri/gen/schemas/
 build/
+
+# Electron 兼容版的构建资源要进仓库（build/ 规则会误伤 electron/build）
+!electron/build/
+!electron/build/**
+# 音频检测程序的 Rust 构建产物
+tools/audio-probe/target/
 .trae-html-share-packages/
 .trae/
 旧版*/

@@ -26,6 +26,7 @@ BAD_DLLS = {
     "api-ms-win-core-winrt-error-l1-1-0.dll",
     "api-ms-win-core-winrt-robuffer-l1-1-0.dll",
     "bcryptprimitives.dll",  # 只为 ProcessPrng 而链接
+    "combase.dll",  # Windows 8 才引入，windows-sys 0.61 将 CoTaskMemFree 等函数链接到它
 }
 
 

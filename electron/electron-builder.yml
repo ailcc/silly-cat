@@ -1,0 +1,76 @@
+# 只在 Claude 的 macOS 上交叉构建：signAndEditExecutable=false 避免依赖 wine（exe 图标因此是默认的 Electron 图标）。
+appId: com.drew.sillycat.compat
+productName: SillyCatCompat
+copyright: SillyCat
+directories:
+  output: dist
+compression: maximum
+npmRebuild: false
+electronLanguages:
+  - zh-CN
+  - en-US
+files:
+  - "**/*"
+  - "!dist/**"
+  - "!launchers/**"
+  - "!build/**"
+  - "!tools/**"
+  - "!updater-test.js"
+  - "!node_modules/koffi/{doc,lib,vendor}/**"
+  - "!node_modules/koffi/src/koffi/src/abi/**"
+  - "!node_modules/koffi/src/koffi/src/*.{cc,hh,inc,def}"
+  - "!node_modules/koffi/cnoke.cjs"
+  - "!node_modules/@koromix/koffi-{android,darwin,freebsd,linux,openbsd}-*/**"
+  - "!node_modules/@koromix/koffi-win32-{ia32,arm64}/**"
+  - "!node_modules/@koromix/**/*.lib"
+  - "!electron-builder.yml"
+  - "!README.md"
+  - "!.gitignore"
+  - "!node_modules/uiohook-napi/prebuilds/darwin-*/**"
+  - "!node_modules/uiohook-napi/prebuilds/linux-*/**"
+  - "!node_modules/uiohook-napi/prebuilds/win32-arm64/**"
+  - "!node_modules/uiohook-napi/libuiohook/**"
+  - "!node_modules/uiohook-napi/src/**"
+  - "!node_modules/uiohook-napi/binding.gyp"
+asar: true
+asarUnpack:
+  - node_modules/@koromix/koffi-win32-x64/win32_x64/*.node
+  - node_modules/uiohook-napi/prebuilds/win32-x64/*.node
+extraResources:
+  - from: ../tools/audio-probe/target/release/silly-audio-probe.exe
+    to: audio-probe/silly-audio-probe.exe
+  - from: ../prototype
+    to: prototype
+    filter:
+      - "**/*"
+      - "!**/.DS_Store"
+  - from: ../src-tauri/icons/32x32.png
+    to: tray.png
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+  artifactName: SillyCat_${version}_electron_x64.${ext}
+  signAndEditExecutable: false
+  icon: ../src-tauri/icons/icon.ico
+  extraFiles:
+    - from: launchers
+      to: .
+      filter:
+        - "*.bat"
+        - "README.txt"
+nsis:
+  artifactName: SillyCat_${version}_electron_x64-setup.${ext}
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: false
+  language: "2052"
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 捣蛋猫 兼容版
+  uninstallDisplayName: 捣蛋猫 兼容版
+  runAfterFinish: true
+  deleteAppDataOnUninstall: false
