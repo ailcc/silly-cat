@@ -17,16 +17,16 @@
     // 围巾：搭在肩上（挂在 #cat-body 里，跟着身体动）；皇冠：戴头上（挂在 #cat-head 里，跟着头动）
     document.getElementById('cat-body').insertAdjacentHTML('beforeend', `
       <g id="growth-scarf" style="display:none">
-        <!-- 垂摆画在带子前面：顶部伸到带子底下（y≈298/304，带子下缘约 307），由后画的带子压住接缝，看起来是从带子下垂出来的 -->
-        <path class="growth-scarf-tail" d="M 424 298 Q 438 340 430 368 Q 418 376 406 370 Q 418 342 412 304 Z"/>
-        <path class="growth-scarf-band" d="M 322 296 Q 400 274 478 296 Q 486 308 478 318 Q 400 296 322 318 Q 314 308 322 296 Z"/>
+        <!-- 垂摆画在带子前面：顶部伸到带子底下，由后画的带子压住接缝，看起来是从带子下垂出来的 -->
+        <path id="growth-scarf-tail" class="growth-scarf-tail" d=""/>
+        <path id="growth-scarf-band" class="growth-scarf-band" d=""/>
       </g>
       <g id="love-collar" style="display:none">
-        <!-- 项圈在围巾带子下面一点（y≈326-349），铃铛挂在正中垂下来，盖住围巾垂摆的左边缘 -->
-        <path class="love-collar-band" d="M 336 326 Q 400 306 464 326 Q 470 338 464 349 Q 400 329 336 349 Q 330 338 336 326 Z"/>
-        <circle class="love-collar-bell" cx="400" cy="354" r="10"/>
-        <path class="love-collar-bell-line" d="M 392 358 Q 400 363 408 358"/>
-        <circle class="love-collar-dot" cx="396.5" cy="350" r="2.4"/>
+        <!-- 项圈在围巾带子下面一点，铃铛挂在正中垂下来，盖住围巾垂摆的左边缘 -->
+        <path id="love-collar-band" class="love-collar-band" d=""/>
+        <circle id="love-collar-bell" class="love-collar-bell" cx="400" r="10"/>
+        <path id="love-collar-bell-line" class="love-collar-bell-line" d=""/>
+        <circle id="love-collar-dot" class="love-collar-dot" cx="400" r="2.4"/>
       </g>`);
     document.getElementById('cat-head').insertAdjacentHTML('beforeend', `
       <g id="growth-crown" style="display:none" transform="translate(400 58)">
@@ -35,16 +35,59 @@
       </g>`);
     const E = {
       scarf: document.getElementById('growth-scarf'),
+      scarfBand: document.getElementById('growth-scarf-band'),
+      scarfTail: document.getElementById('growth-scarf-tail'),
       crown: document.getElementById('growth-crown'),
       collar: document.getElementById('love-collar'),
+      collarBand: document.getElementById('love-collar-band'),
+      bell: document.getElementById('love-collar-bell'),
+      bellLine: document.getElementById('love-collar-bell-line'),
+      dot: document.getElementById('love-collar-dot'),
     };
-    // 狗头比猫头窄、且整体下移了 12：皇冠跟着缩一点、压低一点
-    const fitCrown = () => {
-      const dog = window.SillySpecies?.current?.scene?.template === 'parts-dog';
-      E.crown.setAttribute('transform', dog ? 'translate(400 74) scale(0.86)' : 'translate(400 58)');
+    // 装扮几何按物种适配：狗的头更窄更低、胸口更宽更靠下，不能直接用猫的坐标。
+    // 铃铛挂点跟着「上面那条带子」走：戴了围巾就挂围巾下（项圈粉带藏起来，免得红粉两条带子叠着），
+    // 没戴围巾才挂项圈带下。
+    const DECOR_GEOM = {
+      cat: {
+        scarfBand: 'M 322 296 Q 400 274 478 296 Q 486 308 478 318 Q 400 296 322 318 Q 314 308 322 296 Z',
+        scarfTail: 'M 424 298 Q 438 340 430 368 Q 418 376 406 370 Q 418 342 412 304 Z',
+        collarBand: 'M 336 326 Q 400 306 464 326 Q 470 338 464 349 Q 400 329 336 349 Q 330 338 336 326 Z',
+        scarfBellY: 323, collarBellY: 354,
+        crown: 'translate(400 58)',
+      },
+      dog: {
+        scarfBand: 'M 310 314 Q 400 290 490 314 Q 498 325 490 336 Q 400 312 310 336 Q 302 325 310 314 Z',
+        scarfTail: 'M 424 318 Q 438 360 430 390 Q 418 398 406 392 Q 418 362 412 324 Z',
+        collarBand: 'M 330 344 Q 400 320 470 344 Q 477 356 470 367 Q 400 343 330 367 Q 323 356 330 344 Z',
+        scarfBellY: 317, collarBellY: 347,
+        crown: 'translate(400 107) scale(0.9)',
+      },
     };
-    fitCrown();
-    window.addEventListener('silly:species', fitCrown);
+    const geom = () => DECOR_GEOM[window.SillySpecies?.current?.id] ?? DECOR_GEOM.cat;
+    // 围巾是否「看得见」：国庆披风会用 visibility 把围巾临时藏起来（holidays.js），那时铃铛挂点也别跟着围巾走
+    const scarfVisible = () => G.scarf && E.scarf.style.visibility !== 'hidden';
+    let decorKey = '';
+    function refreshDecor() {
+      const g = geom();
+      E.scarfBand.setAttribute('d', g.scarfBand);
+      E.scarfTail.setAttribute('d', g.scarfTail);
+      E.collarBand.setAttribute('d', g.collarBand);
+      E.crown.setAttribute('transform', g.crown);
+      // 项圈带子只在没戴围巾时显示；铃铛挂在上面那条带子的正中垂下来
+      const bellY = scarfVisible() ? g.scarfBellY : g.collarBellY;
+      E.collarBand.style.display = scarfVisible() ? 'none' : '';
+      E.bell.setAttribute('cy', bellY);
+      E.bellLine.setAttribute('d', `M 392 ${bellY + 4} Q 400 ${bellY + 9} 408 ${bellY + 4}`);
+      E.dot.setAttribute('cy', bellY - 4);
+    }
+    function syncDecor() {
+      const key = window.SillySpecies?.current?.id + '|' + scarfVisible();
+      if (key === decorKey) return;
+      decorKey = key;
+      refreshDecor();
+    }
+    refreshDecor();
+    window.addEventListener('silly:species', syncDecor);
 
     function apply(v) {
       const scarf = v >= SCARF_AT, crown = v >= CROWN_AT, collar = v >= COLLAR_AT;
@@ -59,9 +102,11 @@
       E.scarf.style.display = scarf ? '' : 'none';
       E.crown.style.display = crown ? '' : 'none';
       E.collar.style.display = collar ? '' : 'none';
+      syncDecor(); // 围巾戴上/摘下会改项圈带子和铃铛挂点
     }
 
     function pose(now, dt, rm, P) {
+      syncDecor(); // 国庆披风藏围巾（visibility）时也要跟着挪铃铛挂点；内部按 key 去重，开销可忽略
       const aff = window.SillyAffection;
       if (demo) {
         if (!G.demoInit) { G.demoInit = true; apply(COLLAR_AT); fx.spawn('三件装扮都戴上了', 400, 72, '', now); }
