@@ -56,11 +56,13 @@
         crown: 'translate(400 58)',
       },
       dog: {
-        scarfBand: 'M 310 314 Q 400 290 490 314 Q 498 325 490 336 Q 400 312 310 336 Q 302 325 310 314 Z',
-        scarfTail: 'M 424 318 Q 438 360 430 390 Q 418 398 406 392 Q 418 362 412 324 Z',
+        // 上 U 型围巾带：像真围巾绕脖半圈——两端从脖子两侧绕出来（藏进头轮廓），
+        // 胸前正中往下垂成 U 底；垂摆从带子下缘垂出，铃铛挂 U 底正中
+        scarfBand: 'M 306 292 Q 400 334 494 292 Q 502 304 494 314 Q 400 356 306 314 Q 298 304 306 292 Z',
+        scarfTail: 'M 424 350 Q 437 380 430 400 Q 418 406 406 400 Q 418 382 412 354 Z',
         collarBand: 'M 330 344 Q 400 320 470 344 Q 477 356 470 367 Q 400 343 330 367 Q 323 356 330 344 Z',
-        scarfBellY: 317, collarBellY: 347,
-        crown: 'translate(400 107) scale(0.9)',
+        scarfBellY: 361, collarBellY: 347,
+        crown: 'translate(400 94) scale(0.9)',
       },
     };
     const geom = () => DECOR_GEOM[window.SillySpecies?.current?.id] ?? DECOR_GEOM.cat;
