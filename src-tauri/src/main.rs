@@ -297,9 +297,10 @@ fn app_version(app: AppHandle) -> String {
 
 #[tauri::command]
 fn open_link(target: String) -> Result<(), String> {
-    // 和 settings.html 的 #about-links 对应：github = 本项目（增强版仓库），origin = 原作者仓库
+    // 和 settings.html 的 #about-links 对应：github = 本项目（增强版仓库），gitee = 本项目的 Gitee 镜像，origin = 原作者仓库
     let url = match target.as_str() {
         "github" => "https://github.com/ailcc/silly-cat",
+        "gitee" => "https://gitee.com/ailcc/silly-cat",
         "origin" => "https://github.com/S0u1/silly-cat",
         _ => return Err("未知链接".into()),
     };
@@ -360,6 +361,7 @@ fn build_cat_menu(
         app,
         &[
             &item("prefs", "设置…")?,
+            &item("help", "玩法说明…")?,
             &item("check-update", "检查更新…")?,
             &item("toggle", "显示/隐藏猫")?,
             &lock,
@@ -393,6 +395,7 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
     let id = id.strip_prefix("ctx-").unwrap_or(id);
     match id {
         "prefs" => show_settings(app),
+        "help" => show_help(app),
         "check-update" => {
             show_settings(app);
             updater::manual_check(app.clone());
@@ -467,6 +470,25 @@ fn show_settings(app: &AppHandle) {
 
 fn pos_file(app: &AppHandle) -> Option<PathBuf> {
     app.path().app_config_dir().ok().map(|d| d.join("window-position.json"))
+}
+
+/// 玩法说明窗口；已经开着就带到前面。内容是 prototype/help.html，网页版的右键菜单弹同一个页面
+fn show_help(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("help") {
+        let _ = w.unminimize();
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let _ = WebviewWindowBuilder::new(app, "help", WebviewUrl::App("help.html".into()))
+        .title("捣蛋猫 · 玩法说明")
+        .inner_size(520.0, 640.0)
+        .min_inner_size(420.0, 420.0)
+        .resizable(true)
+        .maximizable(false)
+        .center()
+        .focused(true)
+        .build();
 }
 
 fn load_pos(app: &AppHandle) -> Option<SavedPos> {

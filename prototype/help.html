@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>捣蛋猫 · 玩法说明</title>
+<!-- 桌面版右键菜单和网页版右键菜单共用本页。新增互动功能后，记得同步更新这里的条目和 新功能说明.md -->
+<style>
+  :root {
+    --ink: #1d1b22;
+    --fur-white: #fffdf8;
+    --pink: #ff9eb0;
+    --bg: #dfe6f5;
+    --cream: #fbf6ea;
+    --cream-dark: #e8dfca;
+    --coral: #ff7a59;
+    --muted: #8d8698;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--cream) 30%);
+    color: var(--ink);
+    font: 14px/1.65 -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 28px 18px 40px; }
+  header.hero { text-align: center; padding: 6px 0 18px; }
+  header.hero h1 { margin: 0; font-size: 24px; letter-spacing: 2px; }
+  header.hero p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+  header.hero .paw {
+    display: inline-block; width: 34px; height: 34px; border-radius: 50%;
+    background: var(--ink); color: var(--cream); line-height: 34px;
+    font-size: 17px; font-weight: 700; margin-bottom: 8px;
+  }
+  section { margin: 0 0 16px; }
+  h2 {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 10px; font-size: 16px; letter-spacing: 1px;
+  }
+  h2::before {
+    content: ""; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--coral); flex: none;
+  }
+  .card {
+    background: var(--fur-white);
+    border: 2px solid var(--ink);
+    border-radius: 16px;
+    padding: 12px 14px;
+    box-shadow: 3px 3px 0 rgba(29, 27, 34, .12);
+  }
+  .card + .card { margin-top: 10px; }
+  .item { display: flex; gap: 10px; padding: 7px 0; }
+  .item + .item { border-top: 1px dashed var(--cream-dark); }
+  .item .name { flex: none; width: 108px; font-weight: 700; }
+  .item .desc { flex: 1; color: #4a4653; font-size: 13px; }
+  .item .desc b { color: var(--ink); }
+  .tag {
+    display: inline-block; margin-left: 6px; padding: 0 7px;
+    border: 1.5px dashed var(--coral); border-radius: 999px;
+    color: var(--coral); font-size: 11px; font-weight: 700; line-height: 18px;
+    vertical-align: 1px;
+  }
+  .steps { list-style: none; margin: 0; padding: 0; }
+  .steps li { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; }
+  .steps .lv {
+    flex: none; width: 46px; height: 24px; border-radius: 12px;
+    background: var(--ink); color: var(--cream);
+    text-align: center; line-height: 24px; font-size: 12px; font-weight: 700;
+  }
+  .steps li.max .lv { background: var(--coral); }
+  .steps .what { flex: 1; font-size: 13px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <span class="paw">猫</span>
+    <h1>玩法说明</h1>
+    <p>这只猫一次只做一件事，先到先得；大部分玩法要它闲着才表演</p>
+  </header>
+
+  <section>
+    <h2>和它互动</h2>
+    <div class="card">
+      <div class="item"><div class="name">摸摸头</div><div class="desc">按住猫的头，每摸一秒涨一点好感，头顶冒爱心</div></div>
+      <div class="item"><div class="name">连戳会烦</div><div class="desc">快速连戳它几下，会被挥爪拍开，还掉好感</div></div>
+      <div class="item"><div class="name">拉尾巴</div><div class="desc">挨一记回眸哈气，别老拉</div></div>
+      <div class="item"><div class="name">甩鼠标</div><div class="desc">快速甩动鼠标它会扑上来抱住玩，偶尔扑个空尴尬收场</div></div>
+      <div class="item"><div class="name">拖动 / 右键</div><div class="desc">左键按住猫或键盘拖位置；右键弹菜单（锁定位置、重置位置等）</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>键盘上的隐藏玩法</h2>
+    <div class="card">
+      <div class="item"><div class="name">双击 P<span class="tag">隐藏</span></div><div class="desc">快速连按两下 P（80–350ms 内），截一张猫的透明底表情包进剪贴板</div></div>
+      <div class="item"><div class="name">双击 Esc<span class="tag">隐藏</span></div><div class="desc">摸鱼老板键：瞬间趴下装睡，再双击秒醒</div></div>
+      <div class="item"><div class="name">双击 G<span class="tag">隐藏</span></div><div class="desc">抛一条小鱼干它跳起来空中接住；2 分钟最多 3 条、每天 5 条，吃够了会把鱼扒拉走</div></div>
+      <div class="item"><div class="name">按住 F<span class="tag">隐藏</span></div><div class="desc">垂下逗猫棒毛线球，它盯着拍，拍到三下开心打滚</div></div>
+      <div class="item"><div class="name">彩蛋词<span class="tag">隐藏</span></div><div class="desc">打出 cat、mao、miao、meow，它抬头喵一声</div></div>
+      <div class="item"><div class="name">回车 / 空格<span class="tag">隐藏</span></div><div class="desc">敲回车尾巴必拍一下回车键；敲空格屁股往键盘上磕一下</div></div>
+      <div class="item"><div class="name">打字反应</div><div class="desc">敲得飞快它瞪圆眼睛；狂敲 10 秒它捂耳朵抱怨，头顶挂着倒数</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>它自己会做的事</h2>
+    <div class="card">
+      <div class="item"><div class="name">发呆小动作</div><div class="desc">伸懒腰、打哈欠、舔爪子洗脸；听歌时戴耳机点头打拍子</div></div>
+      <div class="item"><div class="name">踩奶</div><div class="desc">好感 60 起，你发呆它就趴下双爪交替踩奶打呼噜</div></div>
+      <div class="item"><div class="name">小奶猫串门</div><div class="desc">发呆 12 秒有小奶猫跳上键盘打盹，打字会吓到它——可能被大猫一巴掌拍飞</div></div>
+      <div class="item"><div class="name">捣乱日常</div><div class="desc">偷喝咖啡、饭点敲碗催饭（11–13 点、17–19 点）、深夜跑酷、拍图标玩、趴睡掉毛</div></div>
+      <div class="item"><div class="name">碎碎念</div><div class="desc">睡觉说梦话、发呆冒奶牛猫语录、翻小账本拿真实数据吐槽你</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>健康关怀</h2>
+    <div class="card">
+      <div class="item"><div class="name">久坐举牌</div><div class="desc">连续工作到设定时长（30/45/60/90 分钟可调）就举牌催你起来动动，摸头确认</div></div>
+      <div class="item"><div class="name">喝水提醒</div><div class="desc">每隔 40–70 分钟推一杯水过来，晾 90 秒会自己收回去</div></div>
+      <div class="item"><div class="name">番茄钟</div><div class="desc">设置里开启，25 分钟专注 + 5 分钟休息；完成一个撒星星庆祝，长休戴派对帽蹦跳</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>成长之路</h2>
+    <div class="card">
+      <ul class="steps">
+        <li><span class="lv">60</span><span class="what">解锁踩奶</span></li>
+        <li><span class="lv">90</span><span class="what">戴上小皇冠</span></li>
+        <li><span class="lv">120</span><span class="what">小奶猫有概率留下来当跟班</span></li>
+        <li><span class="lv">160</span><span class="what">戴上铃铛项圈</span></li>
+        <li class="max"><span class="lv">200</span><span class="what"><b>命中注定</b>：满级。首次攒满撒爱心雨加主动踩奶庆祝，摸头反应更亲，配专属台词；封顶后每天最多涨 20</span></li>
+      </ul>
+      <div class="item"><div class="name">连续投喂</div><div class="desc">连续 3 天都有小鱼干吃，它会悄悄圆起来；断喂一天又瘦回去<span class="tag">隐藏</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>节日与彩蛋</h2>
+    <div class="card">
+      <div class="item"><div class="name">节日装扮</div><div class="desc">春节红马褂放烟花、国庆披国旗披风、圣诞帽、万圣节南瓜灯、情人节飘爱心</div></div>
+      <div class="item"><div class="name">它的生日</div><div class="desc">设置里填「月-日」，当天戴生日帽全程爱心眼<span class="tag">隐藏</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>桌面版专属</h2>
+    <div class="card">
+      <div class="item"><div class="name">游戏模式</div><div class="desc">发现前台全屏游戏，自动戴上耳机打盹替你守键盘，输入不惊动它</div></div>
+      <div class="item"><div class="name">密码隐私模式</div><div class="desc">焦点落进密码框立刻闭眼扭头——才不偷看你的密码</div></div>
+      <div class="item"><div class="name">陪你听歌</div><div class="desc">检测到网易云、QQ 音乐等在放歌就戴上耳机陪着，暂停不摘、退出才摘</div></div>
+      <div class="item"><div class="name">AI 助手换装</div><div class="desc">设置里开启本地 MCP 接口后，Claude、Cursor 可以直接给猫换品种画风（仅本机，默认关）</div></div>
+    </div>
+  </section>
+
+  <footer>好感度、小账本、设置全部只保存在本机 · 除更新时，其它时间无联网</footer>
+</div>
+</body>
+</html>
