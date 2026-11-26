@@ -336,6 +336,9 @@
 <script src="hindpaws.js"></script>
 <script src="listenmusic.js"></script>
 <script src="usermusic.js"></script>
+<script src="grump.js"></script>
+<script src="swat.js"></script>
+<script src="purr.js"></script>
 <script src="statusbar.js"></script>
 <script src="input.js"></script>
 <script src="updater.js"></script>
@@ -376,7 +379,7 @@
   const pushEveryParam = parseFloat(params.get('pushevery'));
 
   const kb = SillyKeyboard.build(document.getElementById('keyboard'));
-  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null, quip = null, sit = null, visitor = null, tailSlapMod = null, kbdFlowMod = null, headTurnMod = null, hindPawsMod = null, listenMod = null;
+  let fatigue = null, sleepMod = null, push = null, statusBar = null, pomo = null, holiday = null, quip = null, sit = null, visitor = null, tailSlapMod = null, kbdFlowMod = null, headTurnMod = null, hindPawsMod = null, listenMod = null, grumpMod = null, swatMod = null, purrMod = null;
   const cat = SillyCat.createCat({
     keyboard: kb, sleepSeconds: sleep, eyesFollow: eyesParam ?? SillySettings.DEFAULTS.eyesFollow, demo,
     modules: [
@@ -385,6 +388,9 @@
       (ctx) => (fatigue = SillyFatigue.create(ctx, { workSeconds: work, restSeconds: rest, demo })),
       (ctx) => SillyPounce.create(ctx, { demo }),
       (ctx) => (push = SillyPush.create(ctx, { enabled: pushParam ?? true, everySeconds: pushEveryParam, demo })),
+      (ctx) => (grumpMod = SillyGrump.create(ctx, { fatigue, isPushing: (now) => push.pushing(now), demo })),
+      (ctx) => (swatMod = SillySwat.create(ctx, { demo, isPushing: (now) => push.pushing(now), anger: () => grumpMod.anger() })),
+      (ctx) => (purrMod = SillyPurr.create(ctx, { canPurr: () => grumpMod.canPurr() })),
       (ctx) => SillyIdleGestures.create(ctx, { demo }),
       (ctx) => SillyEasterWords.create(ctx, { demo }),
       (ctx) => SillyTypeRhythm.create(ctx, { demo }),
@@ -420,7 +426,7 @@
       (ctx) => (hindPawsMod = SillyHindPaws.create(ctx, { demo })),
       (ctx) => (listenMod = SillyListenMusic.create(ctx, { demo })),
       (ctx) => SillyUserMusic.create(ctx),
-      (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, enabled: statusBarParam ?? true })),
+      (ctx) => (statusBar = SillyStatusBar.create(ctx, { fatigue, grump: grumpMod, enabled: statusBarParam ?? true })),
       SillyCoats.shapeModule,
     ],
   });
@@ -457,6 +463,9 @@
       if (headTurnMod) headTurnMod.setEnabled(s.headTurn);
       if (hindPawsMod) hindPawsMod.setEnabled(s.hindPaws);
       if (listenMod) listenMod.setEnabled(s.listenMusic);
+      if (grumpMod) grumpMod.setEnabled(s.grump);
+      if (swatMod) swatMod.setEnabled(s.swat);
+      if (purrMod) { purrMod.setEnabled(s.purr); purrMod.setVolume(s.purrVolume); }
       if (!(skipUrl && eyesParam !== null)) cat.setEyesFollow(s.eyesFollow);
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };

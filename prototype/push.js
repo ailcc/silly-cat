@@ -255,6 +255,8 @@
     return {
       overrideState, afterState, afterKeyDown, forcedPawTarget, pose, render,
       block() { return pinned; },
+      // 起床气 / 拍指针用：此刻是否正在推杯子（推的时候不凑热闹，猫一次只做一件事）
+      pushing(now) { return !!view(now).acting; },
       setEnabled(v) { enabled = v; },
       setEverySeconds(v) {
         const seconds = interval(v);

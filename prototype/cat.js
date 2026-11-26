@@ -444,13 +444,15 @@
         if (guard('petStart', null)) return;
         const now = performance.now();
         noteInput(now);
-        S.pet = { nx: nx || 0, ny: ny || 0 };
+        S.pet = { nx: nx || 0, ny: ny || 0, movedAt: now };
         S.state = STATES.PETTED;
+        call('onPetStart', now); // 呼噜等：在用户手势上下文里解锁音频
       },
       petMove(nx, ny) {
         if (guard('petMove', null)) return;
         if (!S.pet) return;
         S.pet.nx = nx; S.pet.ny = ny;
+        S.pet.movedAt = performance.now();
         S.lastInput = performance.now();
       },
       petEnd() {
@@ -459,6 +461,7 @@
         S.pet = null;
         S.lastInput = performance.now();
         S.state = STATES.AWAKE;
+        call('onPetEnd', performance.now());
       },
       setSleepSeconds(sec) {
         S.sleepMs = clamp(+sec || 20, 1, 3600) * 1000;
@@ -611,7 +614,7 @@
     }
 
     function renderEyes(now, dt, P) {
-      const mode = S.state === STATES.ASLEEP || P.eyesClosed ? 'closed' : (S.state === STATES.PETTED || P.eyesHappy) ? 'happy' : 'open';
+      const mode = S.state === STATES.ASLEEP || P.eyesClosed ? 'closed' : (S.state === STATES.PETTED && !P.suppressPetSmile) || P.eyesHappy ? 'happy' : 'open';
       if (mode !== S.eyeMode) {
         S.eyeMode = mode;
         for (const s of ['L', 'R']) {
@@ -858,6 +861,7 @@
         earDroop: 0, breath: 1, lidMin: 0, tailAmp: null, tailSpeed: 0,
         pawTau: 1, pressBoost: 0, zzzDx: 0, zzzDy: 0, mouseX: 0, mouseY: 0, mouseRot: 0, hideCat: false,
         turnSX: 1, eyesClosed: false, eyesHappy: false, look: null, cheek: 0, mouseAbs: null, mouseHidden: false,
+      suppressPetSmile: false,
         headSX: 1, headSY: 1, bodySX: 1, bodySY: 1, // 乘法：头以 400,262、身体以 400,410 为基准缩放
         tailOverride: null, // 扩展模块接管尾巴：function(now, basePts) 返回完整中线（画面坐标、TAIL_N 个点），用于尾巴拍键等演出
         pupilR: null, // 瞳孔半径（画面单位），扩展模块可放大瞳孔（捕猎态）
@@ -920,6 +924,7 @@
     }
     const ctx = {
       S, STATES, el, kb, fx, paws, keycapText, keyPoint, mousePoint, mousePaw, mouseHome, restPoint, headToScene, sceneToHead,
+      shoulders: SHOULDER, choosePaw,
       releaseAll, reducedMotion, clamp, approach, f1, catmull, resample,
     };
     for (const make of modules) mods.push(make(ctx) || {});

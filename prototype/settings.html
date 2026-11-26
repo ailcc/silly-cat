@@ -278,6 +278,26 @@
       <span class="field"><input id="f-headTurn" type="checkbox" aria-describedby="head-turn-hint"></span></div>
     <div id="head-turn-hint" class="hint">眼睛跟着鼠标看时，头也微微朝指针方向转（球面透视）；快速晃鼠标会触发捕猎态——瞳孔放大、压低身子盯住指针。</div>
   </div>
+  <div class="row" data-bool="grump">
+    <div class="head"><label for="f-grump">被吵醒会起床气</label>
+      <span class="field"><input id="f-grump" type="checkbox" aria-describedby="grump-hint"></span></div>
+    <div id="grump-hint" class="hint">睡熟后被吵醒会闹脾气：头压低、耳朵耷、尾巴狠狠地拍。摸摸头帮它消气（摸头时消气算三倍速），消气后眯眼笑、头顶冒小心心。</div>
+  </div>
+  <div class="row" data-bool="swat">
+    <div class="head"><label for="f-swat">鼠标靠近会挨打</label>
+      <span class="field"><input id="f-swat" type="checkbox" aria-describedby="swat-hint"></span></div>
+    <div id="swat-hint" class="hint">醒着时，鼠标凑得太近又晃来晃去，猫会伸爪拍一下：拍中了原地炸开小星星，拍空了就盯着指针看一会儿。打字、摸头、发飙时不拍。</div>
+  </div>
+  <div class="row" data-bool="purr">
+    <div class="head"><label for="f-purr">摸摸时打呼噜</label>
+      <span class="field"><input id="f-purr" type="checkbox" aria-describedby="purr-hint"></span></div>
+    <div id="purr-hint" class="hint">摸头时猫会打呼噜（现场合成，不联网、不加载音频文件）；闹起床气时摸它要等气消得差不多才肯打。</div>
+  </div>
+  <div class="row" data-purr-volume>
+    <div class="head"><label for="f-purrVolume">呼噜音量</label>
+      <span class="field"><input id="f-purrVolume" type="range" min="0" max="100" step="5" value="60" aria-describedby="purr-volume-hint"><span id="purr-volume-percent" class="unit">60%</span></span></div>
+    <div id="purr-volume-hint" class="hint">呼噜声的音量，默认 60%。满格也做过限幅，设备音量交给系统。</div>
+  </div>
   <div class="row" data-bool="hindPaws">
     <div class="head"><label for="f-hindPaws">露出后脚</label>
       <span class="field"><input id="f-hindPaws" type="checkbox" aria-describedby="hind-paws-hint"></span></div>
@@ -371,6 +391,8 @@
   const sitMinutesInput = document.getElementById('f-sitMinutes');
   const sizeInput = document.getElementById('f-size');
   const sizePercent = document.getElementById('size-percent');
+  const purrVolumeInput = document.getElementById('f-purrVolume');
+  const purrVolumePercent = document.getElementById('purr-volume-percent');
   const autostartInput = document.getElementById('f-autostart');
   sizeInput.min = String(Math.round(S.SIZE.min * 100));
   sizeInput.max = String(Math.round(S.SIZE.max * 100));
@@ -393,6 +415,7 @@
     sitMinutesInput.value = String(s.sitMinutes);
     birthdayInput.value = s.birthday || '';
     sizeInput.value = Math.round(s.size * 100);
+    purrVolumeInput.value = String(s.purrVolume);
     refreshHints(s);
   }
   // 时间项按秒读；可选项留空 = null（自动），其他时间项留空 = NaN（校验报错）
@@ -408,6 +431,7 @@
     s.sitMinutes = Number(sitMinutesInput.value);
     s.birthday = birthdayInput.value.trim(); // 格式对不对由 sanitize 把关，不对就当没填
     s.size = sizeInput.valueAsNumber / 100;
+    s.purrVolume = purrVolumeInput.valueAsNumber;
     return s;
   }
   function refreshHints(s) {
@@ -415,6 +439,7 @@
     for (const b of document.querySelectorAll('[data-auto]')) b.textContent = fmt(S.AUTO[b.dataset.auto] * sleep);
     rows.pushEvery.input.disabled = !s.push;
     sizePercent.textContent = `${sizeInput.value}%`;
+    purrVolumePercent.textContent = `${purrVolumeInput.value}%`;
   }
   function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = cls || ''; }
 

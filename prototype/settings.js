@@ -10,8 +10,8 @@
   // pushEvery：大约多久推一次杯子（秒），push.js 在它的 0.5–1.5 倍之间随机
   // pomo：番茄钟开关。birthday：猫的生日（MM-DD 文本，空 = 不庆祝）。birthdayHearts：生日当天要不要全程爱心眼（默认关）。和开关项一样不参与 KEYS 里的数字校验
   // mcpServer：MCP 外观接口（本地回环 HTTP，给 AI 助手换装用，默认关）；mcpPort 不在界面暴露，settings.json 里可手改
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true });
-  const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo', 'birthdayHearts', 'quips', 'pomoCheer', 'sitRemind', 'kittenCoat', 'tailSlap', 'kbdFlow', 'headTurn', 'mcpServer', 'hindPaws', 'listenMusic']);
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, grump: true, swat: true, purr: true, purrVolume: 60, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true });
+  const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo', 'birthdayHearts', 'quips', 'pomoCheer', 'sitRemind', 'kittenCoat', 'tailSlap', 'kbdFlow', 'headTurn', 'grump', 'swat', 'purr', 'mcpServer', 'hindPaws', 'listenMusic']);
   const AUTO = Object.freeze({ drool: 2, slump: 3.5 });
   const SIZE = Object.freeze({ min: 0.5, max: 2, step: 0.05 });
   // 和 coats.js 的列表保持一致，顺序也是设置页的头像顺序。
@@ -63,6 +63,8 @@
       for (const k of BOOLS) if (typeof raw[k] === 'boolean') s[k] = raw[k]; // 旧的 settings.json 没有这项：用默认值
       // 久坐提醒间隔只认这几个档位（分钟）
       if ([30, 45, 60, 90].includes(raw.sitMinutes)) s.sitMinutes = raw.sitMinutes;
+      // 呼噜音量 0–100，手改超范围的钳到边界
+      if (Number.isFinite(raw.purrVolume)) s.purrVolume = Math.max(0, Math.min(100, Math.round(raw.purrVolume)));
       // 生日是文本：接受「M-D」「MM-DD」，其他值一律退回空
       if (typeof raw.birthday === 'string') {
         const m = raw.birthday.trim().match(/^(\d{1,2})-(\d{1,2})$/);
