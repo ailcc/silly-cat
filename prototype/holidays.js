@@ -62,29 +62,51 @@
     }
 
     // ---------- 各节日的装扮 DOM ----------
-    // 装扮的原始绘制框（路径就是按这套坐标画的）。decor-fit.js 里每套皮肤给的目标框
-    // （x/y = 框左上角、w/h = 拉伸到的宽高）会把这个原始框平移缩放过去——
-    // 猫的默认值就是原始框本身（不变形），狗用另外一套初值，微调改 decor-fit.js。
+    // 装扮的摆放参数按皮肤存放在 decor-fit.js（每套皮肤一套，微调改那个文件）。
+    // 帽子/马褂按「原始绘制框」平移缩放（FIT_BASE 是路径当初画的位置）；
+    // 披风的肩带/下摆是归一化路径（0,0 起笔，画法同围巾带），按参考框直接摆。
     const FIT_BASE = {
       'holiday-pumpkin': { x: 712, y: 424, w: 60, h: 49 }, // 中心在 742,452
       'holiday-hat':     { x: 308, y: 34,  w: 171, h: 76 },
       'holiday-coat':    { x: 352, y: 289, w: 96,  h: 95 },
-      'holiday-cape':    { x: 314, y: 274, w: 172, h: 132 },
       'holiday-bdayhat': { x: 330, y: 2,   w: 116, h: 106 },
     };
-    const FIT_ITEM = {
-      halloween: 'holiday-pumpkin', christmas: 'holiday-hat', spring: 'holiday-coat',
-      national: 'holiday-cape', birthday: 'holiday-bdayhat',
-    };
-    let fitCache = ''; // 上次算出的 transform，没变就不重复写属性
+    // 披风：U 型肩带（和围巾带同一条归一化路径）+ 左右两片下摆，五颗星挂在肩带上按比例摆
+    const CAPE_BAND_D = 'M 8 0 Q 102 42 196 0 Q 204 12 196 22 Q 102 64 8 22 Q 0 12 8 0 Z';
+    const CAPE_BAND_BOX = { w: 204, h: 64 };
+    const CAPE_DRAPE_D = ['M 4 0 L 0 90 Q 18 100 36 92 L 32 4 Z', 'M 32 0 L 36 90 Q 18 100 0 92 L 4 4 Z'];
+    const CAPE_DRAPE_BOX = { w: 36, h: 100 };
+    // 星在肩带参考框里的位置（横向比例, 纵向比例, 半径基准）：大星压胸前正中，四颗小星沿右肩拱卫
+    const CAPE_STARS = [[0.50, 0.68, 14], [0.63, 0.40, 7], [0.72, 0.27, 7], [0.81, 0.22, 7], [0.90, 0.26, 7]];
+    let fitCache = {}; // 各部件上次算出的 transform/d，没变就不重复写属性
 
-    // 按 decor-fit 的当前皮肤参数给装扮挂 transform；南瓜是场景物件（x/y = 中心 + scale）
     function applyFit() {
-      const item = FIT_ITEM[W.mode];
+      if (!W.mode) return;
+      // 披风：肩带 + 左右下摆 + 五颗星
+      if (W.mode === 'national') {
+        const band = fit('holidayCapeBand');
+        const dl = fit('holidayCapeDrapeL');
+        const dr = fit('holidayCapeDrapeR');
+        if (dl) fitNorm('cape-drapel', dl, CAPE_DRAPE_BOX, CAPE_DRAPE_D[0]);
+        if (dr) fitNorm('cape-draper', dr, CAPE_DRAPE_BOX, CAPE_DRAPE_D[1]);
+        if (band) {
+          fitNorm('cape-band', band, CAPE_BAND_BOX, CAPE_BAND_D);
+          const s = band.w / CAPE_BAND_BOX.w;
+          CAPE_STARS.forEach(([fx, fy, r], i) => {
+            const el = document.getElementById('cape-star' + i);
+            if (!el) return;
+            const d = starPath(band.x + band.w * fx, band.y + band.h * fy, r * s);
+            if (fitCache['star' + i] !== d) { el.setAttribute('d', d); fitCache['star' + i] = d; }
+          });
+        }
+        return;
+      }
+      // 其余装扮按原始框平移缩放；南瓜是场景物件（x/y = 中心 + scale）
+      const item = { halloween: 'holiday-pumpkin', christmas: 'holiday-hat', spring: 'holiday-coat', birthday: 'holiday-bdayhat' }[W.mode];
       if (!item) return;
       const el = document.getElementById(item);
       if (!el) return;
-      const cfg = window.SillyDecorFit && window.SillyDecorFit.get(item);
+      const cfg = fit(item);
       if (!cfg) return;
       const base = FIT_BASE[item];
       let t;
@@ -95,8 +117,17 @@
         const sx = cfg.w / base.w, sy = cfg.h / base.h;
         t = `translate(${(cfg.x - base.x * sx).toFixed(1)} ${(cfg.y - base.y * sy).toFixed(1)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`;
       }
-      if (t !== fitCache) { el.setAttribute('transform', t); fitCache = t; }
+      if (fitCache[item] !== t) { el.setAttribute('transform', t); fitCache[item] = t; }
     }
+
+    function fitNorm(id, cfg, box, d) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const t = `translate(${cfg.x} ${cfg.y}) scale(${(cfg.w / box.w).toFixed(4)} ${(cfg.h / box.h).toFixed(4)})`;
+      if (fitCache[id] !== t) { el.setAttribute('d', d); el.setAttribute('transform', t); fitCache[id] = t; }
+    }
+
+    function fit(item) { return (window.SillyDecorFit && window.SillyDecorFit.get && window.SillyDecorFit.get(item)) || null; }
 
     function clearDecor() {
       ['#holiday-pumpkin', '#holiday-hat', '#holiday-coat', '#holiday-cape', '#holiday-bdayhat'].forEach((sel) => {
@@ -143,17 +174,18 @@
             <circle class="hco-knot" cx="400" cy="370" r="4.5"/>
           </g>`);
       } else if (mode === 'national') {
-        // 国旗披风：红披风搭在肩上、两边垂下来，左襟一颗大黄星、右襟四颗小星拱卫
+        // 国旗披风：U 型肩带（画法同围巾带，从脖子两侧绕出来）+ 左右两片下摆，
+        // 五颗星按肩带比例摆（大星压胸前正中，四颗小星沿右肩拱卫，和国旗一致）
         $('cat-body').insertAdjacentHTML('beforeend', `
           <g id="holiday-cape">
-            <path class="hca-band" d="M 322 296 Q 400 274 478 296 Q 486 308 478 318 Q 400 296 322 318 Q 314 308 322 296 Z"/>
-            <path class="hca-drape" d="M 322 306 L 318 396 Q 336 406 354 398 L 350 310 Z"/>
-            <path class="hca-drape" d="M 444 306 L 448 396 Q 430 406 412 398 L 416 310 Z"/>
-            <path class="hca-star" d="${starPath(400, 304, 14)}"/>
-            <path class="hca-star" d="${starPath(424, 292, 7)}"/>
-            <path class="hca-star" d="${starPath(438, 304, 7)}"/>
-            <path class="hca-star" d="${starPath(438, 320, 7)}"/>
-            <path class="hca-star" d="${starPath(424, 330, 7)}"/>
+            <path class="hca-drape" id="cape-drapel" d=""/>
+            <path class="hca-drape" id="cape-draper" d=""/>
+            <path class="hca-band" id="cape-band" d=""/>
+            <path class="hca-star" id="cape-star0" d=""/>
+            <path class="hca-star" id="cape-star1" d=""/>
+            <path class="hca-star" id="cape-star2" d=""/>
+            <path class="hca-star" id="cape-star3" d=""/>
+            <path class="hca-star" id="cape-star4" d=""/>
           </g>`);
       } else if (mode === 'birthday') {
         // 尖角生日帽：条纹圆锥 + 顶上一个小球，歪戴着，挂在头部组里跟着头动
@@ -166,7 +198,7 @@
           </g>`);
       }
       W.domReady = mode;
-      fitCache = ''; // 新装扮刚插上，强制下一帧重新按当前皮肤拟合
+      fitCache = {}; // 新装扮刚插上，强制下一帧重新按当前皮肤拟合
     }
 
     // 今天是哪个节日（demo 优先；生日也可覆盖固定节日——自己的日子最大）

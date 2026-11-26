@@ -11,7 +11,8 @@
 //   holidayHat     圣诞帽（跟头动）     猫的原始框：308,34 171×76
 //   holidayBdayhat 生日尖角帽（跟头动） 猫的原始框：330,2  116×106
 //   holidayCoat    春节小马褂（跟身子） 猫的原始框：352,289 96×95
-//   holidayCape    国庆披风（跟身子）   猫的原始框：314,274 172×132
+//   holidayCapeBand 披风肩带（U 型，同围巾带画法）猫基准：314,282 176×56
+//   holidayCapeDrapeL/DrapeR 披风左/右下摆（各自独立参数）猫基准：318/412,300 36×100
 //   holidayPumpkin 万圣节南瓜灯（桌上摆的场景物件）x、y = 中心，scale = 缩放；默认 742,452
 // 想看原始框在哪：?demo=christmas 等直接看对应装扮；把 w/h 设回猫的原始框就是原样。
 //
@@ -33,7 +34,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     dog: {
@@ -46,7 +49,9 @@
       holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },  // 帽檐下沿 ≈ 124，压在狗头顶
       holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
       holidayCoat:    { x: 336, y: 300, w: 128, h: 106 },
-      holidayCape:    { x: 294, y: 286, w: 212, h: 146 },
+      holidayCapeBand:  { x: 298, y: 276, w: 204, h: 58 },  // 披风肩带（U 型）
+      holidayCapeDrapeL:{ x: 296, y: 304, w: 44,  h: 98 },  // 披风左下摆
+      holidayCapeDrapeR:{ x: 460, y: 304, w: 44,  h: 98 },  // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
   };
@@ -64,7 +69,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 橘猫
@@ -78,7 +85,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 狸花猫
@@ -92,7 +101,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 暹罗猫
@@ -106,7 +117,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 黑猫
@@ -120,7 +133,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 三花猫
@@ -134,7 +149,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 英短蓝猫
@@ -148,7 +165,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 异瞳白猫
@@ -162,7 +181,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 缅因猫
@@ -176,7 +197,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 无毛猫
@@ -190,7 +213,9 @@
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
       holidayCoat:    { x: 352, y: 289, w: 96,  h: 95 },
-      holidayCape:    { x: 314, y: 274, w: 172, h: 132 },
+      holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
+      holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
+      holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 大黄（土狗）
@@ -204,7 +229,9 @@
       holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
       holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
       holidayCoat:    { x: 336, y: 300, w: 128, h: 106 },
-      holidayCape:    { x: 294, y: 286, w: 212, h: 146 },
+      holidayCapeBand:  { x: 298, y: 276, w: 204, h: 58 },  // 披风肩带（U 型）
+      holidayCapeDrapeL:{ x: 296, y: 304, w: 44,  h: 98 },  // 披风左下摆
+      holidayCapeDrapeR:{ x: 460, y: 304, w: 44,  h: 98 },  // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 柯基
@@ -218,7 +245,9 @@
       holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
       holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
       holidayCoat:    { x: 336, y: 300, w: 128, h: 106 },
-      holidayCape:    { x: 294, y: 286, w: 212, h: 146 },
+      holidayCapeBand:  { x: 298, y: 276, w: 204, h: 58 },  // 披风肩带（U 型）
+      holidayCapeDrapeL:{ x: 296, y: 304, w: 44,  h: 98 },  // 披风左下摆
+      holidayCapeDrapeR:{ x: 460, y: 304, w: 44,  h: 98 },  // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
     // 边牧
@@ -232,7 +261,9 @@
       holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
       holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
       holidayCoat:    { x: 336, y: 300, w: 128, h: 106 },
-      holidayCape:    { x: 294, y: 286, w: 212, h: 146 },
+      holidayCapeBand:  { x: 298, y: 276, w: 204, h: 58 },  // 披风肩带（U 型）
+      holidayCapeDrapeL:{ x: 296, y: 304, w: 44,  h: 98 },  // 披风左下摆
+      holidayCapeDrapeR:{ x: 460, y: 304, w: 44,  h: 98 },  // 披风右下摆
       holidayPumpkin: { x: 742, y: 452, scale: 1 },
     },
   };
