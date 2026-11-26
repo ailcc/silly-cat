@@ -14,6 +14,7 @@
   const SPOT_L = { x: 424, y: 352 };  // 胸口两侧（画面坐标）
   const SPOT_R = { x: 386, y: 352 };
   const TIERS = [
+    { min: 160, name: '命中注定' },
     { min: 100, name: '死忠' },
     { min: 60, name: '亲近' },
     { min: 30, name: '熟悉' },
@@ -53,7 +54,7 @@
       const demo = opts.demo && DEMOS.includes(opts.demo.name) ? opts.demo : null;
       const frozen = demo && Number.isFinite(demo.at);
 
-      const F = { kneadAt: -1e9, nextKnead: performance.now() + rand(10, 25) * 1000, demoInit: false, tier: tierOf(data.v || 0) };
+      const F = { kneadAt: -1e9, nextKnead: performance.now() + rand(10, 25) * 1000, demoInit: false, tier: tierOf(data.v || 0), celebrateUntil: -1e9, nextCelebHeart: 0, nextPetHeart: 0 };
       // 暴露踩奶状态和节拍进度给 hindpaws 等模块（后脚要跟前爪对角同步蹬）
       window.SillyAffection.kneading = () => F.kneadAt > 0;
       window.SillyAffection.kneadT = (now) => (F.kneadAt > 0 ? now - F.kneadAt : -1);
@@ -73,11 +74,32 @@
       function pose(now, dt, rm, P) {
         // 摸头攒好感：每秒 +2，每攒满 10 点头顶冒一颗爱心，升级了报个喜
         if (S.pet && S.state !== STATES.ASLEEP) {
+          const maxed = (data.v || 0) >= AFFECTION_MAX;
           const before = data.v || 0;
           add(dt * 0.002);
           const after = data.v;
-          if (Math.floor(after / HEART_EVERY) > Math.floor(before / HEART_EVERY)) {
+          if (maxed) {
+            // 封顶后摸头：数值不涨，但猫眯眼蹭手、爱心按时间继续冒——摸着更有反馈
+            P.eyesHappy = true;
+            if (now >= F.nextPetHeart) {
+              fx.spawn('♥', 400 + rand(-34, 34), 92 + rand(-8, 8), 'hot', now);
+              F.nextPetHeart = now + 1400;
+            }
+          } else if (Math.floor(after / HEART_EVERY) > Math.floor(before / HEART_EVERY)) {
             fx.spawn('♥', 400 + rand(-34, 34), 92 + rand(-8, 8), 'hot', now);
+          }
+          // 第一次攒满：来一场一次性庆祝——爱心雨 + 主动踩奶呼噜（记在存档里，只办一次）
+          if (after >= AFFECTION_MAX && !data.celebrated) {
+            data.celebrated = true;
+            dirty = true;
+            F.celebrateUntil = now + 3200;
+            F.nextCelebHeart = now;
+            startKnead(now);
+            fx.spawn('这下赖上你了', 400 + rand(-24, 24), 96, 'hot', now);
+          }
+          if (now < F.celebrateUntil && now >= F.nextCelebHeart) {
+            fx.spawn('♥', 400 + rand(-110, 110), 130 + rand(-40, 0), 'hot', now);
+            F.nextCelebHeart = now + 200;
           }
           const tier = tierOf(after);
           if (tier !== F.tier) {

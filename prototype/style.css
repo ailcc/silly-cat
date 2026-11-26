@@ -359,6 +359,11 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .growth-scarf-tail { fill: #c24541; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
 #scene .growth-crown-base { fill: #f2c14e; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
 #scene .growth-crown-jewel { fill: #e0574f; stroke: var(--ink); stroke-width: 2; }
+/* 铃铛项圈（好感 160 解锁）：粉色项圈 + 金色铃铛，跟皇冠一个金 */
+#scene .love-collar-band { fill: #f4a7b9; stroke: var(--ink); stroke-width: 3; stroke-linejoin: round; }
+#scene .love-collar-bell { fill: #f2c14e; stroke: var(--ink); stroke-width: 3; }
+#scene .love-collar-bell-line { fill: none; stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+#scene .love-collar-dot { fill: #fff; opacity: 0.85; }
 
 /* 小鱼干零食 */
 #scene .snack-fish .snack-body { fill: var(--coral); stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }

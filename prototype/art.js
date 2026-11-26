@@ -130,8 +130,8 @@
     head = place('head', cfg.head, $('cat-head'), ['head-fill', 'coat-head-patterns', 'head-line'].map($));
     const back = $('strike-head-shape');
     place('back-head', cfg.backHead ?? cfg.head, back, back.querySelectorAll(':scope > path, :scope > #coat-back-head-patterns'));
-    // 身体同样只替换猫身本身的节点；成长围巾、节日围巾这类挂在身体上的装饰要留在最上层
-    const DECOR = new Set(['growth-scarf', 'holiday-scarf']);
+    // 身体同样只替换猫身本身的节点；成长围巾、节日围巾、铃铛项圈这类挂在身体上的装饰要留在最上层
+    const DECOR = new Set(['growth-scarf', 'holiday-scarf', 'love-collar']);
     place('body', cfg.body, $('cat-body'), [...$('cat-body').children].filter((n) => !DECOR.has(n.id)));
     place('back-body', cfg.body, $('strike-body'));
     for (const side of ['l', 'r']) {
