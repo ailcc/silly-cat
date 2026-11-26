@@ -119,6 +119,8 @@
         }
         if (data.v >= KNEAD_AT && now >= F.nextKnead && S.state === STATES.AWAKE && !S.pet &&
             !S.pressed.size && !S.mouseButtons.size &&
+            // 听歌时不踩奶：踩奶会把 lastInput 拉到当前，听歌就被当成"用户有输入"掐断了
+            !(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening()) &&
             (demo || now - S.lastInput >= KNEAD_IDLE)) {
           startKnead(now);
         }

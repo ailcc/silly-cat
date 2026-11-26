@@ -62,8 +62,8 @@
         const lDown = beat !== true; // 前左 = beat，后左对角 = 反相
         dl = lDown ? 3 : -2;
         dr = lDown ? -2 : 3;
-      } else if (window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening()) {
-        // 听歌：跟着点头节拍（listenmusic 的 BOB_BEAT = 460）后脚跟打拍子
+      } else if (window.SillyListenMusic && window.SillyListenMusic.bobbing && window.SillyListenMusic.bobbing()) {
+        // 听歌：跟着点头节拍（listenmusic 的 BOB_BEAT = 460）后脚跟打拍子（听睡着后就不拍了）
         const tap = Math.floor(now / 460) % 2 === 0;
         dl = tap ? 2.5 : -1;
         dr = tap ? -1 : 2.5;

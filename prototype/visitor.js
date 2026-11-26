@@ -270,14 +270,14 @@
 
     // 空闲判定：键盘和鼠标都要闲满 12 秒。以前这里读的是 S.lastInputAt——这个字段根本
     // 不存在（undefined || 0 永远成立），等于只看键盘，光动鼠标不打字它也会溜达进来。
-    // 顺带让路：猫在听歌时别打扰，等它摘了耳机再说。
+    // 猫在听歌（含听睡着）时小奶猫照常串门——大猫听它的歌，小猫睡它的觉，互不打扰。
     const listening = () => !!(window.SillyListenMusic && window.SillyListenMusic.listening && window.SillyListenMusic.listening());
     function afterState(now) {
       if (demo || V.phase) return;
       if (S.state !== STATES.AWAKE || S.pet) return;
       if (now < V.next) return;
       const idle = (now - (S.lastKeyAt || 0) > 12000) && (now - S.lastInput > 12000);
-      if (idle && !listening()) startVisit(now);
+      if (idle) startVisit(now);
     }
 
     // 小猫上了键盘之后（趴着 / 正要起身），一打字就吓到：随机被拍飞或自己跑掉。
@@ -349,7 +349,7 @@
       // 大猫目送它飞出去
       P.look = { x, y: y - 30 };
       P.earDroop -= 3;
-      S.lastInput = now;
+      if (!listening()) S.lastInput = now; // 听歌时别刷新：不然听歌会被当成"用户有输入"掐断
     }
 
     function pose(now, dt, rm, P) {
@@ -440,9 +440,10 @@
       E.shadow.setAttribute('rx', ((38 + 6 * lieK) * SCALE).toFixed(1));
 
       // 大猫的反应：盯着小家伙看，耳朵放松；做客期间算「有事发生」别让它睡着
+      // （听歌时例外：听歌自己有清醒压着，刷新 lastInput 反而会把听歌掐断）
       P.look = { x, y: gy - 30 };
       P.earDroop -= 3;
-      S.lastInput = now;
+      if (!listening()) S.lastInput = now;
     }
 
     // 「奶猫随机花色」开关：开启后每次串门随机生成一套花色；关闭沿用原来的三色随机（下次串门生效）
