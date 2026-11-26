@@ -62,6 +62,42 @@
     }
 
     // ---------- 各节日的装扮 DOM ----------
+    // 装扮的原始绘制框（路径就是按这套坐标画的）。decor-fit.js 里每套皮肤给的目标框
+    // （x/y = 框左上角、w/h = 拉伸到的宽高）会把这个原始框平移缩放过去——
+    // 猫的默认值就是原始框本身（不变形），狗用另外一套初值，微调改 decor-fit.js。
+    const FIT_BASE = {
+      'holiday-pumpkin': { x: 712, y: 424, w: 60, h: 49 }, // 中心在 742,452
+      'holiday-hat':     { x: 308, y: 34,  w: 171, h: 76 },
+      'holiday-coat':    { x: 352, y: 289, w: 96,  h: 95 },
+      'holiday-cape':    { x: 314, y: 274, w: 172, h: 132 },
+      'holiday-bdayhat': { x: 330, y: 2,   w: 116, h: 106 },
+    };
+    const FIT_ITEM = {
+      halloween: 'holiday-pumpkin', christmas: 'holiday-hat', spring: 'holiday-coat',
+      national: 'holiday-cape', birthday: 'holiday-bdayhat',
+    };
+    let fitCache = ''; // 上次算出的 transform，没变就不重复写属性
+
+    // 按 decor-fit 的当前皮肤参数给装扮挂 transform；南瓜是场景物件（x/y = 中心 + scale）
+    function applyFit() {
+      const item = FIT_ITEM[W.mode];
+      if (!item) return;
+      const el = document.getElementById(item);
+      if (!el) return;
+      const cfg = window.SillyDecorFit && window.SillyDecorFit.get(item);
+      if (!cfg) return;
+      const base = FIT_BASE[item];
+      let t;
+      if (item === 'holiday-pumpkin') {
+        const s = cfg.scale ?? 1;
+        t = `translate(${(cfg.x - 742 * s).toFixed(1)} ${(cfg.y - 452 * s).toFixed(1)}) scale(${s})`;
+      } else {
+        const sx = cfg.w / base.w, sy = cfg.h / base.h;
+        t = `translate(${(cfg.x - base.x * sx).toFixed(1)} ${(cfg.y - base.y * sy).toFixed(1)}) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`;
+      }
+      if (t !== fitCache) { el.setAttribute('transform', t); fitCache = t; }
+    }
+
     function clearDecor() {
       ['#holiday-pumpkin', '#holiday-hat', '#holiday-coat', '#holiday-cape', '#holiday-bdayhat'].forEach((sel) => {
         const el = document.querySelector(sel);
@@ -130,6 +166,7 @@
           </g>`);
       }
       W.domReady = mode;
+      fitCache = ''; // 新装扮刚插上，强制下一帧重新按当前皮肤拟合
     }
 
     // 今天是哪个节日（demo 优先；生日也可覆盖固定节日——自己的日子最大）
@@ -184,6 +221,7 @@
         setScarfHidden(mode === 'national'); // 披风出场收起日常围巾，其他节日不冲突
       }
       if (!mode) return;
+      applyFit(); // 每帧按当前皮肤拟合（内部有缓存，参数没变不写 DOM）
 
       // 应景台词：闲下来偶尔说一句
       const idle = S.state === STATES.AWAKE && !S.pet && !S.excited && now - S.lastInput >= IDLE_MIN;
