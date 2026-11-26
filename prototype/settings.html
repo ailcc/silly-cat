@@ -103,6 +103,23 @@
   #about-links { display: flex; gap: 12px; margin-top: 2px; }
   #about-links a { color: inherit; }
   .top-actions { display: flex; gap: 8px; margin-top: 12px; }
+  /* QQ 群兜底弹窗：桌面版唤起 QQ 失败（没装 / 没登录）或网页版时展示群号 */
+  #qq-dialog-backdrop {
+    position: fixed; inset: 0; background: rgba(30, 26, 24, .45);
+    display: flex; align-items: center; justify-content: center; z-index: 50;
+  }
+  #qq-dialog-backdrop[hidden] { display: none; }
+  #qq-dialog {
+    background: var(--panel, #fff); border-radius: 14px; padding: 18px 20px;
+    max-width: 300px; box-shadow: 0 10px 40px rgba(0, 0, 0, .25); text-align: center;
+  }
+  #qq-dialog h3 { margin: 0 0 6px; font-size: 15px; }
+  #qq-dialog p { margin: 4px 0; font-size: 12.5px; color: var(--muted); }
+  #qq-number {
+    font-size: 22px; font-weight: 700; letter-spacing: 1px; user-select: all;
+    margin: 8px 0; color: var(--ink);
+  }
+  #qq-dialog .actions { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
   .duo { display: flex; gap: 12px; margin-top: 12px; align-items: stretch; }
   .duo .row { flex: 1 1 40%; margin-top: 0; min-width: 0; }
   footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
@@ -148,6 +165,7 @@
 <div class="top-actions">
   <button id="reset" type="button">恢复默认</button>
   <button id="check-update" type="button">检查更新</button>
+  <button id="qq-group" type="button">QQ 群</button>
 </div>
 <div class="duo">
   <div class="row" data-stats>
@@ -166,6 +184,17 @@
   <span id="update-detail"></span>
   <button type="button" id="update-install" hidden>下载安装</button>
 </section>
+<div id="qq-dialog-backdrop" hidden>
+  <div id="qq-dialog" role="dialog" aria-modal="true" aria-labelledby="qq-dialog-title">
+    <h3 id="qq-dialog-title">捣蛋猫交流群</h3>
+    <p>没能自动打开 QQ（可能没有安装或没有登录），可以手动搜索群号加群：</p>
+    <div id="qq-number">3683905</div>
+    <div class="actions">
+      <button type="button" id="qq-copy">复制群号</button>
+      <button type="button" id="qq-close">关闭</button>
+    </div>
+  </div>
+</div>
 <section id="perm" hidden aria-live="polite">
   <h2>猫看不到你打字</h2>
   <p>需要在「系统设置 → 隐私与安全性 → 输入监控」里打开 SillyCat，猫才能跟着打字。只读取按了哪个键位来做动画，不记录内容。</p>
@@ -586,6 +615,27 @@
     if (!invoke) { setStatus('网页版没有内置更新机制，桌面版可用', 'bad'); return; }
     setStatus('正在检查更新…');
     invoke('check_update').catch((e) => setStatus('检查失败：' + e, 'bad'));
+  });
+
+  // QQ 群：桌面版先让 Rust 唤起 QQ 的加群卡片（QQ 装了且在登录态时直接跳到群卡片，点「申请加群」即可）；
+  // 唤不起（没装 QQ / 没登录）或网页版，弹窗展示群号让用户手动搜
+  const qqBackdrop = document.getElementById('qq-dialog-backdrop');
+  const showQqDialog = () => { qqBackdrop.hidden = false; };
+  document.getElementById('qq-group').addEventListener('click', async () => {
+    if (invoke) {
+      try { if (await invoke('join_qq_group')) return; } catch { /* 唤起失败走弹窗 */ }
+    }
+    showQqDialog();
+  });
+  document.getElementById('qq-close').addEventListener('click', () => { qqBackdrop.hidden = true; });
+  qqBackdrop.addEventListener('click', (e) => { if (e.target === qqBackdrop) qqBackdrop.hidden = true; });
+  document.getElementById('qq-copy').addEventListener('click', async () => {
+    const number = document.getElementById('qq-number').textContent.trim();
+    try {
+      await navigator.clipboard.writeText(number);
+      document.getElementById('qq-copy').textContent = '已复制';
+      setTimeout(() => { document.getElementById('qq-copy').textContent = '复制群号'; }, 1500);
+    } catch { /* 剪贴板不可用就靠 user-select:all 手动选 */ }
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && T && T.window) T.window.getCurrentWindow().close().catch(() => {});

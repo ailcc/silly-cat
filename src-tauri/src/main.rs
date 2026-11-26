@@ -313,6 +313,39 @@ fn open_link(target: String) -> Result<(), String> {
     updater::open_in_browser(url).map_err(|err| err.to_string())
 }
 
+const QQ_GROUP: &str = "3683905";
+
+// 本机有没有装 QQ：Windows 看注册表里有没有 mqqapi 协议（QQ 安装时注册），macOS 看应用包
+#[cfg(target_os = "windows")]
+fn qq_installed() -> bool {
+    std::process::Command::new("reg")
+        .args(["query", r"HKCR\mqqapi"])
+        .output()
+        .map(|out| out.status.success())
+        .unwrap_or(false)
+}
+
+#[cfg(target_os = "macos")]
+fn qq_installed() -> bool {
+    std::path::Path::new("/Applications/QQ.app").exists()
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+fn qq_installed() -> bool {
+    false
+}
+
+// 唤起 QQ 的加群卡片（mqqapi 协议是 QQ 官方注册的，打开后用户点「申请加群」确认）。
+// 返回是否成功唤起；QQ 没装或唤起失败时前端弹窗展示群号让用户手动搜。
+#[tauri::command]
+fn join_qq_group() -> bool {
+    if !qq_installed() {
+        return false;
+    }
+    let url = format!("mqqapi://card/show_pslcard?src_type=internal&version=1&uin={QQ_GROUP}&card_type=group&source=qrcode");
+    updater::open_in_browser(&url).is_ok()
+}
+
 struct PositionLock {
     locked: AtomicBool,
     tray_item: CheckMenuItem<tauri::Wry>,
@@ -753,6 +786,7 @@ fn main() {
             open_settings,
             app_version,
             open_link,
+            join_qq_group,
             autostart::autostart_status,
             autostart::set_autostart,
             #[cfg(target_os = "macos")]

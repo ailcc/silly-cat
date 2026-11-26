@@ -4,6 +4,7 @@ const { app, BrowserWindow, clipboard, dialog, ipcMain, Menu, Tray, nativeImage,
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { execFile } = require('child_process');
 const { fileURLToPath } = require('url');
 
 const selftest = process.argv.includes('--selftest');
@@ -681,6 +682,22 @@ function openLink(target) {
   if (process.platform === 'win32') return shell.openExternal(url);
 }
 
+// 唤起 QQ 的加群卡片（和 Tauri 版 join_qq_group 一致）：先确认本机装了 QQ（Windows 查注册表的
+// mqqapi 协议，macOS 查应用包），没装返回 false 让前端弹窗展示群号
+const QQ_GROUP_URL = 'mqqapi://card/show_pslcard?src_type=internal&version=1&uin=3683905&card_type=group&source=qrcode';
+function qqInstalled() {
+  return new Promise((resolve) => {
+    if (process.platform === 'darwin') return resolve(fs.existsSync('/Applications/QQ.app'));
+    if (process.platform !== 'win32') return resolve(false);
+    execFile('reg', ['query', 'HKCR\\mqqapi'], (err) => resolve(!err));
+  });
+}
+async function joinQqGroup() {
+  if (systemTest) { systemTest.openedLinks.push(QQ_GROUP_URL); return true; }
+  if (!(await qqInstalled())) return false;
+  try { await shell.openExternal(QQ_GROUP_URL); return true; } catch { return false; }
+}
+
 const unsupportedAudio = Object.freeze({ supported: false, active: false, via: 'none' });
 let audioChild, audioIdleTimer, audioSample;
 let audioFailures = [];
@@ -837,6 +854,7 @@ function invokeCommand(command, args, caller) {
       app.quit();
       return;
     case 'open_link': return openLink(args?.target);
+    case 'join_qq_group': return joinQqGroup();
     default: {
       const name = typeof command === 'string' ? command : '<invalid>';
       const error = `unknown command: ${name}`;
