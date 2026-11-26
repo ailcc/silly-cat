@@ -43,7 +43,7 @@
     color: var(--ink);
   }
   input:focus, select:focus { outline: 2px solid rgba(255, 122, 89, 0.45); outline-offset: 0; border-color: var(--accent); }
-  #f-art-style { width: auto; text-align: left; }
+  #f-art-style, #f-keyboard { width: auto; text-align: left; }
   input[aria-invalid="true"] { border-color: var(--error); }
   input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
   input[type="range"] { width: 150px; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--accent); }
@@ -193,6 +193,16 @@
       </span>
     </div>
     <div id="cat-options" role="radiogroup" aria-labelledby="cat-label"></div>
+  </div>
+  <div class="row">
+    <div class="head"><label for="f-keyboard">键盘样式</label>
+      <span class="field">
+        <select id="f-keyboard" name="keyboard">
+          <option value="compact">紧凑 62 键</option>
+          <option value="full">全尺寸 108 键</option>
+        </select>
+      </span></div>
+    <div class="hint">全尺寸带 F 键区、方向键和数字小键盘；切换立刻生效，不用重启。</div>
   </div>
   <div class="row" data-bool="kittenCoat">
     <div class="head"><label for="f-kittenCoat">奶猫随机花色</label>
@@ -400,6 +410,7 @@
   const statusEl = document.getElementById('status');
   const catOptions = document.getElementById('cat-options');
   const artStyleInput = document.getElementById('f-art-style');
+  const keyboardInput = document.getElementById('f-keyboard');
   const avatars = new Map();
   const catNames = new Map(window.SillyCoats.list().map(({ id, name }) => [id, name]));
   const catSpecies = new Map(window.SillyCoats.list().map(({ id, species }) => [id, species || 'cat']));
@@ -469,6 +480,7 @@
   function fill(s) {
     form.elements.cat.value = s.cat;
     artStyleInput.value = s.artStyle;
+    keyboardInput.value = s.keyboard;
     form.elements.headphoneColor.value = s.headphoneColor;
     refreshAvatars(s.artStyle);
     for (const k of S.KEYS) {
@@ -484,7 +496,7 @@
   }
   // 时间项按秒读；可选项留空 = null（自动），其他时间项留空 = NaN（校验报错）
   function read() {
-    const s = { cat: form.elements.cat.value, artStyle: artStyleInput.value, headphoneColor: form.elements.headphoneColor.value };
+    const s = { cat: form.elements.cat.value, artStyle: artStyleInput.value, keyboard: keyboardInput.value, headphoneColor: form.elements.headphoneColor.value };
     for (const k of S.KEYS) {
       const { input, f } = rows[k];
       const t = input.value.trim();
@@ -543,6 +555,7 @@
     refreshAvatars(artStyleInput.value);
     onEdit(true);
   });
+  keyboardInput.addEventListener('change', () => onEdit(true));
   form.addEventListener('input', (e) => {
     if (e.target.name !== 'cat' && e.target !== artStyleInput && e.target !== autostartInput && e.target !== clickThroughInput) {
       onEdit(e.target === bools.autoUpdate);

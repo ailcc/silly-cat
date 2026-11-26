@@ -16,9 +16,13 @@
     const A = { on: true, level: 0, hue: 200, hits: [], dark: true };
 
     // 键帽流光层：复制每颗键帽的几何，叠在键帽和键字上面（kb-keys 组自带 180° 旋转）
-    const keysG = document.querySelector('#keyboard .kb-keys');
+    // 切换键盘样式（62 / 108 键）后整组键帽会重建，收到 keyboardChanged 重新铺一层
+    let keysG = null;
     const caps = [];
-    if (keysG) {
+    function build() {
+      caps.length = 0;
+      keysG = document.querySelector('#keyboard .kb-keys');
+      if (!keysG) return;
       for (const cap of keysG.querySelectorAll('.key-cap')) {
         const tint = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         for (const k of ['x', 'y', 'width', 'height', 'rx']) tint.setAttribute(k, cap.getAttribute(k));
@@ -28,6 +32,7 @@
         caps.push({ el: tint, x: +cap.getAttribute('x') });
       }
     }
+    build();
     function hideAll() {
       for (const { el } of caps) el.style.opacity = '0';
       A.dark = true;
@@ -69,6 +74,7 @@
 
     return {
       afterKeyDown, pose, setEnabled,
+      keyboardChanged: build,
       debugProps: { kbdFlow: () => (A.on ? Math.round(A.level * 100) / 100 : 'off') },
     };
   }
