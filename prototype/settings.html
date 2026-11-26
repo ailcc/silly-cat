@@ -324,6 +324,12 @@
       <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
     <div id="size-hint" class="hint">可调 50%–200%，改大小时猫的右下角不动。</div>
   </div>
+  <div class="row" id="click-through" hidden>
+    <div class="head"><label for="f-click-through">鼠标穿透</label>
+      <span class="field"><input id="f-click-through" type="checkbox" aria-describedby="click-through-hint click-through-error" disabled></span></div>
+    <div id="click-through-hint" class="hint">打开后，点猫会点到后面的窗口，摸不到头也右键不了猫；猫仍会对点击有反应。可在托盘图标（macOS 在顶部菜单栏）的菜单里关掉，也可以回到这里关。</div>
+    <div id="click-through-error" class="err" role="status"></div>
+  </div>
   <div class="row" data-bool="autoUpdate" hidden>
     <div class="head"><label for="f-autoUpdate">自动检查更新</label>
       <span class="field"><input id="f-autoUpdate" type="checkbox" aria-describedby="update-hint"></span></div>
@@ -393,6 +399,7 @@
   const sizePercent = document.getElementById('size-percent');
   const purrVolumeInput = document.getElementById('f-purrVolume');
   const purrVolumePercent = document.getElementById('purr-volume-percent');
+  const clickThroughInput = document.getElementById('f-click-through');
   const autostartInput = document.getElementById('f-autostart');
   sizeInput.min = String(Math.round(S.SIZE.min * 100));
   sizeInput.max = String(Math.round(S.SIZE.max * 100));
@@ -480,7 +487,7 @@
     onEdit(true);
   });
   form.addEventListener('input', (e) => {
-    if (e.target.name !== 'cat' && e.target !== artStyleInput && e.target !== autostartInput) {
+    if (e.target.name !== 'cat' && e.target !== artStyleInput && e.target !== autostartInput && e.target !== clickThroughInput) {
       onEdit(e.target === bools.autoUpdate);
     }
   });
@@ -497,6 +504,39 @@
   });
 
   fill(S.DEFAULTS);
+  // ---------- 鼠标穿透：状态存在 Rust 侧（独立文件），不写进 settings.json ----------
+  if (invoke) {
+    const row = document.getElementById('click-through');
+    const error = document.getElementById('click-through-error');
+    let state;
+    let version = 0;
+    let busy = false;
+    const render = (s) => {
+      state = s;
+      clickThroughInput.checked = s?.enabled === true;
+      clickThroughInput.disabled = busy;
+      row.hidden = false;
+    };
+    T.event.listen('silly:click-through', (ev) => {
+      version++;
+      error.textContent = '';
+      render(ev.payload);
+    }).then(() => {
+      const before = version;
+      return invoke('click_through_status').then((s) => { if (before === version) render(s); });
+    }).catch((err) => { error.textContent = '读取鼠标穿透状态失败：' + err; });
+    clickThroughInput.addEventListener('change', () => {
+      const enabled = clickThroughInput.checked;
+      const before = version;
+      busy = true;
+      clickThroughInput.disabled = true;
+      error.textContent = '';
+      invoke('set_click_through', { enabled })
+        .then((s) => { if (before === version) render(s); })
+        .catch((err) => { error.textContent = String(err); })
+        .finally(() => { busy = false; render(state); });
+    });
+  }
   // ---------- 小账本：累计按键 / 发飙 / 推杯 ----------
   const statsLine = document.getElementById('stats-line');
   function refreshStats() {

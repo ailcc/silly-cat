@@ -337,6 +337,72 @@ fn save_lock(app: &AppHandle, locked: bool) -> Result<(), Box<dyn std::error::Er
     Ok(())
 }
 
+/// 鼠标穿透：开窗忽略鼠标事件，点击直接落到后面的窗口。开关记在本机，下次启动沿用。
+struct ClickThrough {
+    enabled: AtomicBool,
+    tray_item: CheckMenuItem<tauri::Wry>,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+struct SavedClickThrough {
+    enabled: bool,
+}
+
+#[derive(Clone, Copy, Serialize)]
+struct ClickThroughStatus {
+    enabled: bool,
+}
+
+fn click_through_file(app: &AppHandle) -> Option<PathBuf> {
+    app.path()
+        .app_config_dir()
+        .ok()
+        .map(|dir| dir.join("click-through.json"))
+}
+
+fn load_click_through(app: &AppHandle) -> Option<SavedClickThrough> {
+    let data = std::fs::read(click_through_file(app)?).ok()?;
+    serde_json::from_slice(&data).ok()
+}
+
+fn save_click_through(app: &AppHandle, enabled: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let path = click_through_file(app).ok_or("找不到配置目录")?;
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    let temp = path.with_extension("json.tmp");
+    std::fs::write(&temp, serde_json::to_vec(&SavedClickThrough { enabled })?)?;
+    std::fs::rename(temp, path)?;
+    Ok(())
+}
+
+#[tauri::command]
+fn click_through_status(app: AppHandle) -> ClickThroughStatus {
+    ClickThroughStatus {
+        enabled: app.state::<ClickThrough>().enabled.load(Ordering::SeqCst),
+    }
+}
+
+#[tauri::command]
+fn set_click_through(app: AppHandle, enabled: bool) -> Result<ClickThroughStatus, String> {
+    let state = app.state::<ClickThrough>();
+    let changed = state.enabled.swap(enabled, Ordering::SeqCst) != enabled;
+    if changed && enabled {
+        if let Some(win) = app.get_webview_window("main") {
+            let _ = win.set_ignore_cursor_events(true);
+        }
+    }
+    let _ = state.tray_item.set_checked(enabled);
+    let status = ClickThroughStatus { enabled };
+    // 前端收到后立刻接管：开穿透期间鼠标动作全部来自全局监听，关掉后恢复智能命中
+    let _ = app.emit_to("main", "silly:click-through", status);
+    let _ = app.emit_to("settings", "silly:click-through", status);
+    if changed {
+        save_click_through(&app, enabled).map_err(|e| format!("保存鼠标穿透失败：{e}"))?;
+    }
+    Ok(status)
+}
+
 #[tauri::command]
 fn position_locked(app: AppHandle) -> bool {
     app.state::<PositionLock>().locked.load(Ordering::SeqCst)
@@ -347,7 +413,8 @@ fn build_cat_menu(
     app: &AppHandle,
     prefix: &str,
     locked: bool,
-) -> tauri::Result<(Menu<tauri::Wry>, CheckMenuItem<tauri::Wry>)> {
+    click_through: bool,
+) -> tauri::Result<(Menu<tauri::Wry>, CheckMenuItem<tauri::Wry>, CheckMenuItem<tauri::Wry>)> {
     let item = |id, label| MenuItem::with_id(app, format!("{prefix}{id}"), label, true, None::<&str>);
     let lock = CheckMenuItem::with_id(
         app,
@@ -355,6 +422,14 @@ fn build_cat_menu(
         "锁定位置",
         true,
         locked,
+        None::<&str>,
+    )?;
+    let through = CheckMenuItem::with_id(
+        app,
+        format!("{prefix}click-through"),
+        "鼠标穿透",
+        true,
+        click_through,
         None::<&str>,
     )?;
     let menu = Menu::with_items(
@@ -365,6 +440,7 @@ fn build_cat_menu(
             &item("check-update", "检查更新…")?,
             &item("toggle", "显示/隐藏猫")?,
             &lock,
+            &through,
             &item("reset", "重置位置")?,
         ],
     )?;
@@ -372,7 +448,7 @@ fn build_cat_menu(
     menu.append(&item("settings", "打开输入监控设置")?)?;
     menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&item("quit", "退出")?)?;
-    Ok((menu, lock))
+    Ok((menu, lock, through))
 }
 
 /// 右键猫（或键盘、鼠标等有画面的地方）：在指针位置弹出和托盘内容相同的原生菜单。
@@ -386,7 +462,12 @@ fn build_cat_menu(
 #[tauri::command]
 async fn show_context_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
     let locked = position_locked(app.clone());
-    let (menu, _) = build_cat_menu(&app, "ctx-", locked).map_err(|e| e.to_string())?;
+    let through = click_through_status(app.clone()).enabled;
+    // 开着鼠标穿透时窗口本来就收不到点击，这里再兜一层，避免别处误调时弹不出还能关的菜单
+    if through {
+        return Ok(());
+    }
+    let (menu, _, _) = build_cat_menu(&app, "ctx-", locked, through).map_err(|e| e.to_string())?;
     window.popup_menu(&menu).map_err(|e| e.to_string())
 }
 
@@ -409,6 +490,12 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
             // 原生菜单可能自行切换勾选，以 Rust 状态为准。右键菜单会在下次打开时重建。
             let _ = state.tray_item.set_checked(locked);
             let _ = app.emit_to("main", "silly:lock", locked);
+        }
+        "click-through" => {
+            let enabled = !click_through_status(app.clone()).enabled;
+            if let Err(err) = set_click_through(app.clone(), enabled) {
+                eprintln!("[silly-cat] {err}");
+            }
         }
         "quit" => app.exit(0),
         _ => {
@@ -665,6 +752,8 @@ fn main() {
             #[cfg(target_os = "macos")]
             autostart::open_login_items,
             position_locked,
+            click_through_status,
+            set_click_through,
             show_context_menu,
             copy_snapshot,
             updater::check_update,
@@ -679,10 +768,15 @@ fn main() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             let locked = load_lock(app.handle()).unwrap_or_default().locked;
-            let (menu, tray_item) = build_cat_menu(app.handle(), "", locked)?;
+            let through = load_click_through(app.handle()).unwrap_or_default().enabled;
+            let (menu, tray_item, through_item) = build_cat_menu(app.handle(), "", locked, through)?;
             app.manage(PositionLock {
                 locked: AtomicBool::new(locked),
                 tray_item,
+            });
+            app.manage(ClickThrough {
+                enabled: AtomicBool::new(through),
+                tray_item: through_item,
             });
 
             let win = app.get_webview_window("main").expect("main window");
@@ -699,6 +793,10 @@ fn main() {
                 if let Err(e) = macos_window::configure_cat(&win) {
                     eprintln!("[silly-cat] 设置跨全屏窗口行为失败：{e}");
                 }
+            }
+            // 上次退出时开着鼠标穿透：启动就沿用，否则会先挡住一次点击
+            if through {
+                let _ = win.set_ignore_cursor_events(true);
             }
             let _ = win.show();
 

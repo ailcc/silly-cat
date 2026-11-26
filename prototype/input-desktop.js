@@ -80,6 +80,7 @@
     let pet = null;           // { id }
     let over = false;         // 指针此刻是否在有画面的地方
     let ignoring = null;      // 窗口当前是否点击穿透
+    let clickThrough = null;  // 设置里的鼠标穿透开关：null = 还没读到
     let lastG = null;         // 上一次的全局指针位置
     let lastLocal = null;     // 上一次用于视线的视口位置
     const status = { granted: null, keys: false, mouse: false, keyboard: null, needs_permission: false };
@@ -158,10 +159,12 @@
     }
 
     // ---------- 鼠标按键（全局） ----------
+    // 开着鼠标穿透时窗口收不到点击，按键一律转给页面（猫仍对点击有反应，只是摸不到头）
     function onButton({ button, down }) {
       lastActivity = performance.now();
+      const forward = clickThrough === true || !(over || pet);
       if (down) {
-        if (over || pet) return; // 点在猫身上：交给页面（摸头 / 拖动）
+        if (!forward) return; // 点在猫身上：交给页面（摸头 / 拖动）
         if (heldButtons.has(button)) return;
         heldButtons.set(button, { since: lastActivity }); sink.pointerDown(button);
       } else {
@@ -237,7 +240,7 @@
             sink.pointerAt(c.x, c.y);
           }
           over = hitAt(c.x, c.y);
-          setIgnore(!(over || pet));
+          setIgnore(clickThrough === true || !(over || pet));
         }
       } catch (_) { /* 窗口关闭中等 */ } finally { polling = false; void checkHeld(); }
     }
@@ -250,6 +253,8 @@
       sink.petEnd();
     }
     function onPointerDown(e) {
+      // 鼠标穿透期间窗口忽略鼠标事件，页面里的摸头、右键菜单都不该触发
+      if (clickThrough === true) return;
       if (e.button === 2) { openMenu(e); return; }
       if (e.button !== 0) return;
       if (inPermBubble(e.target)) {
@@ -306,6 +311,15 @@
     }).catch(() => { positionLocked ??= false; }); // 读不到锁定状态时按解锁处理，免得猫永远拖不动
     T.event.listen('silly:key', (ev) => onKey(ev.payload)).then((u) => unlisten.push(u));
     T.event.listen('silly:button', (ev) => onButton(ev.payload)).then((u) => unlisten.push(u));
+    T.event.listen('silly:click-through', (ev) => {
+      clickThrough = ev.payload?.enabled === true;
+      if (clickThrough) endPet();
+    }).then((u) => {
+      if (destroyed) { u(); return; }
+      unlisten.push(u);
+      // 先监听再读取，读取途中收到的切换事件优先
+      return invoke('click_through_status').then((s) => { if (clickThrough === null) clickThrough = s?.enabled === true; });
+    }).catch(() => { clickThrough ??= false; });
     const timer = setInterval(poll, POLL_MS);
 
     function refreshStatus() {
@@ -325,6 +339,7 @@
       debug: Object.freeze({
         get over() { return over; },
         get ignoring() { return ignoring; },
+        get clickThrough() { return clickThrough; },
         get input() { return { ...status }; },
         get permBubble() { return !!permBubble && visibleNotice === permissionNotice; },
         get held() { return [...heldKeys.keys()]; },
