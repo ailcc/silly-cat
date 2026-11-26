@@ -5,6 +5,7 @@
   'use strict';
 
   const KEY = 'sillycat-affection-v1';
+  const AFFECTION_MAX = 200;     // 好感度封顶：满了之后摸头照样冒爱心，但数值不再涨
   const HEART_EVERY = 10;        // 每攒 10 点冒一颗爱心
   const KNEAD_AT = 60;           // 好感度到"亲近"才解锁踩奶
   const KNEAD_IDLE = 9000;       // 你停手 9 秒后才踩（别耽误打字）
@@ -22,6 +23,8 @@
 
   let data = { v: 0 };
   try { data = Object.assign(data, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) { /* 坏了就从头攒 */ }
+  // 老存档可能攒到 999 封顶：上限收紧到 200 后把超的压回来（封顶只是数字，不影响任何演出）
+  data.v = Math.min(AFFECTION_MAX, data.v || 0);
 
   let dirty = false;
   function save() {
@@ -29,7 +32,7 @@
     try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* 隐私模式下存不了就算了 */ }
   }
   function add(n) {
-    data.v = Math.max(0, Math.min(999, (data.v || 0) + n));
+    data.v = Math.max(0, Math.min(AFFECTION_MAX, (data.v || 0) + n));
     dirty = true;
     if (!add.timer) add.timer = setTimeout(() => { add.timer = 0; save(); }, 3000);
   }
