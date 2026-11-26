@@ -1238,6 +1238,9 @@
     }
     const ctx = {
       S, STATES, el, kb, fx, paws, keycapText: displayKey, keyPoint, mousePoint, mousePaw, mouseHome, restPoint, headToScene, sceneToHead, choosePaw,
+      // 尾巴几何工具：tailslap 拍键姿势要按宿主尾巴重采样（缺了会在 pose 钩子里抛错，
+      // 整个渲染帧被 try/catch 吞掉——眼睛冻住、猫像断电一样不动）
+      catmull, resample,
       releaseAll, reducedMotion, clamp, approach, f1, pointerInScene, followsPointer,
       get species() { return currentSpecies(); },
       get rig() { return currentRig(); },
