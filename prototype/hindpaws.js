@@ -39,8 +39,6 @@
     const show = (on) => { if (el.root.style.display !== (on ? '' : 'none')) el.root.style.display = on ? '' : 'none'; };
 
     function pose(now, dt, rm, P) {
-      // 狗狗是四条腿蹲在键盘后，没有猫这种「后脚垫在键盘后」的坐姿
-      if (window.SillySpecies?.current?.scene?.template === 'parts-dog') { show(false); return; }
       // 猫被藏起来（老板键 / 罢工背影）或趴到键盘上睡时，后脚跟着收起来
       const slumped = window.__cat && window.__cat.sleepStage === 'slumped';
       if (!A.enabled || P.hideCat || slumped) { show(false); return; }
