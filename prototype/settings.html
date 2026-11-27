@@ -397,6 +397,16 @@
       <span class="field"><input id="f-listenMusic" type="checkbox" aria-describedby="listen-music-hint"></span></div>
     <div id="listen-music-hint" class="hint">电脑空闲到原本该睡着时，猫有一半概率不睡，戴上耳机跟着节拍点头听歌（后脚也打拍子，头顶冒音符）；任何输入就摘下耳机。另一半概率照常睡觉。</div>
   </div>
+  <div class="row" data-bool="eyesFollow">
+    <div class="head"><label for="f-eyesFollow">眼睛跟着鼠标</label>
+      <span class="field"><input id="f-eyesFollow" type="checkbox" aria-describedby="eyes-follow-hint"></span></div>
+    <div id="eyes-follow-hint" class="hint">醒着时，猫的眼睛会跟着鼠标指针看；指针停下几秒后收回目光。</div>
+  </div>
+  <div class="row" data-bool="autoUpdate" hidden>
+    <div class="head"><label for="f-autoUpdate">自动检查更新</label>
+      <span class="field"><input id="f-autoUpdate" type="checkbox" aria-describedby="update-hint"></span></div>
+    <div class="hint" id="update-hint">每天从 Gitee 检查新版本，点击更新后才下载。</div>
+  </div>
   <div class="row" data-bool="userMusic">
     <div class="head"><label for="f-userMusic">电脑出声时戴耳机</label>
       <span class="field"><input id="f-userMusic" type="checkbox" aria-describedby="user-music-hint"></span></div>
@@ -421,11 +431,6 @@
       <input id="f-bgDensity" type="range" min="0" max="100" step="5" value="100" aria-describedby="bg-fx-hint"><span id="bg-density-percent" class="unit">100%</span></label>
     <div class="hint">画面上同时最多有多少颗特效粒子（100% = 原始满密度），拉到 0% 就完全没有；改完立刻生效。</div>
   </div>
-  <div class="row" data-bool="eyesFollow">
-    <div class="head"><label for="f-eyesFollow">眼睛跟着鼠标</label>
-      <span class="field"><input id="f-eyesFollow" type="checkbox" aria-describedby="eyes-follow-hint"></span></div>
-    <div id="eyes-follow-hint" class="hint">醒着时，猫的眼睛会跟着鼠标指针看；指针停下几秒后收回目光。</div>
-  </div>
   <div class="row full" data-size>
     <div class="head"><label for="f-size">猫的大小</label>
       <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
@@ -441,11 +446,6 @@
       <span class="field"><input id="f-click-through" type="checkbox" aria-describedby="click-through-hint click-through-error" disabled></span></div>
     <div id="click-through-hint" class="hint">打开后，点猫会点到后面的窗口，摸不到头也右键不了猫；猫仍会对点击有反应。可在托盘图标（macOS 在顶部菜单栏）的菜单里关掉，也可以回到这里关。</div>
     <div id="click-through-error" class="err" role="status"></div>
-  </div>
-  <div class="row full" data-bool="autoUpdate" hidden>
-    <div class="head"><label for="f-autoUpdate">自动检查更新</label>
-      <span class="field"><input id="f-autoUpdate" type="checkbox" aria-describedby="update-hint"></span></div>
-    <div class="hint" id="update-hint">每天从 Gitee 检查新版本，点击更新后才下载。</div>
   </div>
   <div class="row full" id="autostart" hidden>
     <div class="head"><label for="f-autostart">开机时自动启动</label>
