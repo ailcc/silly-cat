@@ -518,47 +518,27 @@ jobs:
           git commit -m "更新清单：$GITHUB_REF_NAME 的 Gitee 镜像地址"
           git push origin HEAD:main
 
-      - name: 同步到 Gitee Release
+      # 安装包不再自动传 Gitee（上传通道慢且经常卡死，2026-11-27 定）：只创建 Release 占位，
+      # 安装包由人从 GitHub Release 下载后手动上传到这个 Gitee Release。
+      # 重跑时若 Release 已存在直接跳过——不删除，避免清掉手动上传的文件。
+      - name: 创建 Gitee Release（文件手动上传）
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           set -euo pipefail
           api="https://gitee.com/api/v5/repos/$GITEE_REPO"
-          # Gitee 上如有同标签的旧 Release（重跑时），先删掉
           old=$(curl -sS --max-time 30 "$api/releases/tags/$GITHUB_REF_NAME?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);console.log(r.id||"")}catch{console.log("")}})')
           if [[ -n $old ]]; then
-            curl -sS --max-time 30 -X DELETE "$api/releases/$old?access_token=$GITEE_TOKEN"
-            echo "已删除 Gitee 上的旧 Release $old"
+            echo "Gitee Release 已存在（编号 $old），跳过创建；请手动确认安装包已上传"
+            exit 0
           fi
           body=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq 'map(select(.tag_name==env.GITHUB_REF_NAME))[0].body')
           # target_commitish 是 Gitee 必填字段（2026-11-25 实测缺了会报 "target_commitish is missing"）
           payload=$(node -e 'const [tag,name,body]=process.argv.slice(1);console.log(JSON.stringify({tag_name:tag,name,body,prerelease:false,target_commitish:"main"}))' "$GITHUB_REF_NAME" "SillyCat $GITHUB_REF_NAME" "$body")
           rid=$(curl -sS --max-time 30 -X POST -H 'Content-Type: application/json' \
             -d "$payload" "$api/releases?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.id){process.stderr.write(s);process.exit(1)}console.log(r.id)})')
-          echo "Gitee Release 创建成功，编号 $rid"
-          # 上传全部安装包和两份清单；Gitee 的下载地址形如 /releases/download/<tag>/<文件名>
-          # Gitee 上传偶发卡死（2026-11-25 v1.2.0 实测：单文件挂 600 秒 0 字节响应），
-          # 所以：已传过的文件跳过（重跑/续传），每个文件最多试 3 次
-          # 已传清单从 Release 详情拿（GET attach-files 返回的是 HTML 不是 JSON）
-          have=$(curl -sS --max-time 30 "$api/releases/$rid?access_token=$GITEE_TOKEN" \
-            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);console.log((r.assets||[]).map(a=>a.name).join("\n"))}catch{console.log("")}})' || true)
-          for f in assets/* updates/*; do
-            n=$(basename "$f")
-            if printf '%s\n' "$have" | grep -qxF "$n"; then
-              echo "已存在，跳过 $n"
-              continue
-            fi
-            ok=""
-            for try in 1 2 3; do
-              if curl -sS --fail --connect-timeout 30 --max-time 900 -X POST -F "file=@$f" \
-                "$api/releases/$rid/attach_files?access_token=$GITEE_TOKEN" > /dev/null; then
-                ok=1; echo "已上传 $n（第 $try 次）"; break
-              fi
-              echo "第 $try 次上传 $n 失败，重试"; sleep 15
-            done
-            [[ -n $ok ]] || { echo "##[error]$n 三次都没传上去"; exit 1; }
-          done
-          echo "Gitee 同步完成：https://gitee.com/$GITEE_REPO/releases"
+          echo "Gitee Release 创建成功（编号 $rid）：https://gitee.com/$GITEE_REPO/releases"
+          echo "请从 GitHub Release 下载安装包，手动上传到上面的 Gitee Release（含 updates/latest.json 与 latest-win7.json 两份清单）"
 
   # Windows 7 / 8 / 8.1 兼容版（Electron 22，不依赖 WebView2）。
   # 和正式版共用同一套 Tauri 更新密钥签名；构建产物、.sig 和 latest-electron.json 挂到同一个草稿 Release。
