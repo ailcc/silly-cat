@@ -10,27 +10,24 @@
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  const fmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); // 千分位
 
-  // 按数据量级准备候选吐槽：每条都是一个 () => 文本 | null 的函数（数据不够说就返回 null）
+  // 按数据量级准备候选吐槽：门槛和文案在 lines.js（quips 键，猫狗各一套），
+  // 这里只负责按真实数据把 {keys} 这类占位符填上；数据不够说的返回 null
   function lines() {
     const stats = window.SillyStats ? window.SillyStats.get() : { keys: 0, rage: 0, push: 0 };
     const aff = window.SillyAffection ? window.SillyAffection.get() : { v: 0 };
-    const k = stats.keys, r = stats.rage, p = stats.push, v = aff.v;
-    return [
-      () => k >= 100000 ? `账本上记着你敲了 ${fmt(k)} 下键盘……爪子替你酸` : null,
-      () => k >= 20000 ? `这阵子你敲了 ${fmt(k)} 下键盘，键盘快被你盘出包浆了` : null,
-      () => k >= 3000 ? `才这个点就敲了 ${fmt(k)} 下键盘，你在写什么大作` : null,
-      () => k >= 500 ? `本喵已经看着你敲了 ${fmt(k)} 下键盘，眼都花了` : null,
-      () => r >= 1 ? `账本记着你惹我发飙 ${r} 回，一笔都没给你勾掉` : null,
-      () => r >= 1 ? `发飙 ${r} 次都是你干的，我全记在小本本上了` : null,
-      () => p >= 1 ? `我把杯子推出去 ${p} 次，你回回都接住了，没意思` : null,
-      () => v >= 200 ? `好感度都满了还摸，再摸本喵要被你摸化了` : null,
-      () => v >= 200 ? `账本写着你已是非我不可，本喵勉为其难收下这份心意` : null,
-      () => v >= 120 && v < 200 ? `好感度都 ${v} 了，死忠归死忠，小鱼干呢` : null,
-      () => v >= 60 && v < 200 ? `咱俩好感度 ${v} 了，多摸摸头还能涨` : null,
-      () => k + r + p === 0 ? '账本空空的？那我先帮你记一笔「铲屎的不敬业」' : null,
-    ];
+    const VALUES = { keys: stats.keys, rage: stats.rage, push: stats.push, v: aff.v };
+    const total = stats.keys + stats.rage + stats.push;
+    const fmtN = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); // 千分位
+    return (window.SillyLines.get('quips') || []).map((q) => () => {
+      if (q.f === 'none') return total === 0 ? q.text : null; // 空账本的专属吐槽
+      const val = VALUES[q.f];
+      if (val === undefined) return null;
+      if (q.min !== undefined && val < q.min) return null;
+      if (q.max !== undefined && val >= q.max) return null;
+      return q.text.replace(/\{(\w+)\}/g, (_, name) =>
+        name === 'keys' ? fmtN(VALUES[name]) : String(VALUES[name]));
+    });
   }
 
   function create(ctx, opts = {}) {

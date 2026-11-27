@@ -54,7 +54,7 @@
       if (path >= HUNT_PATH) {
         if (!A.said && A.huntK < 0.2) {
           A.said = true;
-          fx.spawn('盯——', 505, 130, '', now);
+          fx.spawn(window.SillyLines.get('stare'), 505, 130, '', now);
         }
         A.huntUntil = now + HUNT_HOLD;
       } else if (A.huntK < 0.05) A.said = false;

@@ -68,7 +68,7 @@
       if (acked) {
         W.acked = true;
         W.workStart = now;
-        ctx.fx.spawn('真乖', 400, 100, 'hot', performance.now());
+        ctx.fx.spawn(window.SillyLines.get('sitGood'), 400, 100, 'hot', performance.now());
       }
     }
 
@@ -83,7 +83,7 @@
       // 触发
       const maybeShow = () => {
         W.shown = true; W.showAt = now; W.lastNag = now;
-        ctx.fx.spawn('起来动动！', 250, 120, 'angry', performance.now());
+        ctx.fx.spawn(window.SillyLines.get('sitWarn'), 250, 120, 'angry', performance.now());
         if (window.SillySounds) window.SillySounds.play('meow');
       };
       if (demo) {
@@ -95,7 +95,7 @@
       // 举牌后一直干：周期性催
       if (W.shown && !demo && now - W.lastKey < 4000 && now - W.lastNag >= NAG_EVERY) {
         W.lastNag = now;
-        ctx.fx.spawn('快起来！', 250, 116, 'angry', performance.now());
+        ctx.fx.spawn(window.SillyLines.get('sitUrgent'), 250, 116, 'angry', performance.now());
       }
 
       // 牌子动画：升起 / 举更高 / 收下

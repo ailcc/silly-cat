@@ -4,18 +4,7 @@
 (function () {
   'use strict';
 
-  const LINES = [
-    '键盘是我咬的，与我无关',
-    '上班？我在上香',
-    '这届铲屎的不太行',
-    '我在工作，别吵',
-    '摸我，立刻，马上',
-    '稿子？我吃了',
-    '喵生苦短，先睡为敬',
-    '工资没有，猫粮管够吗',
-    '今天也是不想上班的一天',
-    '嘘——我在假装办公',
-  ];
+  // 语录在 lines.js（quotes 键，猫狗各一套）；这里只管节奏
   const IDLE_MIN = 8000;        // 至少闲了这么久才开始说
   const EVERY = [20000, 45000]; // 两句之间隔多久（随机）
 
@@ -28,7 +17,7 @@
     const W = { next: performance.now() + (demo ? 800 : rand(EVERY[0], EVERY[1])), line: null };
 
     function say() {
-      W.line = pick(LINES);
+      W.line = pick(window.SillyLines.get('quotes'));
       // 语录是完整句子，寿命给 2.6 秒（比浮键帽的 0.7 秒长）才看得清
       ctx.fx.spawn(W.line, 400 + rand(-40, 40), 100, '', performance.now(), 2600);
       if (window.SillySounds) window.SillySounds.play('meow');

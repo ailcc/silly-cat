@@ -385,11 +385,11 @@
       // 到位的小剧场：跳上键盘时打招呼，趴下时大猫打呼噜
       if (seg.name === 'step1' && !V.flags.greet) {
         V.flags.greet = true;
-        fx.spawn('喵呜~ 小家伙', 430, 240, '', now);
+        fx.spawn(window.SillyLines.get('visitorGreet'), 430, 240, '', now);
       }
       if (seg.name === 'lie' && !V.flags.lie) {
         V.flags.lie = true;
-        fx.spawn('呼噜呼噜…', 400, 250, '', now);
+        fx.spawn(window.SillyLines.get('visitorPurr'), 400, 250, '', now);
         if (window.SillySounds) {
           window.SillySounds.startPurr();
           V.purrTimer = setTimeout(stopPurr, Math.max(0, seg.start + seg.t - t) | 0);

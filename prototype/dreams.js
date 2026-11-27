@@ -4,11 +4,9 @@
 (function () {
   'use strict';
 
-  const CAT_LINES = ['…追到蝴蝶了…', '…好大的鱼干…', '…键盘真香…', '…铲屎的别走…', '…再睡五分钟…', 'zzz…喵…'];
-  const DOG_LINES = ['…追到飞盘了…', '…好大的肉骨头…', '…键盘真香…', '…铲屎的别走…', '…再睡五分钟…', 'zzz…汪…'];
   const EVERY = [7000, 15000];  // 两句梦话之间隔多久（随机）
   const DREAM_MS = 1900;        // 一句梦话连同扭动持续多久
-  const WAKE_RECENT = 4500;     // 说完梦话多久内被吵醒会「喵？/汪？」
+  const WAKE_RECENT = 4500;     // 说完梦话多久内被吵醒会「喵？/汪？」（词在 lines.js）
 
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -16,7 +14,7 @@
   function create(ctx, opts = {}) {
     const { S, STATES, clamp } = ctx;
     const dog = () => ctx.species.id === 'dog';
-    const lines = () => (dog() ? DOG_LINES : CAT_LINES);
+    const lines = () => window.SillyLines.get('dreams');
     const demo = opts.demo && opts.demo.name === 'dream' ? opts.demo : null;
     // 睡眠类演示（趴睡/口水等）就是「真的睡着」：第一句梦话早点来，别让观众干等
     const sleepDemo = opts.demo && ['slumped', 'drool', 'slump-in'].includes(opts.demo.name);
@@ -41,7 +39,7 @@
       // 睡醒的「喵？」：上一帧还在睡、这一帧醒了，且刚说过梦话
       const asleep = S.state === STATES.ASLEEP;
       if (W.wasAsleep && !asleep && !S.pet && now - W.start < WAKE_RECENT) {
-        ctx.fx.spawn(dog() ? '汪？' : '喵？', 400 + rand(-16, 16), 108, 'hot', performance.now());
+        ctx.fx.spawn(window.SillyLines.get('wake'), 400 + rand(-16, 16), 108, 'hot', performance.now());
       }
       W.wasAsleep = asleep;
 

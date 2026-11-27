@@ -67,7 +67,7 @@
           W.phase = 'wait'; W.start = now;
           if (!W.said) {
             W.said = true;
-            ctx.fx.spawn('该喝水了', 520, 130, '', performance.now());
+            ctx.fx.spawn(window.SillyLines.get('waterRemind'), 520, 130, '', performance.now());
             if (window.SillySounds) window.SillySounds.play('tap');
           }
         }
@@ -79,7 +79,7 @@
         // 摸头 = 喝过了
         if (S.pet) {
           retract(now, false);
-          ctx.fx.spawn('真乖', 400, 100, 'hot', performance.now());
+          ctx.fx.spawn(window.SillyLines.get('waterGood'), 400, 100, 'hot', performance.now());
           if (window.SillySounds) window.SillySounds.play('meow');
         } else if (!demo && now - W.start >= IGNORE_MS) {
           retract(now, true); // 晾了：提前再来

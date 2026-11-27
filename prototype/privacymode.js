@@ -14,7 +14,7 @@
     const A = { on: false, t0: -1e9, said: false, loopNext: 0 };
 
     function say(now) {
-      fx.spawn('我不看不看～', 400, 118, '', now);
+      fx.spawn(window.SillyLines.get('privacy'), 400, 118, '', now);
     }
 
     // 桌面版：监听 Rust 的密码框检测结果

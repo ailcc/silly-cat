@@ -113,7 +113,7 @@
             F.celebrateUntil = now + 3200;
             F.nextCelebHeart = now;
             if (ctx.species?.knead !== false) startKnead(now);
-            fx.spawn('这下赖上你了', 400 + rand(-24, 24), 96, 'hot', now);
+            fx.spawn(window.SillyLines.get('affectionMaxed'), 400 + rand(-24, 24), 96, 'hot', now);
           }
           if (now < F.celebrateUntil && now >= F.nextCelebHeart) {
             fx.spawn('♥', 400 + rand(-110, 110), 130 + rand(-40, 0), 'hot', now);

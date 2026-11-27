@@ -57,7 +57,7 @@
       W.phase = caught ? 'catch' : 'miss';
       W.start = now;
       W.endUntil = now + 1600;
-      ctx.fx.spawn(caught ? '抓住了！' : '哼，跑了', caught ? W.dot.x : 400, caught ? W.dot.y - 26 : 104, caught ? 'hot' : 'angry', performance.now());
+      ctx.fx.spawn(caught ? window.SillyLines.get('laserCaught') : window.SillyLines.get('laserMiss'), caught ? W.dot.x : 400, caught ? W.dot.y - 26 : 104, caught ? 'hot' : 'angry', performance.now());
       if (caught) {
         // 猫自己玩的，不给好感分（只有摸头/逗猫棒/零食这类用户互动才涨）
         if (window.SillySounds) window.SillySounds.play('meow');

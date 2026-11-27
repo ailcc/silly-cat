@@ -102,7 +102,7 @@
         const b = ballPos(now);
         if (W.hits >= HITS_JOY && !W.joyed) {
           W.joyed = true; W.joyUntil = now + 2200;
-          ctx.fx.spawn('玩开心了！', 400, 96, 'hot', performance.now());
+          ctx.fx.spawn(window.SillyLines.get('wandFun'), 400, 96, 'hot', performance.now());
           if (window.SillyAffection) window.SillyAffection.add(5);
           if (window.SillySounds) { window.SillySounds.startPurr(); setTimeout(() => window.SillySounds.stopPurr(), 1800); }
         } else if (W.hits < HITS_JOY) {

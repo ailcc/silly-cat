@@ -18,7 +18,7 @@
       W.word = word;
       W.buf = '';
       // 「喵！」从头顶冒出来（复用浮起键帽特效）
-      ctx.fx.spawn('喵！', 400 + (Math.random() * 2 - 1) * 30, 104, 'hot', now);
+      ctx.fx.spawn(window.SillyLines.get('easter'), 400 + (Math.random() * 2 - 1) * 30, 104, 'hot', now);
       if (window.SillySounds) window.SillySounds.play('meow');
     }
 

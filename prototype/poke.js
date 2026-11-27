@@ -19,7 +19,7 @@
       F.count = 0;
       F.lastPet = -1e9;
       S.shakeStart = now;               // 甩脑袋
-      ctx.fx.spawn('哼！', 548, 108, 'angry', now);
+      ctx.fx.spawn(window.SillyLines.get('poke'), 548, 108, 'angry', now);
       if (window.SillySounds) window.SillySounds.play('meow');
       if (window.SillyAffection) window.SillyAffection.add(-1); // 被戳烦了，掉一点好感
     }

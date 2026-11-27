@@ -40,7 +40,7 @@
       F.miss = opts.demo?.miss ? true : Math.random() < (demo ? 0.5 : MISS_RATE);
       F.oww = false;
       const m = F.aim;
-      fx.spawn('扑！', clamp(m.x + lean() * 26, 60, 740), m.y - 46, 'hot', now);
+      fx.spawn(window.SillyLines.get('pounceGo'), clamp(m.x + lean() * 26, 60, 740), m.y - 46, 'hot', now);
       if (window.SillySounds) window.SillySounds.play('meow');
     }
     function cancel(now) {
@@ -144,7 +144,7 @@
           P.look = m;                    // 目送鼠标扬长而去
           if (!F.oww) {
             F.oww = true;
-            fx.spawn('喵？！扑空了', clamp(F.aim.x, 60, 700), F.aim.y - 60, 'angry', now, 1500);
+            fx.spawn(window.SillyLines.get('pounceMiss'), clamp(F.aim.x, 60, 700), F.aim.y - 60, 'angry', now, 1500);
           }
         }
         P.tailAmp = Math.max(P.tailAmp || 0, 10);

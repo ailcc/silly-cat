@@ -9,6 +9,7 @@
 
   const EVERY = [30000, 60000]; // 应景台词之间的间隔
   const FW_EVERY = [180000, 360000]; // 春节烟花间隔：3–6 分钟
+  // 节日问候语在 lines.js（holiday 键，猫狗各一套）
   const IDLE_MIN = 8000;
 
   // 固定公历节日（MM-DD → 模式）
@@ -23,23 +24,14 @@
   // 春节是农历，按年份硬编码近几年的公历日期（YYYY-MM-DD → spring）
   const SPRING = { '2026-02-17': 1, '2027-02-06': 1, '2028-01-26': 1, '2029-02-13': 1 };
 
-  const LINES = {
-    halloween: ['不给小鱼干就捣蛋！', '今晚我是南瓜猫'],
-    christmas: ['喵诞快乐！', '袜子挂在键盘上了'],
-    newyear: ['新年快乐！', '新的一年也要多摸鱼'],
-    valentine: ['♥', '铲屎的，我的心里只有你'],
-    spring: ['新年快乐！红包呢？', '年夜饭有小鱼干吗'],
-    national: ['祖国生日快乐！', '红旗飘飘，小鱼干飘香'],
-    birthday: ['今天是本喵生日！', '蛋糕呢？要小鱼干味的'],
-  };
-
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const $ = (id) => document.getElementById(id);
 
   function create(ctx, opts = {}) {
     const { S, STATES } = ctx;
-    const demo = opts.demo && LINES[opts.demo.name] ? opts.demo.name : null;
+    const LINES = () => window.SillyLines.get('holiday'); // 猫狗各一套的节日台词
+    const demo = opts.demo && LINES()[opts.demo.name] ? opts.demo.name : null;
     const W = {
       birthday: '',
       hearts: false,      // 生日爱心眼开关（设置里控制，默认关）
@@ -224,7 +216,7 @@
     }
 
     function say(mode, now) {
-      const line = pick(LINES[mode]);
+      const line = pick(LINES()[mode] || ['…']);
       if (mode === 'valentine' || mode === 'newyear') {
         ctx.fx.spawn(line, 400 + rand(-30, 30), 104, 'hot', performance.now());
         if (mode === 'valentine') ctx.fx.spawn('♥', 470 + rand(-24, 24), 140, 'hot', performance.now());

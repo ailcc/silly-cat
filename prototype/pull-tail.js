@@ -33,7 +33,7 @@
       S.shakeStart = now;
       const p = e ? scenePoint(e) : null;
       const x = p ? clamp(p.x, 120, 680) : 250, y = p ? clamp(p.y, 120, 560) : 330;
-      ctx.fx.spawn('嘶！', x, y - 26, 'angry', now);
+      ctx.fx.spawn(window.SillyLines.get('pullTail'), x, y - 26, 'angry', now);
       if (window.SillySounds) window.SillySounds.play('hiss');
     }
 

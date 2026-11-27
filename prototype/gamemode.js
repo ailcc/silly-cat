@@ -38,8 +38,8 @@
     if (phones) window.addEventListener('silly:species', () => phones.parentElement?.setAttribute('transform', phoneWrap(1)));
 
     function announce(now) {
-      if (G.on) fx.spawn(G.name ? `打着游戏呢？我先睡了～` : '你打游戏，我先睡了～', 400, 92, '', now);
-      else { fx.spawn('喵！打完啦？', 400, 92, '', now); if (window.SillySounds) window.SillySounds.play('meow'); }
+      if (G.on) fx.spawn(G.name ? window.SillyLines.get('gameSleepNamed') : window.SillyLines.get('gameSleep'), 400, 92, '', now);
+      else { fx.spawn(window.SillyLines.get('gameDone'), 400, 92, '', now); if (window.SillySounds) window.SillySounds.play('meow'); }
     }
 
     // 桌面版：监听 Rust 的检测结果（网页版没有 __TAURI__，用 demo 演出）

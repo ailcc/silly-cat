@@ -19,8 +19,8 @@
 
     function toggle(now) {
       B.on = !B.on;
-      if (B.on) fx.spawn('呼——睡着的猫', 400, 92, '', now);
-      else fx.spawn('喵？！', 400, 92, 'hot', now);
+      if (B.on) fx.spawn(window.SillyLines.get('bossSleep'), 400, 92, '', now);
+      else fx.spawn(window.SillyLines.get('bossWake'), 400, 92, 'hot', now);
     }
 
     function afterKeyDown(code, now) {

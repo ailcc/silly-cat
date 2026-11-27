@@ -56,7 +56,7 @@
       F.runAt = now;
       F.doneKey = `${meal.key}@${mealNow().key}`;
       F.lastBeat = -1;
-      fx.spawn(`${meal.label}点到啦！`, clamp(BOWL.x - 70, 90, 710), BOWL.y - 80, 'hot', now);
+      fx.spawn(window.SillyLines.fmt('mealTime', { label: meal.label }), clamp(BOWL.x - 70, 90, 710), BOWL.y - 80, 'hot', now);
       if (window.SillySounds) window.SillySounds.play('meow');
     }
     function endRun(now) {

@@ -97,7 +97,7 @@
         store.lastDay = store.day;
         if (store.streak >= FAT_STREAK && !store.fat) {
           store.fat = true;
-          setTimeout(() => ctx.fx.spawn('喂得太好了，圆了…', 400, 100, 'hot', performance.now(), 2200), 1300);
+          setTimeout(() => ctx.fx.spawn(window.SillyLines.get('snackRound'), 400, 100, 'hot', performance.now(), 2200), 1300);
         }
       }
       saveStore();
@@ -155,10 +155,10 @@
         P.look = { x: W.fish.x, y: W.fish.y };
         P.tailAmp = 20; P.tailSpeed = 0.03;
         if (t >= T_FLY) {
-          if (W.overfed) { W.phase = 'spit'; W.start = now; ctx.fx.spawn(W.overDaily ? '今天 5 条到顶啦' : '吃不下啦', 400, 100, 'angry', performance.now(), 1800); }
+          if (W.overfed) { W.phase = 'spit'; W.start = now; ctx.fx.spawn(W.overDaily ? window.SillyLines.fmt('snackCap', { cap: DAY_MAX }) : window.SillyLines.get('snackFull'), 400, 100, 'angry', performance.now(), 1800); }
           else {
             W.phase = 'chew'; W.start = now; W.fish = null;
-            ctx.fx.spawn('香！', 460, 100, 'hot', performance.now());
+            ctx.fx.spawn(window.SillyLines.get('snackYum'), 460, 100, 'hot', performance.now());
             feedAccepted(now);
             if (window.SillyAffection) window.SillyAffection.add(2);
             if (window.SillySounds) { window.SillySounds.play('tap'); setTimeout(() => window.SillySounds.play('tap'), 220); }

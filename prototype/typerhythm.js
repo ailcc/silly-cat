@@ -105,7 +105,7 @@
           W.cover = false;
           W.cooldownUntil = now + CALM_DOWN;
           hideBubble();
-          if (!W.saidRelax) { ctx.fx.spawn('呼…', 470, 108, '', performance.now()); W.saidRelax = true; }
+          if (!W.saidRelax) { ctx.fx.spawn(window.SillyLines.get('typeRelax'), 470, 108, '', performance.now()); W.saidRelax = true; }
           W.fastSince = -1; W.saidFast = false;
           return;
         }
@@ -136,7 +136,7 @@
         return;
       } else if (held >= FAST_MS && !W.saidFast) {
         W.saidFast = true;
-        ctx.fx.spawn('好快！', 480 + (Math.random() * 2 - 1) * 20, 104, 'hot', performance.now());
+        ctx.fx.spawn(window.SillyLines.get('typeFast'), 480 + (Math.random() * 2 - 1) * 20, 104, 'hot', performance.now());
       }
 
       // 快速打字时的姿态：眼睛瞪圆、耳朵立起、尾巴快甩

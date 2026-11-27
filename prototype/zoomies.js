@@ -35,7 +35,7 @@
     function start(now) {
       F.runAt = now;
       F.lastT = 0;
-      fx.spawn('冲！', 400 + rand(-30, 30), 130, 'hot', now);
+      fx.spawn(window.SillyLines.get('zoomies'), 400 + rand(-30, 30), 130, 'hot', now);
     }
     function end(now) {
       F.runAt = -1e9;

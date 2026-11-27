@@ -71,8 +71,8 @@
       W.dur = phase === 'focus' ? FOCUS : (W.round % LONG_EVERY === 0 ? LONG_REST : REST);
       if (window.SillySounds) window.SillySounds.play('bell');
       const msg = phase === 'focus'
-        ? `专注开始！第 ${W.round} 个番茄`
-        : (W.dur === LONG_REST ? `休息 ${demo ? 4 : 15} 分钟，辛苦啦喵` : `休息一下喵，摸摸猫`);
+        ? window.SillyLines.fmt('pomoFocus', { n: W.round })
+        : (W.dur === LONG_REST ? window.SillyLines.fmt('pomoRestLong', { min: demo ? 4 : 15 }) : window.SillyLines.get('pomoRest'));
       ctx.fx.spawn(msg, 400, 92, 'hot', performance.now());
       if (phase === 'rest' && W.cheer && now - W.cheerAt > CHEER_MS) startCheer(now); // 完成一个番茄：撒星星庆祝
       saveState();
