@@ -54,6 +54,8 @@
   input[aria-invalid="true"] { border-color: var(--error); }
   input[type="checkbox"] { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--accent); cursor: pointer; }
   input[type="range"] { width: 150px; margin: 0; padding: 0; border: 0; background: none; accent-color: var(--accent); }
+  /* 三个滑块（特效密度/猫的大小/呼噜音量）统一长度、右对齐：都在 .head 的 space-between 里贴右缘 */
+  #f-size, #f-purrVolume, #f-bgDensity { width: 150px; flex: none; }
   #cat-options { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 8px; }
   .cat-option {
     position: relative;
@@ -102,7 +104,8 @@
   .hp-sw-ring { fill: none; stroke: var(--hp-plate); stroke-width: 1.6; }
   .push-interval { justify-content: flex-start; margin-top: 6px; }
   .unit { color: var(--muted); }
-  #size-percent { width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
+  /* 三个滑块右边的百分比文字定宽右对齐：100%/60% 宽度不同会把滑块挤得左右不一 */
+  #size-percent, #purr-volume-percent, #bg-density-percent { display: inline-block; width: 42px; text-align: right; font-variant-numeric: tabular-nums; }
   .hint { margin-top: 2px; color: var(--muted); font-size: 12px; }
   .err { margin-top: 2px; color: var(--error); font-size: 12px; }
   .err:empty { display: none; }
@@ -427,8 +430,8 @@
         <label class="bgfx"><input type="checkbox" id="f-bgFxFestival">节日</label>
       </div></div>
     <div id="bg-fx-hint" class="hint">按季节飘的花瓣、萤光、枫叶、细雪，以及春节/圣诞/生日的节日粒子（节日一组共用）。关掉的季节就不再出现对应特效。</div>
-    <label for="f-bgDensity" class="field push-interval">特效密度
-      <input id="f-bgDensity" type="range" min="0" max="100" step="5" value="100" aria-describedby="bg-fx-hint"><span id="bg-density-percent" class="unit">100%</span></label>
+    <div class="head" style="margin-top:6px"><label for="f-bgDensity">特效密度</label>
+      <span class="field"><input id="f-bgDensity" type="range" min="0" max="100" step="5" value="100" aria-describedby="bg-fx-hint"><span id="bg-density-percent" class="unit">100%</span></span></div>
     <div class="hint">画面上同时最多有多少颗特效粒子（100% = 原始满密度），拉到 0% 就完全没有；改完立刻生效。</div>
   </div>
   <div class="row full" data-size>
