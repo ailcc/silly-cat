@@ -33,9 +33,9 @@
 
     // 耳机画在头组里（跟着头的姿态 / 球面转头一起动）：头梁弧 + 两侧耳罩
     document.getElementById('cat-head').insertAdjacentHTML('beforeend',
-      `<g transform="${phoneWrap(1)}">${headphoneSVG('game-phones')}</g>`);
+      `<g transform="${phoneWrap()}">${headphoneSVG('game-phones')}</g>`);
     const phones = document.getElementById('game-phones');
-    if (phones) window.addEventListener('silly:species', () => phones.parentElement?.setAttribute('transform', phoneWrap(1)));
+    if (phones) window.addEventListener('silly:species', () => phones.parentElement?.setAttribute('transform', phoneWrap()));
 
     function announce(now) {
       if (G.on) fx.spawn(G.name ? window.SillyLines.get('gameSleepNamed') : window.SillyLines.get('gameSleep'), 400, 92, '', now);
@@ -86,11 +86,15 @@
     };
   }
 
-  // 耳机整体套一层 transform 挂在头组里。狗头比猫头窄一圈、还往下挪了 12，所以狗要缩一点、压下来一点。
-  const phoneWrap = (scale) => {
-    const dog = window.SillySpecies?.current?.scene?.template === 'parts-dog';
-    const k = dog ? 0.84 : 1, dy = dog ? 16 : 0;
-    return `translate(400 ${100 + dy}) scale(${(scale * k).toFixed(3)}) translate(-400 -100)`;
+  // 耳机整体套一层 transform 挂在头组里。位置/缩放来自 decor-fit.js 的 headphone 项
+  // （听歌/陪你听歌/游戏模式三副耳机同款同位，共用每皮肤一套参数）；
+  // decor-fit 缺席时回退猫基准 1.35 倍 / 狗 1.134 倍（和 decor-fit 的物种默认一致）。
+  const phoneWrap = () => {
+    const p = (window.SillyDecorFit && window.SillyDecorFit.get && window.SillyDecorFit.get('headphone')) ||
+      (window.SillySpecies?.current?.scene?.template === 'parts-dog'
+        ? { x: 400, y: 116, scale: 1.134 }
+        : { x: 400, y: 100, scale: 1.35 });
+    return `translate(${p.x} ${p.y}) scale(${p.scale}) translate(-400 -100)`;
   };
 
   window.SillyGameModeEgg = { create, headphoneSVG, phoneWrap };
