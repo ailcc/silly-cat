@@ -5,13 +5,13 @@
 (function () {
   'use strict';
 
-  // drool / slump 为 null 表示「自动」：沿用 sleep.js 的原逻辑（入睡时间 × 2、× 3.5）
+  // drool / slump 默认 40 / 70 秒（界面上直接填数字）；用户清空字段时仍可退回「自动」（×2 / ×3.5）
   // statusBar：猫头顶的状态条（困了 / 烦躁 / 消气中）显示与否；push：推杯子开关。和 autoUpdate（自动检查更新）都是开关项，不参与 KEYS 里的数字校验
   // pushEvery：大约多久推一次杯子（秒），push.js 在它的 0.5–1.5 倍之间随机
   // pomo：番茄钟开关。birthday：猫的生日（MM-DD 文本，空 = 不庆祝）。birthdayHearts：生日当天要不要全程爱心眼（默认关）。和开关项一样不参与 KEYS 里的数字校验
   // mcpServer：MCP 外观接口（本地回环 HTTP，给 AI 助手换装用，默认关）；mcpPort 不在界面暴露，settings.json 里可手改
   // userMusic：用户听歌模式（检测系统音频，真正出声才戴耳机）；headphoneColor：耳机颜色（游戏 / 空闲听歌 / 用户听歌三处共用）
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', keyboard: 'compact', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, grump: true, swat: true, purr: true, purrVolume: 60, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true, userMusic: true, headphoneColor: 'strawberry', bgDensity: 100, bgFx: { spring: true, summer: true, autumn: true, winter: true, festival: true } });
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: 40, slump: 70, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', keyboard: 'compact', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: false, sitRemind: true, sitMinutes: 45, kittenCoat: true, tailSlap: true, kbdFlow: true, headTurn: true, grump: true, swat: true, purr: true, purrVolume: 60, mcpServer: false, mcpPort: 48620, hindPaws: false, listenMusic: true, userMusic: true, headphoneColor: 'strawberry', bgDensity: 100, bgFx: { spring: true, summer: true, autumn: true, winter: true, festival: true } });
   const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo', 'birthdayHearts', 'quips', 'pomoCheer', 'sitRemind', 'kittenCoat', 'tailSlap', 'kbdFlow', 'headTurn', 'grump', 'swat', 'purr', 'mcpServer', 'hindPaws', 'listenMusic', 'userMusic']);
   // 耳机颜色的名字和顺序就是设置页色块的顺序；random 是第 5 个特殊选项：每次戴上随机挑一个，
   // 戴着期间不再换色（耳机戴一半换色太怪了），摘下来下次戴上再随机
