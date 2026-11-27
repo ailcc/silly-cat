@@ -654,7 +654,7 @@
       if (hindPawsMod) hindPawsMod.setEnabled(s.hindPaws);
       if (listenMod) listenMod.setEnabled(s.listenMusic);
       if (userMusicMod) userMusicMod.setEnabled(s.userMusic);
-      if (window.SillyBgFx) window.SillyBgFx.setEnabled(s.bgFx);
+      if (window.SillyBgFx) { window.SillyBgFx.setEnabled(s.bgFx); window.SillyBgFx.setDensity(s.bgDensity); }
       applyHpColor(s.headphoneColor);
       if (grumpMod) grumpMod.setEnabled(s.grump);
       if (swatMod) swatMod.setEnabled(s.swat);

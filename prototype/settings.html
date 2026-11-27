@@ -22,7 +22,15 @@
     padding: 14px 16px 12px;
   }
   h1 { margin: 0 0 10px; font-size: 15px; font-weight: 600; }
-  form { display: flex; flex-direction: column; gap: 8px; }
+  form {
+    display: grid;
+    grid-template-columns: 45% 45%;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: start;
+  }
+  /* 跨两栏的整行：换猫、耳机颜色、背景特效这类成组的大项 */
+  .row.full { grid-column: 1 / -1; }
   .row {
     background: var(--card);
     border: 1px solid var(--line);
@@ -234,7 +242,7 @@
 </section>
 <h1>猫的设置</h1>
 <form id="form" novalidate autocomplete="off">
-  <div class="row">
+  <div class="row full">
     <div class="head">
       <strong id="cat-label">换只猫</strong>
       <span class="field">
@@ -297,7 +305,7 @@
       <span class="field"><input id="f-statusBar" type="checkbox"></span></div>
     <div class="hint">快睡着、快发飙、正在消气时，猫头顶出现一条进度条。</div>
   </div>
-  <div class="row" data-key="pushEvery">
+  <div class="row full" data-key="pushEvery">
     <div class="head"><label for="f-push">推东西</label>
       <span class="field"><input id="f-push" type="checkbox"></span></div>
     <label for="f-pushEvery" class="field push-interval">大约每
@@ -380,7 +388,7 @@
       <span class="field"><input id="f-purr" type="checkbox" aria-describedby="purr-hint"></span></div>
     <div id="purr-hint" class="hint">摸头时猫会打呼噜（现场合成，不联网、不加载音频文件）；闹起床气时摸它要等气消得差不多才肯打。</div>
   </div>
-  <div class="row" data-purr-volume>
+  <div class="row full" data-purr-volume>
     <div class="head"><label for="f-purrVolume">呼噜音量</label>
       <span class="field"><input id="f-purrVolume" type="range" min="0" max="100" step="5" value="60" aria-describedby="purr-volume-hint"><span id="purr-volume-percent" class="unit">60%</span></span></div>
     <div id="purr-volume-hint" class="hint">呼噜声的音量，默认 60%。满格也做过限幅，设备音量交给系统。</div>
@@ -400,12 +408,12 @@
       <span class="field"><input id="f-userMusic" type="checkbox" aria-describedby="user-music-hint"></span></div>
     <div id="user-music-hint" class="hint">电脑真的在出声（音乐、视频）时，猫戴上耳机陪着你；静音或暂停几秒后自己摘下来，再出声又戴上。通话、会议软件的声音不算。只看有没有声音，不录音、不读取内容。桌面版才有这项。</div>
   </div>
-  <div class="row" data-hp-color>
+  <div class="row full" data-hp-color>
     <div class="head"><span id="hp-color-label">耳机颜色</span>
       <div id="hp-color-options" class="field" role="radiogroup" aria-labelledby="hp-color-label"></div></div>
     <div class="hint">游戏模式和两种听歌场景戴的耳机都用这个颜色；选「随机」则每次戴上换一个，戴着期间不变。</div>
   </div>
-  <div class="row" data-bg-fx>
+  <div class="row full" data-bg-fx>
     <div class="head"><span id="bg-fx-label">背景特效</span>
       <div id="bg-fx-options" class="field" role="group" aria-labelledby="bg-fx-label">
         <label class="bgfx"><input type="checkbox" id="f-bgFxSpring">春樱</label>
@@ -414,42 +422,45 @@
         <label class="bgfx"><input type="checkbox" id="f-bgFxWinter">冬雪</label>
         <label class="bgfx"><input type="checkbox" id="f-bgFxFestival">节日</label>
       </div></div>
-    <div class="hint">按季节飘的花瓣、萤光、枫叶、细雪，以及春节/圣诞/生日的节日粒子（节日一组共用）。关掉的季节就不再出现对应特效。</div>
+    <div id="bg-fx-hint" class="hint">按季节飘的花瓣、萤光、枫叶、细雪，以及春节/圣诞/生日的节日粒子（节日一组共用）。关掉的季节就不再出现对应特效。</div>
+    <label for="f-bgDensity" class="field push-interval">特效密度
+      <input id="f-bgDensity" type="range" min="0" max="100" step="5" value="100" aria-describedby="bg-fx-hint"><span id="bg-density-percent" class="unit">100%</span></label>
+    <div class="hint">画面上同时最多有多少颗特效粒子（100% = 原始满密度），拉到 0% 就完全没有；改完立刻生效。</div>
   </div>
-  <div class="row" data-bool="mcpServer">
-    <div class="head"><label for="f-mcpServer">MCP 外观接口</label>
-      <span class="field"><input id="f-mcpServer" type="checkbox" aria-describedby="mcp-hint"></span></div>
-    <div id="mcp-hint" class="hint">开一个仅限本机访问的接口（http://127.0.0.1:48620/mcp），让 Claude、Cursor 这类 AI 助手直接给猫换品种、换画风、调大小，改完立刻生效。默认关闭；端口可在 settings.json 里改 mcpPort。命令行方式：把下面的配置加进你的 MCP 客户端即可。</div>
-    <div class="hint" style="user-select:all">curl -X POST http://127.0.0.1:48620/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"set_appearance","arguments":{"cat":"orange"}}}'</div>
-  </div>
-  <div class="row" data-bool="eyesFollow">
+  <div class="row full" data-bool="eyesFollow">
     <div class="head"><label for="f-eyesFollow">眼睛跟着鼠标</label>
       <span class="field"><input id="f-eyesFollow" type="checkbox" aria-describedby="eyes-follow-hint"></span></div>
     <div id="eyes-follow-hint" class="hint">醒着时，猫的眼睛会跟着鼠标指针看；指针停下几秒后收回目光。</div>
   </div>
-  <div class="row" data-size>
+  <div class="row full" data-size>
     <div class="head"><label for="f-size">猫的大小</label>
       <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
     <div id="size-hint" class="hint">可调 50%–200%，改大小时猫的右下角不动。</div>
   </div>
-  <div class="row" id="click-through" hidden>
+  <div class="row full" id="click-through" hidden>
     <div class="head"><label for="f-click-through">鼠标穿透</label>
       <span class="field"><input id="f-click-through" type="checkbox" aria-describedby="click-through-hint click-through-error" disabled></span></div>
     <div id="click-through-hint" class="hint">打开后，点猫会点到后面的窗口，摸不到头也右键不了猫；猫仍会对点击有反应。可在托盘图标（macOS 在顶部菜单栏）的菜单里关掉，也可以回到这里关。</div>
     <div id="click-through-error" class="err" role="status"></div>
   </div>
-  <div class="row" data-bool="autoUpdate" hidden>
+  <div class="row full" data-bool="autoUpdate" hidden>
     <div class="head"><label for="f-autoUpdate">自动检查更新</label>
       <span class="field"><input id="f-autoUpdate" type="checkbox" aria-describedby="update-hint"></span></div>
     <div class="hint" id="update-hint">每天从 Gitee 检查新版本，点击更新后才下载。</div>
   </div>
-  <div class="row" id="autostart" hidden>
+  <div class="row full" id="autostart" hidden>
     <div class="head"><label for="f-autostart">开机时自动启动</label>
       <span class="field"><input id="f-autostart" type="checkbox" aria-describedby="autostart-hint autostart-approval autostart-error" disabled></span></div>
     <div class="hint" id="autostart-hint"></div>
     <div class="hint" id="autostart-approval" aria-live="polite" hidden>需要在系统设置的登录项里允许 SillyCat</div>
     <button id="autostart-login-items" type="button" hidden>打开登录项</button>
     <div class="err" id="autostart-error" role="status"></div>
+  </div>
+  <div class="row full" data-bool="mcpServer">
+    <div class="head"><label for="f-mcpServer">MCP 外观接口</label>
+      <span class="field"><input id="f-mcpServer" type="checkbox" aria-describedby="mcp-hint"></span></div>
+    <div id="mcp-hint" class="hint">开一个仅限本机访问的接口（http://127.0.0.1:48620/mcp），让 Claude、Cursor 这类 AI 助手直接给猫换品种、换画风、调大小，改完立刻生效。默认关闭；端口可在 settings.json 里改 mcpPort。命令行方式：把下面的配置加进你的 MCP 客户端即可。</div>
+    <div class="hint" style="user-select:all">curl -X POST http://127.0.0.1:48620/mcp -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"set_appearance","arguments":{"cat":"orange"}}}'</div>
   </div>
 </form>
 <footer>
@@ -553,6 +564,8 @@
   const sizePercent = document.getElementById('size-percent');
   const purrVolumeInput = document.getElementById('f-purrVolume');
   const purrVolumePercent = document.getElementById('purr-volume-percent');
+  const bgDensityInput = document.getElementById('f-bgDensity');
+  const bgDensityPercent = document.getElementById('bg-density-percent');
   const clickThroughInput = document.getElementById('f-click-through');
   const autostartInput = document.getElementById('f-autostart');
   const bgFxInputs = { spring: document.getElementById('f-bgFxSpring'), summer: document.getElementById('f-bgFxSummer'), autumn: document.getElementById('f-bgFxAutumn'), winter: document.getElementById('f-bgFxWinter'), festival: document.getElementById('f-bgFxFestival') };
@@ -583,6 +596,7 @@
     birthdayInput.value = s.birthday || '';
     sizeInput.value = Math.round(s.size * 100);
     purrVolumeInput.value = String(s.purrVolume);
+    bgDensityInput.value = String(s.bgDensity == null ? 100 : s.bgDensity);
     refreshHints(s);
   }
   // 时间项按秒读；可选项留空 = null（自动），其他时间项留空 = NaN（校验报错）
@@ -600,6 +614,7 @@
     s.birthday = birthdayInput.value.trim(); // 格式对不对由 sanitize 把关，不对就当没填
     s.size = sizeInput.valueAsNumber / 100;
     s.purrVolume = purrVolumeInput.valueAsNumber;
+    s.bgDensity = bgDensityInput.valueAsNumber;
     return s;
   }
   function refreshHints(s) {
@@ -608,6 +623,7 @@
     rows.pushEvery.input.disabled = !s.push;
     sizePercent.textContent = `${sizeInput.value}%`;
     purrVolumePercent.textContent = `${purrVolumeInput.value}%`;
+    bgDensityPercent.textContent = `${bgDensityInput.value}%`;
   }
   function setStatus(text, cls) { statusEl.textContent = text; statusEl.className = cls || ''; }
 

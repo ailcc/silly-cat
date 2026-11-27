@@ -41,6 +41,9 @@
   // 缺省全开；设置广播来的时候整表更新。调试 URL ?bg= 不受开关限制。
   const enabled = { spring: true, summer: true, autumn: true, winter: true, festival: true };
   const GROUP = { spring: 'spring', summer: 'summer', autumn: 'autumn', winter: 'winter', festival: 'festival', christmas: 'festival', birthday: 'festival' };
+  // 粒子密度上限（设置页滑块 0–100%，100 = 原始满密度）。原来每秒只加不减，
+  // 粒子越积越多、最后满屏都是——现在有硬上限，满了挤掉最老的。
+  let densityPct = 100;
 
   function stop() {
     if (timer) { clearInterval(timer); timer = 0; }
@@ -48,8 +51,11 @@
   }
   function start(kind, density) {
     stop();
-    if (reduced) return; // 减弱动态：不放粒子
+    if (reduced || densityPct <= 0) return; // 减弱动态 / 密度 0：不放粒子
+    const cap = Math.round(density * 16 * densityPct / 100);
     const spawn = () => {
+      // 上限之内才放：满了挤掉最老的一颗（新的一颗带着新的随机延迟补上）
+      if (layer.childElementCount >= cap) layer.firstElementChild?.remove();
       const el = document.createElement('div');
       const dur = 6 + Math.random() * 6;
       el.className = 'bgp ' + kind + (Math.random() < 0.4 ? ' b' : ''); // CSS 是 .bgp.snow 这类双类选择器，kind 不带前缀
@@ -59,8 +65,7 @@
       el.style.animation = (kind === 'spark' ? 'bg-rise-spark' : 'bg-fall-' + kind) + ' ' + dur.toFixed(1) + 's linear ' + (-Math.random() * dur).toFixed(1) + 's infinite';
       layer.appendChild(el);
     };
-    const n = Math.round(density * 8);
-    for (let i = 0; i < n; i++) spawn();
+    for (let i = 0; i < cap; i++) spawn();
     timer = setInterval(spawn, 1000 / density);
   }
 
@@ -81,6 +86,14 @@
       if (!map || typeof map !== 'object') return;
       for (const k of Object.keys(enabled)) if (typeof map[k] === 'boolean') enabled[k] = map[k];
       if (current && !enabled[GROUP[current]]) this.setScene(null); // 正在放的关掉了，立刻收
+    },
+    // 设置页「特效密度」滑块（settings.bgDensity 0–100）；0 = 完全不放，改完立刻生效
+    setDensity(pct) {
+      const v = Math.max(0, Math.min(100, Math.round(+pct || 0)));
+      if (v === densityPct) return;
+      densityPct = v;
+      const scene = current && SCENES[current];
+      if (scene) start(scene.kind, scene.density); // 按新上限重铺一遍
     },
   };
 })();
