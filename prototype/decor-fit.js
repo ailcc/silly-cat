@@ -192,7 +192,7 @@
     },
     // 无毛猫
     sphynx: {
-      headphone: { x: 400, y: 75, scale: 1 },
+      headphone: { x: 400, y: 100, scale: 1.4 },
       crown:     { x: 400, y: 55,  scale: 1 },
       scarfBand: { x: 334, y: 245, w: 122, h: 64 },
       scarfTail: { x: 416, y: 280, w: 31,  h: 62 },
@@ -207,7 +207,7 @@
     },
     // 大黄（土狗）
     tianyuan: {
-      headphone: { x: 400, y: 116, scale: 1.134 },
+      headphone: { x: 400, y: 90, scale: 0.8 },
       crown:     { x: 400, y: 87,  scale: 0.9 },
       scarfBand: { x: 302, y: 260, w: 195, h: 64 },
       scarfTail: { x: 420, y: 295, w: 31,  h: 56 },
@@ -222,7 +222,7 @@
     },
     // 柯基
     corgi: {
-      headphone: { x: 400, y: 116, scale: 1.134 },
+      headphone: { x: 400, y: 90, scale: 0.9 },
       crown:     { x: 400, y: 94,  scale: 0.9 },
       scarfBand: { x: 302, y: 260, w: 195, h: 64 },
       scarfTail: { x: 420, y: 295, w: 31,  h: 56 },
@@ -237,7 +237,7 @@
     },
     // 边牧
     collie: {
-      headphone: { x: 400, y: 116, scale: 1.134 },
+      headphone: { x: 400, y: 100, scale: 1 },
       crown:     { x: 400, y: 94,  scale: 0.9 },
       scarfBand: { x: 302, y: 260, w: 195, h: 64 },
       scarfTail: { x: 420, y: 295, w: 31,  h: 56 },
