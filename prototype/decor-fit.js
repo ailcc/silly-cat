@@ -10,7 +10,6 @@
 // 节日装扮（ holidays 的五件，都是「参考框」：x、y = 框左上角，w、h = 拉伸到的宽高）：
 //   holidayHat     圣诞帽（跟头动）     猫的原始框：308,34 171×76
 //   holidayBdayhat 生日尖角帽（跟头动） 猫的原始框：330,2  116×106
-//   holidayCoat    春节唐装贴身版型（猫狗各画一套）猫基准：330,272 140×156 狗基准：330,274 162×160
 //   holidayCapeBand 披风肩带（U 型，同围巾带画法）猫基准：314,282 176×56
 //   holidayCapeDrapeL/DrapeR 披风左/右下摆（各自独立参数）猫基准：318/412,300 36×100
 //   holidayPumpkin 万圣节南瓜灯（桌上摆的场景物件）x、y = 中心，scale = 缩放；默认 742,452
@@ -33,7 +32,6 @@
       // 节日装扮：猫的这些值就是各路径的原始绘制框（不变形不改位），想调再改
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -48,7 +46,6 @@
       // 节日装扮按狗的头身给的初值（狗头更宽更靠下、胸口更宽），不满意直接改数字微调
       holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },  // 帽檐下沿 ≈ 124，压在狗头顶
       holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
-      holidayCoat:    { x: 330, y: 274, w: 162, h: 160 },
       holidayCapeBand:  { x: 298, y: 276, w: 204, h: 58 },  // 披风肩带（U 型）
       holidayCapeDrapeL:{ x: 296, y: 304, w: 44,  h: 98 },  // 披风左下摆
       holidayCapeDrapeR:{ x: 460, y: 304, w: 44,  h: 98 },  // 披风右下摆
@@ -68,7 +65,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 330, y: 14,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 272, w: 156, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -84,7 +80,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -100,7 +95,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -116,7 +110,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -132,7 +125,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -148,7 +140,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -164,7 +155,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -180,7 +170,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -196,7 +185,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -212,7 +200,6 @@
       // 节日装扮（参考框 x/y/w/h；南瓜灯是 x/y 中心 + scale）
       holidayHat:     { x: 308, y: 34,  w: 171, h: 76 },
       holidayBdayhat: { x: 330, y: 2,   w: 116, h: 106 },
-      holidayCoat:    { x: 330, y: 272, w: 140, h: 156 },
       holidayCapeBand:  { x: 314, y: 282, w: 176, h: 56 },  // 披风肩带（U 型，同围巾带画法）
       holidayCapeDrapeL:{ x: 318, y: 300, w: 36,  h: 100 }, // 披风左下摆
       holidayCapeDrapeR:{ x: 412, y: 300, w: 36,  h: 100 }, // 披风右下摆
@@ -228,7 +215,6 @@
       // 节日装扮按狗头身的初值，微调直接改数字
       holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
       holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
-      holidayCoat:    { x: 330, y: 274, w: 162, h: 160 },
       holidayCapeBand:  { x: 298, y: 276, w: 204, h: 58 },  // 披风肩带（U 型）
       holidayCapeDrapeL:{ x: 296, y: 304, w: 44,  h: 98 },  // 披风左下摆
       holidayCapeDrapeR:{ x: 460, y: 304, w: 44,  h: 98 },  // 披风右下摆
@@ -244,7 +230,6 @@
       // 节日装扮按狗头身的初值，微调直接改数字
       holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
       holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
-      holidayCoat:    { x: 330, y: 274, w: 162, h: 160 },
       holidayCapeBand:  { x: 298, y: 276, w: 204, h: 58 },  // 披风肩带（U 型）
       holidayCapeDrapeL:{ x: 296, y: 304, w: 44,  h: 98 },  // 披风左下摆
       holidayCapeDrapeR:{ x: 460, y: 304, w: 44,  h: 98 },  // 披风右下摆
@@ -260,7 +245,6 @@
       // 节日装扮按狗头身的初值，微调直接改数字
       holidayHat:     { x: 292, y: 40,  w: 216, h: 84 },
       holidayBdayhat: { x: 310, y: 10,  w: 180, h: 120 },
-      holidayCoat:    { x: 330, y: 274, w: 162, h: 160 },
       holidayCapeBand:  { x: 298, y: 276, w: 204, h: 58 },  // 披风肩带（U 型）
       holidayCapeDrapeL:{ x: 296, y: 304, w: 44,  h: 98 },  // 披风左下摆
       holidayCapeDrapeR:{ x: 460, y: 304, w: 44,  h: 98 },  // 披风右下摆

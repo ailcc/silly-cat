@@ -411,16 +411,7 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .hh-pompom { fill: var(--fur-white); stroke: var(--ink); stroke-width: 3.5; }
 #scene .hh-brim { fill: var(--fur-white); stroke: var(--ink); stroke-width: 4; }
 
-/* 春节红围巾（旧版，已换成马褂，样式保留防外部引用） */
-#scene .hs-band { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
-#scene .hs-tail { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
-
-/* 春节红色小马褂 */
-#scene .hco-panel { fill: #e5544b; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
-#scene .hco-collar { fill: #c4443c; stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
-#scene .hco-knot { fill: #f6c445; stroke: var(--ink); stroke-width: 2.5; }
-#scene .hco-placket { fill: none; stroke: var(--ink); stroke-width: 2.5; }
-/* 调试：?nolimbs=1 隐藏手臂前爪和后脚、?nokeys=1 隐藏键盘（网页调试面板开关按钮），看全身衣服用 */
+/* 调试：?nolimbs=1 隐藏手臂前爪和后脚、?nokeys=1 隐藏键盘（网页调试面板开关按钮） */
 #scene.nolimbs #arm-l, #scene.nolimbs #arm-r,
 #scene.nolimbs #paw-l, #scene.nolimbs #paw-r,
 #scene.nolimbs #hindpaws { display: none !important; }
