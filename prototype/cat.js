@@ -17,6 +17,10 @@
     RAGE: 'rage', STRIKE: 'strike', REPAIR: 'repair', // 由 fatigue.js 覆盖
   });
 
+  // 这些演示本身演的就是「睡着」，demo 循环时不能强行保持清醒（真入睡状态是演出的一部分）。
+  // listenmusic 的听歌睡着不在此列：它自己压着清醒并画闭眼，game（装睡）靠自己的 overrideState。
+  const SLEEP_DEMOS = new Set(['slumped', 'slump-in', 'drool', 'wake-marks', 'dream']);
+
   // 爪子的左右一律按猫自己的视角：'L' = 猫的左爪 = 观众右侧（白爪），'R' = 猫的右爪 = 观众左侧（黑爪）。
   // 键盘和鼠标都朝向猫摆放。猫的左爪按标准指法负责左手键区；其余归右爪。
   const LEFT_CODES = new Set([
@@ -548,6 +552,15 @@
       else {
         const idle = now - S.lastInput;
         S.state = idle >= S.sleepMs ? STATES.ASLEEP : idle >= S.sleepMs / 2 ? STATES.DROWSY : STATES.AWAKE;
+      }
+      // 调试循环模式（?demo=x&loop=1）：页面上没有真实输入，20 秒后猫会真的睡着，
+      // 而大部分演出都要求清醒，于是全都停了——看起来就是「点了按钮没反应」。
+      // 除睡眠类演示外（SLEEP_DEMOS），循环演示期间把猫按在清醒状态，并刷新 lastInput
+      // 挡掉其他模块按「空闲」自触发的演出（听歌、小奶猫串门等）——调试页只演选中的那一个。
+      // gamemode 等模块自己的 overrideState 在后面仍会生效。
+      if (demo && demo.loop && !SLEEP_DEMOS.has(demo.name)) {
+        S.lastInput = now;
+        if (S.state !== STATES.AWAKE) S.state = STATES.AWAKE;
       }
       call('refresh', now);
       const o = ask('overrideState', now);

@@ -103,7 +103,7 @@
         const left = W.coverUntil - now;
         if (left <= 0) {
           W.cover = false;
-          W.cooldownUntil = now + CALM_DOWN;
+          W.cooldownUntil = now + (demo ? 1500 : CALM_DOWN); // demo 循环：歇 1.5 秒接着演
           hideBubble();
           if (!W.saidRelax) { ctx.fx.spawn(window.SillyLines.get('typeRelax'), 470, 108, '', performance.now()); W.saidRelax = true; }
           W.fastSince = -1; W.saidFast = false;

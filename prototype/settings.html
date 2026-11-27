@@ -703,8 +703,17 @@
         else if (spec === 'listen&doze=1') b.title = '戴着耳机直接睡着，不点头不冒音符';
         else if (spec === 'knead&at=800') b.title = '按着胸口踩奶';
         b.addEventListener('click', () => {
-          if (spec && spec.startsWith('__')) { // 「__xxx」开关：独立开关，不影响已选状态的高亮（__key=value 也支持）
-            b.classList.toggle('on');
+          if (spec && spec.startsWith('__')) { // 「__xxx」开关：不影响已选 demo 状态的高亮
+            const eq = spec.indexOf('=');
+            if (eq !== -1) { // 「__key=value」同键互斥（背景特效一次只能开一个）：点亮自己、灭掉同组其他按钮
+              for (const x of buttons) {
+                const xs = x.dataset.spec || '';
+                if (x !== b && xs.startsWith('__') && xs.slice(2, xs.indexOf('=')) === spec.slice(2, eq)) {
+                  x.classList.remove('on');
+                }
+              }
+              b.classList.toggle('on');
+            } else b.classList.toggle('on');
             if (T && T.event) T.event.emit('silly:debug-demo', { spec });
             return;
           }
@@ -712,6 +721,7 @@
           b.classList.add('on');
           if (T && T.event) T.event.emit('silly:debug-demo', { spec });
         });
+        b.dataset.spec = spec;
         buttons.push(b);
         grid.appendChild(b);
       }

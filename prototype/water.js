@@ -1,7 +1,7 @@
 // 喝水提醒：每隔 40–70 分钟，猫把一杯水推到你面前盯着你看——「该喝水了」。
 // 摸摸头表示喝过了，杯子收回去、进入下一轮计时；晾 90 秒不理它，它自己收回去，
 // 但会提前（约 30 分钟后）再提醒。杯子只是表演道具，不会真被推下桌。
-// 调试：?demo=water&loop=1（杯子立刻滑进来）或 &at=毫秒 冻结
+// 调试：?demo=water&loop=1（循环演示：滑入 → 盯 4 秒 → 滑出 → 再来）或 &at=毫秒 冻结
 (function () {
   'use strict';
 
@@ -85,6 +85,7 @@
           retract(now, true); // 晾了：提前再来
         } else if (demo && now - W.start >= 4000) {
           retract(now, false);
+          W.next = now + 1500; // demo 循环：收回去歇 1.5 秒再滑进来
         }
       } else if (W.phase === 'out') {
         const k = easeOut(clamp01(t / SLIDE_MS));

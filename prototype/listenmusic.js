@@ -5,7 +5,8 @@
 // 动键鼠直接清醒摘耳机。
 // 后脚跟着打拍子（hindpaws 会来问 bobbing()，睡着就不拍了）。
 // 耳机复用游戏模式的画法：去麦克风、整体放大 1.4 倍。
-// 游戏模式进行中不掺和（它自己有耳机）。调试：?demo=listen&loop=1 直接进入听歌。
+// 调试：?demo=listen&loop=1（循环演示：戴耳机听 8 秒 → 睡 6 秒 → 醒来再来）；
+// &doze=1 跳过 8 秒等待直接睡着（睡一会儿也会醒，继续循环）
 (function () {
   'use strict';
 
@@ -19,7 +20,7 @@
   function create(ctx, opts = {}) {
     const { S, STATES } = ctx;
     const demo = opts.demo && opts.demo.name === 'listen' ? opts.demo : null;
-    const A = { enabled: true, on: false, decidedFor: -1, nextNote: 0, noteAlt: false, doze: false, willDoze: false, dozeAt: 0 };
+    const A = { enabled: true, on: false, decidedFor: -1, nextNote: 0, noteAlt: false, doze: false, willDoze: false, dozeAt: 0, dozeUntil: 0 };
 
     // 耳机：复用游戏模式模板（去麦克风），挂在头组里。摆放参数（每皮肤一套：锚点 + 缩放）
     // 来自 decor-fit.js 的 headphone 项；decor-fit.js 缺席时回退猫基准（1.35 倍）。
@@ -67,8 +68,10 @@
       if (!A.on) return;
 
       // 这轮掷中了才睡：正常闭眼（闭眼弧线，跟真睡着一个样），不再点头晃身、
-      // 不再冒音符，后脚也不打拍子（bobbing=false）
-      if (A.willDoze && now >= A.dozeAt) A.doze = true;
+      // 不再冒音符，后脚也不打拍子（bobbing=false）。
+      // demo 循环：睡 6 秒后摘耳机醒过来，重新进入听歌——完整演出一遍又一遍。
+      if (A.willDoze && now >= A.dozeAt && !A.doze) { A.doze = true; A.dozeUntil = now + (demo ? 6000 : 1e12); }
+      if (demo && A.doze && now >= A.dozeUntil) { A.on = false; A.doze = false; A.willDoze = false; }
       if (A.doze) { P.eyesClosed = true; return; }
 
       // 听歌姿态：跟着节拍点头 + 身子轻晃 + 半眯眼享受 + 尾巴加大摆幅
