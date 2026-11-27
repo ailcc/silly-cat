@@ -13,7 +13,6 @@
 
   function create(ctx, opts = {}) {
     const { S, STATES, clamp } = ctx;
-    const dog = () => ctx.species.id === 'dog';
     const lines = () => window.SillyLines.get('dreams');
     const demo = opts.demo && opts.demo.name === 'dream' ? opts.demo : null;
     // 睡眠类演示（趴睡/口水等）就是「真的睡着」：第一句梦话早点来，别让观众干等

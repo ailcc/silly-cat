@@ -196,6 +196,7 @@
 
     function startRage(t) {
       F.rage = { start: t };
+      if (!demo) window.SillyStats?.addRage(); // 真发飙才记账（调试演示不入账）
       ctx.releaseAll();
       S.excited = false;
       visual.startRage?.(t);

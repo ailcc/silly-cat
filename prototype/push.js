@@ -179,6 +179,7 @@
           backAt = goneAt + RETURN_MS;
           nextPush = Math.max(backAt, newDeadline(goneAt));
           offset = MAX_OFFSET;
+          if (!demo) window.SillyStats?.addPush(); // 杯子真掉下去才记账（调试演示不入账）
         }
         if (t >= END) run = null;
       }
