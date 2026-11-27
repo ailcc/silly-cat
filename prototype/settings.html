@@ -24,9 +24,8 @@
   h1 { margin: 0 0 10px; font-size: 15px; font-weight: 600; }
   form {
     display: grid;
-    grid-template-columns: 45% 45%;
-    justify-content: space-between;
-    gap: 8px;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
     align-items: start;
   }
   /* 跨两栏的整行：换猫、耳机颜色、背景特效这类成组的大项 */
@@ -305,7 +304,7 @@
       <span class="field"><input id="f-statusBar" type="checkbox"></span></div>
     <div class="hint">快睡着、快发飙、正在消气时，猫头顶出现一条进度条。</div>
   </div>
-  <div class="row full" data-key="pushEvery">
+  <div class="row" data-key="pushEvery">
     <div class="head"><label for="f-push">推东西</label>
       <span class="field"><input id="f-push" type="checkbox"></span></div>
     <label for="f-pushEvery" class="field push-interval">大约每
@@ -388,11 +387,6 @@
       <span class="field"><input id="f-purr" type="checkbox" aria-describedby="purr-hint"></span></div>
     <div id="purr-hint" class="hint">摸头时猫会打呼噜（现场合成，不联网、不加载音频文件）；闹起床气时摸它要等气消得差不多才肯打。</div>
   </div>
-  <div class="row full" data-purr-volume>
-    <div class="head"><label for="f-purrVolume">呼噜音量</label>
-      <span class="field"><input id="f-purrVolume" type="range" min="0" max="100" step="5" value="60" aria-describedby="purr-volume-hint"><span id="purr-volume-percent" class="unit">60%</span></span></div>
-    <div id="purr-volume-hint" class="hint">呼噜声的音量，默认 60%。满格也做过限幅，设备音量交给系统。</div>
-  </div>
   <div class="row" data-bool="hindPaws">
     <div class="head"><label for="f-hindPaws">露出后脚</label>
       <span class="field"><input id="f-hindPaws" type="checkbox" aria-describedby="hind-paws-hint"></span></div>
@@ -427,7 +421,7 @@
       <input id="f-bgDensity" type="range" min="0" max="100" step="5" value="100" aria-describedby="bg-fx-hint"><span id="bg-density-percent" class="unit">100%</span></label>
     <div class="hint">画面上同时最多有多少颗特效粒子（100% = 原始满密度），拉到 0% 就完全没有；改完立刻生效。</div>
   </div>
-  <div class="row full" data-bool="eyesFollow">
+  <div class="row" data-bool="eyesFollow">
     <div class="head"><label for="f-eyesFollow">眼睛跟着鼠标</label>
       <span class="field"><input id="f-eyesFollow" type="checkbox" aria-describedby="eyes-follow-hint"></span></div>
     <div id="eyes-follow-hint" class="hint">醒着时，猫的眼睛会跟着鼠标指针看；指针停下几秒后收回目光。</div>
@@ -436,6 +430,11 @@
     <div class="head"><label for="f-size">猫的大小</label>
       <span class="field"><input id="f-size" type="range" value="100" aria-describedby="size-hint"><span id="size-percent" class="unit">100%</span></span></div>
     <div id="size-hint" class="hint">可调 50%–200%，改大小时猫的右下角不动。</div>
+  </div>
+  <div class="row full" data-purr-volume>
+    <div class="head"><label for="f-purrVolume">呼噜音量</label>
+      <span class="field"><input id="f-purrVolume" type="range" min="0" max="100" step="5" value="60" aria-describedby="purr-volume-hint"><span id="purr-volume-percent" class="unit">60%</span></span></div>
+    <div id="purr-volume-hint" class="hint">呼噜声的音量，默认 60%。满格也做过限幅，设备音量交给系统。</div>
   </div>
   <div class="row full" id="click-through" hidden>
     <div class="head"><label for="f-click-through">鼠标穿透</label>
