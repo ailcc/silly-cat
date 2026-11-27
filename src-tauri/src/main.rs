@@ -591,7 +591,7 @@ fn show_settings(app: &AppHandle) {
     });
     let built = WebviewWindowBuilder::new(app, "settings", WebviewUrl::App("settings.html".into()))
         .title("捣蛋猫 · 设置")
-        .inner_size(400.0, height)
+        .inner_size(700.0, height)
         .resizable(false)
         .maximizable(false)
         .minimizable(false)

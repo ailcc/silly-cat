@@ -161,7 +161,7 @@
   #update-status { margin-top: 6px; color: var(--muted); font-size: 12px; }
   #update-status[hidden] { display: none; }
   /* ---------- 调试模式：连点 10 次检查更新开启，设置窗口右侧展开调试栏 ---------- */
-  body.debug-on { max-width: 400px; } /* 设置内容保持原宽，不被右侧调试栏挤宽 */
+  body.debug-on { max-width: 700px; } /* 设置内容保持原宽，不被右侧调试栏挤宽 */
   #debug-panel {
     position: fixed; top: 0; right: 0; bottom: 0; width: 252px; overflow-y: auto;
     background: #20232e; color: #e8e8f0; border-left: 1px solid #3a3f52;
@@ -996,7 +996,7 @@
   // 每 2 秒问一次 Rust（input_status.needs_permission），只有 macOS 上收不到按键时显示；正常后自动收起。
   // 展开授权区时加高，收起时回到基础高度；两者都为屏幕工作区留 40 px，内容超出时可滚动。
   // BASE_H 和 main.rs 的 SETTINGS_HEIGHT 一致。
-  const BASE_W = 400, BASE_H = 1288;
+  const BASE_W = 700, BASE_H = 1288;
   const perm = document.getElementById('perm');
   const permMsg = document.getElementById('perm-msg');
   function setPermMsg(text, bad) { permMsg.textContent = text; permMsg.className = bad ? 'bad' : ''; }
