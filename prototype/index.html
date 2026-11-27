@@ -458,6 +458,21 @@
 <script>
 (function () {
   'use strict';
+  // 全局错误取证：存 localStorage，设置窗口调试面板里能看（发布版没有控制台，卡死时靠这个找原因）
+  window.addEventListener('error', (e) => {
+    try {
+      const list = JSON.parse(localStorage.getItem('silly-boot-errors') || '[]');
+      list.unshift(new Date().toLocaleTimeString() + ' [window] ' + String(e.message).slice(0, 240) + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno);
+      localStorage.setItem('silly-boot-errors', JSON.stringify(list.slice(0, 5)));
+    } catch (err) { /* 存不了就算了 */ }
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    try {
+      const list = JSON.parse(localStorage.getItem('silly-boot-errors') || '[]');
+      list.unshift(new Date().toLocaleTimeString() + ' [promise] ' + String(e.reason && e.reason.stack || e.reason).slice(0, 240));
+      localStorage.setItem('silly-boot-errors', JSON.stringify(list.slice(0, 5)));
+    } catch (err) { /* 存不了就算了 */ }
+  });
   const params = new URLSearchParams(location.search);
   SillySpecies.select('cat');
   const desktopMode = SillyDesktopInput.isDesktop();
@@ -639,6 +654,7 @@
       if (hindPawsMod) hindPawsMod.setEnabled(s.hindPaws);
       if (listenMod) listenMod.setEnabled(s.listenMusic);
       if (userMusicMod) userMusicMod.setEnabled(s.userMusic);
+      if (window.SillyBgFx) window.SillyBgFx.setEnabled(s.bgFx);
       applyHpColor(s.headphoneColor);
       if (grumpMod) grumpMod.setEnabled(s.grump);
       if (swatMod) swatMod.setEnabled(s.swat);

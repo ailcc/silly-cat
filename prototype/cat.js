@@ -2,6 +2,16 @@
 (function () {
   'use strict';
 
+  // 启动/帧错误的取证：存 localStorage（设置窗口的调试面板会显示），卡死/冻结时有据可查
+  function recordBootError(text) {
+    try {
+      const list = JSON.parse(localStorage.getItem('silly-boot-errors') || '[]');
+      list.unshift(new Date().toLocaleTimeString() + ' ' + String(text).slice(0, 300));
+      localStorage.setItem('silly-boot-errors', JSON.stringify(list.slice(0, 5)));
+    } catch (e) { /* 存不了就算了 */ }
+    if (window.__sillyBootErrors) window.__sillyBootErrors.push(String(text).slice(0, 300));
+  }
+
   const STATES = Object.freeze({
     AWAKE: 'awake', DROWSY: 'drowsy', ASLEEP: 'asleep', PETTED: 'petted',
     RAGE: 'rage', STRIKE: 'strike', REPAIR: 'repair', // 由 fatigue.js 覆盖
@@ -1161,8 +1171,7 @@
     }
 
     let last = performance.now();
-    const loggedFrameErrors = new Set();
-    function frame(now) {
+    const loggedFrameErrors = new Set();    function frame(now) {
       try {
         const dt = clamp(now - last, 0, 64);
         last = now;
@@ -1194,6 +1203,7 @@
         if (!loggedFrameErrors.has(signature)) {
           loggedFrameErrors.add(signature);
           console.error('SillyCat frame failed', error);
+          recordBootError('frame: ' + (error && error.stack || error));
         }
       } finally {
         requestAnimationFrame(frame);
@@ -1246,7 +1256,16 @@
       get rig() { return currentRig(); },
       get shoulders() { return currentRig().paws.shoulders; },
     };
-    for (const make of modules) mods.push(make(ctx) || {});
+    // 模块创建逐个上护栏：一个模块在创建时抛异常不能拖死整个启动（猫会永远冻结）
+    for (const make of modules) {
+      try {
+        mods.push(make(ctx) || {});
+      } catch (error) {
+        console.error('SillyCat module failed to start', error);
+        recordBootError('module: ' + (error && error.stack || error));
+        mods.push({});
+      }
+    }
 
     requestAnimationFrame(frame);
 

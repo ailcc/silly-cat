@@ -73,6 +73,8 @@
   [data-hp-color="latte"] { --hp-cup: #fbf6ea; --hp-plate: #e9c9a8; --hp-band: #b98b6a; }
   [data-hp-color="sky"] { --hp-cup: #b9d8ff; --hp-plate: #8fbdf5; --hp-band: #7fb2f0; }
   #hp-color-options { gap: 6px; }
+  #bg-fx-options { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+  #bg-fx-options label { display: flex; align-items: center; gap: 4px; font-weight: 400; }
   .hp-color-option {
     position: relative;
     display: flex;
@@ -403,6 +405,17 @@
       <div id="hp-color-options" class="field" role="radiogroup" aria-labelledby="hp-color-label"></div></div>
     <div class="hint">游戏模式和两种听歌场景戴的耳机都用这个颜色；选「随机」则每次戴上换一个，戴着期间不变。</div>
   </div>
+  <div class="row" data-bg-fx>
+    <div class="head"><span id="bg-fx-label">背景特效</span>
+      <div id="bg-fx-options" class="field" role="group" aria-labelledby="bg-fx-label">
+        <label class="bgfx"><input type="checkbox" id="f-bgFxSpring">春樱</label>
+        <label class="bgfx"><input type="checkbox" id="f-bgFxSummer">夏萤</label>
+        <label class="bgfx"><input type="checkbox" id="f-bgFxAutumn">秋枫</label>
+        <label class="bgfx"><input type="checkbox" id="f-bgFxWinter">冬雪</label>
+        <label class="bgfx"><input type="checkbox" id="f-bgFxFestival">节日</label>
+      </div></div>
+    <div class="hint">按季节飘的花瓣、萤光、枫叶、细雪，以及春节/圣诞/生日的节日粒子（节日一组共用）。关掉的季节就不再出现对应特效。</div>
+  </div>
   <div class="row" data-bool="mcpServer">
     <div class="head"><label for="f-mcpServer">MCP 外观接口</label>
       <span class="field"><input id="f-mcpServer" type="checkbox" aria-describedby="mcp-hint"></span></div>
@@ -542,6 +555,7 @@
   const purrVolumePercent = document.getElementById('purr-volume-percent');
   const clickThroughInput = document.getElementById('f-click-through');
   const autostartInput = document.getElementById('f-autostart');
+  const bgFxInputs = { spring: document.getElementById('f-bgFxSpring'), summer: document.getElementById('f-bgFxSummer'), autumn: document.getElementById('f-bgFxAutumn'), winter: document.getElementById('f-bgFxWinter'), festival: document.getElementById('f-bgFxFestival') };
   sizeInput.min = String(Math.round(S.SIZE.min * 100));
   sizeInput.max = String(Math.round(S.SIZE.max * 100));
   sizeInput.step = String(Math.round(S.SIZE.step * 100));
@@ -564,6 +578,7 @@
       input.value = s[k] === null ? '' : fmt(s[k]);
     }
     for (const k of S.BOOLS) bools[k].checked = s[k] !== false;
+    for (const k of Object.keys(bgFxInputs)) bgFxInputs[k].checked = s.bgFx ? s.bgFx[k] !== false : true;
     sitMinutesInput.value = String(s.sitMinutes);
     birthdayInput.value = s.birthday || '';
     sizeInput.value = Math.round(s.size * 100);
@@ -580,6 +595,7 @@
       else s[k] = Number(t);
     }
     for (const k of S.BOOLS) s[k] = bools[k].checked;
+    s.bgFx = { spring: bgFxInputs.spring.checked, summer: bgFxInputs.summer.checked, autumn: bgFxInputs.autumn.checked, winter: bgFxInputs.winter.checked, festival: bgFxInputs.festival.checked };
     s.sitMinutes = Number(sitMinutesInput.value);
     s.birthday = birthdayInput.value.trim(); // 格式对不对由 sanitize 把关，不对就当没填
     s.size = sizeInput.valueAsNumber / 100;
@@ -700,6 +716,16 @@
       groupsBox.appendChild(grid);
     }
     document.getElementById('debug-exit').addEventListener('click', exitDebug);
+    // 主窗口最近一次的启动/帧错误（cat.js 记在 localStorage）：猫卡死、按钮没反应时先看这里
+    try {
+      const errs = JSON.parse(localStorage.getItem('silly-boot-errors') || '[]');
+      if (errs.length) {
+        const box = document.createElement('div');
+        box.style.cssText = 'margin-top:8px;font-size:11px;color:#e8b4aa;word-break:break-all;';
+        box.innerHTML = '<b>主窗口错误记录</b><br>' + errs.map((e) => e.replace(/</g, '&lt;')).join('<br>');
+        groupsBox.appendChild(box);
+      }
+    } catch (e) { /* 读不到就算了 */ }
   }
   // 检查更新：桌面版直接触发 Rust 侧的检查，结果会通过 silly:update 事件显示在按钮下面那栏
   // 或顶部的 update-result 区；3 秒内连点 10 次打开调试模式
@@ -756,7 +782,11 @@
   if (T && T.window && T.window.getCurrentWindow) {
     try {
       T.window.getCurrentWindow().onCloseRequested((event) => {
-        if (debugOn) event.preventDefault();
+        if (debugOn) {
+          event.preventDefault();
+          // 只拦不说等于窗口坏了：明确告诉用户为什么关不掉、怎么关
+          setStatus('调试模式开着，窗口暂时关不掉：点「退出调试」或按 Esc 退出后再关', 'ok');
+        }
       });
     } catch { /* 旧接口没有 onCloseRequested 就不管 */ }
   }

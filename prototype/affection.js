@@ -114,7 +114,8 @@
       const demo = opts.demo && DEMOS.includes(opts.demo.name) ? opts.demo : null;
       const frozen = demo && Number.isFinite(demo.at);
 
-      const F = { kneadAt: -1e9, nextKnead: performance.now() + rand(10, 25) * 1000, demoInit: false, tier: tierOf(bucket(idOf()).v || 0), celebrateUntil: -1e9, nextCelebHeart: 0, nextPetHeart: 0 };
+      // 演示模式 0.8 秒就开踩（再晚猫先睡着了）；平时发呆 10–25 秒后随机来一次
+      const F = { kneadAt: -1e9, nextKnead: performance.now() + (demo ? 800 : rand(10, 25) * 1000), demoInit: false, tier: tierOf(bucket(idOf()).v || 0), celebrateUntil: -1e9, nextCelebHeart: 0, nextPetHeart: 0 };
       // 暴露踩奶状态和节拍进度给 hindpaws 等模块（后脚要跟前爪对角同步蹬）
       window.SillyAffection.kneading = () => F.kneadAt > 0;
       window.SillyAffection.kneadT = (now) => (F.kneadAt > 0 ? now - F.kneadAt : -1);
@@ -216,7 +217,7 @@
           if (S.pressed.size || S.mouseButtons.size) endKnead(now); // 你回来了，先不踩了
           return;
         }
-        if (bucket(activeId || idOf()).v >= KNEAD_AT && ctx.species?.knead !== false &&
+        if ((demo || bucket(activeId || idOf()).v >= KNEAD_AT) && ctx.species?.knead !== false &&
             now >= F.nextKnead && S.state === STATES.AWAKE && !S.pet &&
             !S.pressed.size && !S.mouseButtons.size &&
             // 听歌时不踩奶：踩奶会把 lastInput 拉到当前，听歌就被当成"用户有输入"掐断了

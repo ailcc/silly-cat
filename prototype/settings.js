@@ -11,7 +11,7 @@
   // pomo：番茄钟开关。birthday：猫的生日（MM-DD 文本，空 = 不庆祝）。birthdayHearts：生日当天要不要全程爱心眼（默认关）。和开关项一样不参与 KEYS 里的数字校验
   // mcpServer：MCP 外观接口（本地回环 HTTP，给 AI 助手换装用，默认关）；mcpPort 不在界面暴露，settings.json 里可手改
   // userMusic：用户听歌模式（检测系统音频，真正出声才戴耳机）；headphoneColor：耳机颜色（游戏 / 空闲听歌 / 用户听歌三处共用）
-  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', keyboard: 'compact', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, grump: true, swat: true, purr: true, purrVolume: 60, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true, userMusic: true, headphoneColor: 'strawberry' });
+  const DEFAULTS = Object.freeze({ sleep: 20, drool: null, slump: null, work: 90, rest: 20, statusBar: true, autoUpdate: true, push: true, eyesFollow: true, pushEvery: 600, size: 1, cat: 'cow', artStyle: 'fur', keyboard: 'compact', sounds: true, pomo: false, birthday: '', birthdayHearts: false, quips: true, pomoCheer: true, sitRemind: true, sitMinutes: 45, kittenCoat: false, tailSlap: true, kbdFlow: true, headTurn: true, grump: true, swat: true, purr: true, purrVolume: 60, mcpServer: false, mcpPort: 48620, hindPaws: true, listenMusic: true, userMusic: true, headphoneColor: 'strawberry', bgFx: { spring: true, summer: true, autumn: true, winter: true, festival: true } });
   const BOOLS = Object.freeze(['statusBar', 'autoUpdate', 'push', 'eyesFollow', 'sounds', 'pomo', 'birthdayHearts', 'quips', 'pomoCheer', 'sitRemind', 'kittenCoat', 'tailSlap', 'kbdFlow', 'headTurn', 'grump', 'swat', 'purr', 'mcpServer', 'hindPaws', 'listenMusic', 'userMusic']);
   // 耳机颜色的名字和顺序就是设置页色块的顺序；random 是第 5 个特殊选项：每次戴上随机挑一个，
   // 戴着期间不再换色（耳机戴一半换色太怪了），摘下来下次戴上再随机
@@ -79,7 +79,13 @@
         const m = raw.birthday.trim().match(/^(\d{1,2})-(\d{1,2})$/);
         if (m && +m[1] >= 1 && +m[1] <= 12 && +m[2] >= 1 && +m[2] <= 31) s.birthday = `${+m[1]}-${+m[2]}`;
       }
-      const size = raw.size;
+      // bgFx：背景特效五个开关（春夏秋冬四季 + 节日一组）。旧存档没有这项就全开
+  if (raw && typeof raw === 'object') {
+    const fx = raw.bgFx && typeof raw.bgFx === 'object' ? raw.bgFx : {};
+    s.bgFx = { ...DEFAULTS.bgFx };
+    for (const k of Object.keys(DEFAULTS.bgFx)) if (typeof fx[k] === 'boolean') s.bgFx[k] = fx[k];
+  }
+  const size = raw.size;
       if (Number.isFinite(size) && size >= SIZE.min && size <= SIZE.max) s.size = size;
       if (CATS.includes(raw.cat)) s.cat = raw.cat;
       if (raw.artStyle === 'fur' || raw.artStyle === 'line') s.artStyle = raw.artStyle;

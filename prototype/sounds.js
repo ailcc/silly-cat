@@ -10,6 +10,8 @@
 
   let ac = null;         // AudioContext：第一次出声时才建（浏览器要求先有用户交互）
   let purrNodes = null;  // 持续呼噜的节点
+  let lastSoundAt = -1e9; // 最近一次出声的时刻，给闲置挂起计时用
+  let idleTimer = 0;
 
   function save() {
     try { localStorage.setItem(KEY, JSON.stringify(enabled)); } catch (e) { /* 存不了就算了 */ }
@@ -23,8 +25,17 @@
       ac = new AC();
     }
     if (ac.state === 'suspended') ac.resume();
+    lastSoundAt = performance.now();
     return ac;
   }
+
+  // AudioContext 挂着不放会让 WKWebView 的音频输出 IO 一直占着（GPU 进程
+  // 「正在输出」标记常亮）。闲置 10 秒自动挂起，下次出声再 resume——反正
+  // 10 秒没动静，挂起的恢复开销感知不到。
+  setInterval(() => {
+    if (ac && ac.state === 'running' && !purrNodes &&
+        performance.now() - lastSoundAt >= 10000) ac.suspend();
+  }, 3000);
 
   // 噪声缓冲：哈气 / 砸键盘共用
   function noiseBuffer(ctx2, sec) {
@@ -150,6 +161,7 @@
     if (!purrNodes) return;
     const { src, lfo, g } = purrNodes;
     purrNodes = null;
+    lastSoundAt = performance.now(); // 呼噜尾巴也算出声
     try {
       g.gain.setTargetAtTime(0.0001, ac.currentTime, 0.15);
       src.stop(ac.currentTime + 0.6); lfo.stop(ac.currentTime + 0.6);

@@ -37,6 +37,10 @@
 
   let current = null;
   let timer = 0;
+  // 用户开关（设置页「背景特效」五个勾）：四季各一个 + 节日一组共用一个。
+  // 缺省全开；设置广播来的时候整表更新。调试 URL ?bg= 不受开关限制。
+  const enabled = { spring: true, summer: true, autumn: true, winter: true, festival: true };
+  const GROUP = { spring: 'spring', summer: 'summer', autumn: 'autumn', winter: 'winter', festival: 'festival', christmas: 'festival', birthday: 'festival' };
 
   function stop() {
     if (timer) { clearInterval(timer); timer = 0; }
@@ -64,12 +68,19 @@
     // holidays.js 每帧推：'spring'|'summer'|'autumn'|'winter'|'festival'|'christmas'|'birthday'
     setScene(name) {
       if (forceValid) name = forced === 'off' ? null : forced; // 调试参数优先
+      if (name && !enabled[GROUP[name]]) name = null; // 用户关掉的季节/节日不放
       if (name === current) return;
       current = name;
       const scene = name && SCENES[name];
       tint.style.background = (scene && scene.tint) || '';
       if (!scene) { stop(); return; }
       start(scene.kind, scene.density);
+    },
+    // 设置页「背景特效」五个开关（settings.bgFx），主窗口 applySettings 每次广播
+    setEnabled(map) {
+      if (!map || typeof map !== 'object') return;
+      for (const k of Object.keys(enabled)) if (typeof map[k] === 'boolean') enabled[k] = map[k];
+      if (current && !enabled[GROUP[current]]) this.setScene(null); // 正在放的关掉了，立刻收
     },
   };
 })();

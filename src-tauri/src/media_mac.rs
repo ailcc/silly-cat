@@ -6,6 +6,12 @@
 use std::{ffi::c_void, mem::size_of, ptr};
 
 // 通话 / 会议 / 语音软件：它们在出声也不算听歌（按 bundle id 前缀匹配）。
+// com.apple.WebKit.GPU / WebContent：猫自己的音效跑在 WKWebView 的 GPU 进程里（bundle id
+// 不是 com.drew.sillycat，单排自己没用），而且 AudioContext 建了之后音频输出 IO 常驻——
+// 「正在输出」标记常亮，不排的话猫一打字就给自己戴上耳机（2026-11-27 探针实测）。
+// 代价：Safari 等内嵌 WebKit 的浏览器放歌也不会触发（Chrome/Edge 是 Blink 不受影响）。
+// com.yourcompany.UZPlayer：zspace 工具的常驻视频组件，不发声也一直占着音频输出 IO，
+// 同样会误触发，一并排除。
 const EXCLUDED: &[&str] = &[
     "com.tencent.xinWeChat",
     "com.tencent.qq",
@@ -22,6 +28,9 @@ const EXCLUDED: &[&str] = &[
     "com.apple.audio.systemsoundserverd",
     "com.hnc.Discord",
     "com.drew.sillycat", // 猫自己的音效
+    "com.apple.WebKit.GPU",
+    "com.apple.WebKit.WebContent",
+    "com.yourcompany.UZPlayer",
 ];
 const SYSTEM: u32 = 1;
 const GLOBAL: u32 = u32::from_be_bytes(*b"glob");
@@ -111,6 +120,8 @@ fn process_objects(addr: &Address) -> Vec<u32> {
 
 fn eligible_process(id: u32) -> bool {
     unsafe {
+        // 'piro' = kAudioProcessPropertyIsRunningOutput（进程正在跑音频输出 IO；
+        // 注意真正的 IsRunning 是 'pir?'，别搞混——2026-11-27 对 SDK 头文件核实）
         if scalar::<u32>(id, b"piro", GLOBAL, 0) != Some(1) {
             return false;
         }
