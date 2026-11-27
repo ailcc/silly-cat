@@ -180,7 +180,7 @@
     easter: '汪！',
 
     pounceGo: '扑！',
-    pounceMiss: '汪？！扑空了',
+    pounceMiss: '汪？！草，扑空了',
 
     pomoFocus: '专注开始！第 {n} 个番茄',
     pomoRestLong: '休息 {min} 分钟，辛苦啦汪',
@@ -219,7 +219,7 @@
 
     mealTime: '{label}点到啦！',
 
-    visitorGreet: '汪呜~ 小家伙',
+    visitorGreet: '汪呜~ 狗东西',
     visitorPurr: '呼噜呼噜…',
   };
 
