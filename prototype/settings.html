@@ -808,20 +808,27 @@
   });
   refreshStats();
   setInterval(refreshStats, 1500);
-  // ---------- 好感度：摸头攒好感，够亲了会踩奶 ----------
+  // ---------- 好感度：摸头攒好感，够亲了会踩奶（每只皮肤一份，互不共享） ----------
   const affectionLine = document.getElementById('affection-line');
+  const selectedCat = () => {
+    const el = form.querySelector('input[name="cat"]:checked');
+    return el ? el.value : null;
+  };
   function refreshAffection() {
-    const a = window.SillyAffection.get();
-    const next = a.v < 30 ? [30, '熟悉'] : a.v < 60 ? [60, '亲近'] : a.v < 100 ? [100, '死忠'] : null;
+    const id = selectedCat();
+    const a = window.SillyAffection.get(id || undefined);
+    const next = a.v < 30 ? [30, '熟悉'] : a.v < 60 ? [60, '亲近'] : a.v < 100 ? [100, '死忠'] : a.v < 160 ? [160, '命中注定'] : null;
     const tail = next ? `，还差 ${next[0] - a.v} 点到「${next[1]}」` : '，已经是最高级啦';
-    const knead = a.v >= 60 ? ' · 它会在你发呆时踩奶' : '';
-    affectionLine.textContent = `♥ ${a.v}（${a.tier}）${tail}${knead}`;
+    const knead = a.v >= 60 && (!id || catSpecies.get(id) !== 'dog') ? ' · 它会在你发呆时踩奶' : '';
+    const name = id ? ` · ${catNames.get(id) || id}` : '';
+    affectionLine.textContent = `♥ ${a.v}（${a.tier}）${name}${tail}${knead}`;
   }
   document.getElementById('affection-reset').addEventListener('click', () => {
-    window.SillyAffection.reset();
+    window.SillyAffection.reset(selectedCat() || undefined);
     refreshAffection();
-    setStatus('好感度已清零', 'ok');
+    setStatus('这只的好感度已清零', 'ok');
   });
+  catOptions.addEventListener('change', refreshAffection); // 换选皮肤立刻显示那一只的分数
   refreshAffection();
   setInterval(refreshAffection, 1500);
   if (invoke) {
