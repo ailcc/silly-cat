@@ -18,7 +18,7 @@ const iconPath = app?.isPackaged
   ? path.join(process.resourcesPath, 'tray.png')
   : path.join(__dirname, '..', 'src-tauri', 'icons', '32x32.png');
 const border = 'html::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:2147483647;outline:2px solid #ff00ff;outline-offset:-2px;box-shadow:inset 0 0 0 4px rgba(0,255,255,.55)}';
-let userData, win, settingsWin, settingsLoading, updater, out, watchdog, debugKey;
+let userData, win, settingsWin, settingsLoading, updater, out, watchdog, debugKey, debugCloseBlockOn = false;
 const hook = require('./input-hook');
 let win7Card = false;
 // Win7 没有 DirectComposition。Electron 22 开点穿时会给窗口加上 WS_EX_LAYERED 却不设分层属性，
@@ -158,7 +158,7 @@ function fatal(title, detail) {
 
 function send(name, payload) {
   const targets = [loaded && win];
-  if (['silly:key', 'silly:button', 'silly:update', 'silly:click-through'].includes(name)) targets.push(settingsWin);
+  if (['silly:key', 'silly:button', 'silly:update', 'silly:click-through', 'silly:debug-close-blocked'].includes(name)) targets.push(settingsWin);
   for (const target of targets) {
     if (target && !target.isDestroyed() && !target.webContents.isDestroyed()) {
       target.webContents.send('silly:event', name, payload);
@@ -248,7 +248,7 @@ async function showSettings() {
   const area = screen.getDisplayMatching(win.getBounds()).workArea;
   const height = Math.max(1, Math.min(1640, area.height - 40));
   const window = new BrowserWindow({
-    width: 400, height, useContentSize: true, title: '捣蛋猫 · 设置',
+    width: 700, height, useContentSize: true, title: '捣蛋猫 · 设置',
     show: false, frame: true, skipTaskbar: false, resizable: false,
     maximizable: false, minimizable: false, fullscreenable: false, webPreferences: webPreferences()
   });
@@ -256,12 +256,20 @@ async function showSettings() {
   secureWindow(window, settingsPath);
   if (process.platform !== 'darwin') {
     window.removeMenu();
-    window.setContentSize(400, height);
+    window.setContentSize(700, height);
   }
   const bounds = window.getBounds();
   window.setPosition(Math.round(area.x + (area.width - bounds.width) / 2),
     Math.round(area.y + (area.height - bounds.height) / 2));
   window.once('closed', () => { if (settingsWin === window) settingsWin = undefined; });
+  // 调试模式开着时设置窗口不许关（先退出调试）——和 Tauri 侧的 DebugCloseBlock 一致。
+  // 拦截放在主进程，前端异常也不影响；拦下时通知页面显示提示条。
+  window.on('close', (e) => {
+    if (debugCloseBlockOn) {
+      e.preventDefault();
+      send('silly:debug-close-blocked', null);
+    }
+  });
   settingsLoading = window.loadFile(settingsPath);
   try {
     await settingsLoading;
@@ -834,6 +842,7 @@ function invokeCommand(command, args, caller) {
     case 'position_locked': return positionLocked;
     case 'click_through_status': return clickThroughStatus();
     case 'set_click_through': return setClickThrough(args?.enabled);
+    case 'set_debug_close_block': setDebugCloseBlock(args?.blocked); return;
     case 'show_context_menu': return showContextMenu();
     case 'input_status': return hook.inputStatus();
     case 'held_input_state': return hook.heldInputState(args?.keys, args?.buttons);
@@ -910,6 +919,11 @@ function installIPC() {
   };
   ipcMain.handle('silly:invoke', handle((caller, command, args) => invokeCommand(command, args, caller)));
   ipcMain.handle('silly:window', handle(windowMethod));
+  // 设置窗口 → 主窗口的事件桥（网页调试栏的 silly:debug-demo 指挥主窗口带参数重载）；
+  // Tauri 的 event.emit 是跨窗口广播，Electron 没有等价物，preload 把 emit 转成这个消息
+  ipcMain.on('silly:emit', (event, name, payload) => {
+    if (name === 'silly:debug-demo') send('silly:debug-demo', payload);
+  });
   ipcMain.on('silly:drag-end', (event) => {
     if (callerWindow(event) === win) endDrag();
   });
@@ -960,6 +974,19 @@ function setClickThrough(enabled) {
     }
   }
   return status;
+}
+
+// 调试模式开/关时同步：记拦截标志 + 设置窗口加宽/还原（网页 fitWindow 在 Electron
+// 里拿不到 Tauri API 不生效，宽度调整由这里做；enterDebug/exitDebug 调此命令）
+function setDebugCloseBlock(blocked) {
+  debugCloseBlockOn = !!blocked;
+  const w = settingsWin;
+  if (w && !w.isDestroyed()) {
+    const width = debugCloseBlockOn ? 952 : 700; // 调试栏 252px + 页面 700px
+    w.setResizable(true);
+    w.setContentSize(width, w.getContentSize()[1]);
+    w.setResizable(false);
+  }
 }
 
 function toggleClickThrough() {

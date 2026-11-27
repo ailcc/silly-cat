@@ -2,6 +2,7 @@
 # 推 main 或 v* 标签时自动执行；Gitee Release 的安装包由 release.yml 的 gitee job 负责。
 # 前置：GitHub 仓库 Secrets 里配置 GITEE_TOKEN（Gitee 私人令牌，projects 权限）。
 name: sync-gitee
+run-name: 同步 Gitee（${{ github.ref }}）
 
 on:
   push:

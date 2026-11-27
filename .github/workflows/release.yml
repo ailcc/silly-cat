@@ -6,6 +6,7 @@
 # https://github.com/tauri-apps/tauri-action （2026-11 查阅：tauri-action@v1、checkout@v7、setup-node@v6）。
 # 手动运行只生成 workflow artifacts。macOS 有证书时固定签名，首次打开仍需在「隐私与安全性」放行。
 name: release
+run-name: 编译安装包 ${{ github.ref_name }}
 
 on:
   push:

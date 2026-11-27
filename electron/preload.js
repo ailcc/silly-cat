@@ -36,7 +36,9 @@ contextBridge.exposeInMainWorld('__TAURI__', {
       const id = nextId++;
       listeners.set(id, { name, handler });
       return () => { listeners.delete(id); };
-    }
+    },
+    // Tauri 的事件广播在 Electron 里走主进程转发（目前只有设置窗口的 silly:debug-demo 用到）
+    emit: (name, payload) => { ipcRenderer.send('silly:emit', name, payload); }
   },
   window: { getCurrentWindow: () => currentWindow, LogicalSize },
   dpi: { LogicalSize }
