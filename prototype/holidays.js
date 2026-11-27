@@ -68,7 +68,8 @@
     const FIT_BASE = {
       'holiday-pumpkin': { x: 712, y: 424, w: 60, h: 49 }, // 中心在 742,452
       'holiday-hat':     { x: 308, y: 34,  w: 171, h: 76 },
-      'holiday-coat':    { x: 318, y: 262, w: 164, h: 200 }, // 全身唐装：肩线到键盘上沿（含下摆外扩）
+      // 春节唐装原始框猫狗各一套（版型不同，不是互相缩放）
+      'holiday-coat':    { cat: { x: 330, y: 272, w: 140, h: 156 }, dog: { x: 330, y: 274, w: 162, h: 160 } },
       'holiday-bdayhat': { x: 330, y: 2,   w: 116, h: 106 },
     };
     // 披风：U 型肩带（和围巾带同一条归一化路径）+ 左右两片下摆，五颗星挂在肩带上按比例摆
@@ -106,11 +107,19 @@
       // 之前把元素 id 直接传给 fit() 导致查不到参数、四个装扮的拟合从未生效
       const item = { halloween: 'holiday-pumpkin', christmas: 'holiday-hat', spring: 'holiday-coat', birthday: 'holiday-bdayhat' }[W.mode];
       if (!item) return;
-      const el = document.getElementById(item);
+      const isDog = window.SillySpecies?.current?.id === 'dog';
+      let el = document.getElementById(item);
+      let base = FIT_BASE[item];
+      if (item === 'holiday-coat') { // 唐装猫狗两套版型：按当前物种选组、取对应的原始框
+        el = document.getElementById(isDog ? 'holiday-coat-dog' : 'holiday-coat');
+        base = base[isDog ? 'dog' : 'cat'];
+        const other = document.getElementById(isDog ? 'holiday-coat' : 'holiday-coat-dog');
+        if (other) other.style.display = 'none';
+        if (el && el.style.display !== '') el.style.display = '';
+      }
       if (!el) return;
       const cfg = fit({ 'holiday-pumpkin': 'holidayPumpkin', 'holiday-hat': 'holidayHat', 'holiday-coat': 'holidayCoat', 'holiday-bdayhat': 'holidayBdayhat' }[item]);
       if (!cfg) return;
-      const base = FIT_BASE[item];
       let t;
       if (item === 'holiday-pumpkin') {
         const s = cfg.scale ?? 1;
@@ -166,17 +175,26 @@
             <rect class="hh-brim" x="308" y="88" width="122" height="22" rx="11"/>
           </g>`);
       } else if (mode === 'spring') {
-        // 红色唐装：盖住整个身子（肩线 → 键盘上沿），小立领 + 对襟门襟 + 三颗盘扣，
-        // 挂在身体组里跟着身子动；前爪画在衣服上层（打字时爪子在衣服前面）。
-        // 调试面板的「隐藏手脚」按钮（?nolimbs=1）可以把手臂后脚藏起来看衣服全貌。
+        // 红色唐装：按躯干轮廓收放的贴身版型（胸口最宽、下摆沿身体底部弧线收口），
+        // 猫和狗各画一套版型（不是互相缩放），挂在身体组里跟着身子动；
+        // 前爪画在衣服上层（打字时爪子在衣服前面）。
+        // 调试面板的「隐藏手脚」「隐藏键盘」（?nolimbs=1 / ?nokeys=1）可以看衣服全貌。
         $('cat-body').insertAdjacentHTML('beforeend', `
           <g id="holiday-coat">
-            <path class="hco-panel" d="M 335 284 Q 400 274 465 284 L 481 430 Q 478 449 462 452 L 338 452 Q 322 449 319 430 Z"/>
-            <path class="hco-collar" d="M 335 286 Q 400 304 465 286 Q 458 272 444 269 Q 400 280 356 269 Q 342 272 335 286 Z"/>
-            <path class="hco-placket" d="M 397 306 L 397 446 M 403 306 L 403 446"/>
-            <circle class="hco-knot" cx="400" cy="330" r="5"/>
+            <path class="hco-panel" d="M 340 286 Q 400 274 460 286 Q 470 316 468 348 Q 466 390 452 414 Q 400 426 348 414 Q 334 390 332 348 Q 330 316 340 286 Z"/>
+            <path class="hco-collar" d="M 340 288 Q 400 306 460 288 Q 454 273 440 270 Q 400 282 360 270 Q 346 273 340 288 Z"/>
+            <path class="hco-placket" d="M 397 308 L 397 420 M 403 308 L 403 420"/>
+            <circle class="hco-knot" cx="400" cy="336" r="5"/>
             <circle class="hco-knot" cx="400" cy="372" r="5"/>
-            <circle class="hco-knot" cx="400" cy="414" r="5"/>
+            <circle class="hco-knot" cx="400" cy="406" r="5"/>
+          </g>
+          <g id="holiday-coat-dog" style="display:none">
+            <path class="hco-panel" d="M 360 292 Q 410 280 464 292 Q 490 320 490 352 Q 488 396 470 424 Q 410 436 350 424 Q 332 396 332 352 Q 334 320 360 292 Z"/>
+            <path class="hco-collar" d="M 360 294 Q 410 312 464 294 Q 458 279 444 276 Q 410 288 370 276 Q 364 279 360 294 Z"/>
+            <path class="hco-placket" d="M 407 314 L 407 428 M 413 314 L 413 428"/>
+            <circle class="hco-knot" cx="410" cy="342" r="5"/>
+            <circle class="hco-knot" cx="410" cy="378" r="5"/>
+            <circle class="hco-knot" cx="410" cy="412" r="5"/>
           </g>`);
       } else if (mode === 'national') {
         // 国旗披风：U 型肩带（画法同围巾带，从脖子两侧绕出来）+ 左右两片下摆，

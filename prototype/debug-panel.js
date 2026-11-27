@@ -57,13 +57,13 @@
   // 现有 URL 里的 demo 名（高亮当前状态按钮用）：含附加参数的项（如 knead&at=800）
   // 按主名匹配高亮
   const currentDemo = params.get('demo');
-  function toggleNolimbs() { // 隐藏手脚开关：只切 nolimbs 参数，demo/皮肤保持不变
+  function toggleParam(key) { // 「__xxx」类开关：只切对应 URL 参数，demo/皮肤保持不变
     const p = new URLSearchParams(location.search);
-    if (p.has('nolimbs')) p.delete('nolimbs'); else p.set('nolimbs', '1');
+    if (p.has(key)) p.delete(key); else p.set(key, '1');
     location.href = location.pathname + '?' + p.toString();
   }
   function go(spec) {
-    if (spec === '__nolimbs') return toggleNolimbs();
+    if (spec && spec.startsWith('__')) return toggleParam(spec.slice(2));
     const p = new URLSearchParams(location.search);
     p.set('cat', select.value);
     if (spec) {
@@ -75,7 +75,7 @@
         p.set(eq === -1 ? kv : kv.slice(0, eq), eq === -1 ? '1' : kv.slice(eq + 1));
       }
     } else {
-      p.delete('demo'); p.delete('loop'); p.delete('at'); p.delete('nolimbs');
+      p.delete('demo'); p.delete('loop'); p.delete('at'); p.delete('nolimbs'); p.delete('nokeys');
     }
     location.href = location.pathname + '?' + p.toString();
   }
@@ -90,15 +90,13 @@
     for (const [label, demo] of items) {
       const b = document.createElement('button');
       b.textContent = label;
-      const isNolimbs = demo === '__nolimbs';
-      if (isNolimbs ? params.has('nolimbs') : currentDemo === demo.split('&')[0]) b.classList.add('on');
-      b.title = isNolimbs ? '藏起手臂前爪后脚，看全身衣服（再点恢复）；可与任意状态叠加'
+      const isToggle = demo.startsWith('__');
+      const toggleKey = isToggle ? demo.slice(2) : null;
+      if (isToggle ? params.has(toggleKey) : currentDemo === demo.split('&')[0]) b.classList.add('on');
+      b.title = isToggle ? '开关（可与任意状态叠加）：' + toggleKey
         : label === '听歌戴耳机' ? '戴上耳机听歌，8 秒后自动睡着'
         : label === '听歌睡着' ? '戴着耳机直接睡着，不听点头的' : demo;
-      b.addEventListener('click', () => {
-        if (isNolimbs) { b.classList.toggle('on', !params.has('nolimbs')); }
-        go(demo);
-      });
+      b.addEventListener('click', () => go(demo));
       grid.appendChild(b);
     }
     groupsBox.appendChild(grid);

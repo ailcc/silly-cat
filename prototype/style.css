@@ -420,10 +420,11 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .hco-collar { fill: #c4443c; stroke: var(--ink); stroke-width: 3.5; stroke-linejoin: round; }
 #scene .hco-knot { fill: #f6c445; stroke: var(--ink); stroke-width: 2.5; }
 #scene .hco-placket { fill: none; stroke: var(--ink); stroke-width: 2.5; }
-/* 调试：?nolimbs=1 隐藏手臂前爪和后脚（网页调试面板「隐藏手脚」按钮），看全身衣服用 */
+/* 调试：?nolimbs=1 隐藏手臂前爪和后脚、?nokeys=1 隐藏键盘（网页调试面板开关按钮），看全身衣服用 */
 #scene.nolimbs #arm-l, #scene.nolimbs #arm-r,
 #scene.nolimbs #paw-l, #scene.nolimbs #paw-r,
 #scene.nolimbs #hindpaws { display: none !important; }
+#scene.nokeys #keyboard { display: none !important; }
 
 /* 国庆国旗披风（红底黄星，国旗配色） */
 #scene .hca-band { fill: #de2910; stroke: var(--ink); stroke-width: 4; stroke-linejoin: round; }
