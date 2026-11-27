@@ -68,7 +68,7 @@
     const FIT_BASE = {
       'holiday-pumpkin': { x: 712, y: 424, w: 60, h: 49 }, // 中心在 742,452
       'holiday-hat':     { x: 308, y: 34,  w: 171, h: 76 },
-      'holiday-coat':    { x: 352, y: 289, w: 96,  h: 95 },
+      'holiday-coat':    { x: 318, y: 262, w: 164, h: 200 }, // 全身唐装：肩线到键盘上沿（含下摆外扩）
       'holiday-bdayhat': { x: 330, y: 2,   w: 116, h: 106 },
     };
     // 披风：U 型肩带（和围巾带同一条归一化路径）+ 左右两片下摆，五颗星挂在肩带上按比例摆
@@ -166,14 +166,17 @@
             <rect class="hh-brim" x="308" y="88" width="122" height="22" rx="11"/>
           </g>`);
       } else if (mode === 'spring') {
-        // 红色小马褂：前身一块红布 + 深色领口 + 三颗盘扣，挂在身体组里跟着身子动
+        // 红色唐装：盖住整个身子（肩线 → 键盘上沿），小立领 + 对襟门襟 + 三颗盘扣，
+        // 挂在身体组里跟着身子动；前爪画在衣服上层（打字时爪子在衣服前面）。
+        // 调试面板的「隐藏手脚」按钮（?nolimbs=1）可以把手臂后脚藏起来看衣服全貌。
         $('cat-body').insertAdjacentHTML('beforeend', `
           <g id="holiday-coat">
-            <path class="hco-panel" d="M 358 302 Q 400 292 442 302 L 448 372 Q 400 384 352 372 Z"/>
-            <path class="hco-collar" d="M 358 302 Q 400 318 442 302 Q 436 291 424 289 Q 400 300 376 289 Q 364 291 358 302 Z"/>
-            <circle class="hco-knot" cx="400" cy="326" r="4.5"/>
-            <circle class="hco-knot" cx="400" cy="348" r="4.5"/>
-            <circle class="hco-knot" cx="400" cy="370" r="4.5"/>
+            <path class="hco-panel" d="M 335 284 Q 400 274 465 284 L 481 430 Q 478 449 462 452 L 338 452 Q 322 449 319 430 Z"/>
+            <path class="hco-collar" d="M 335 286 Q 400 304 465 286 Q 458 272 444 269 Q 400 280 356 269 Q 342 272 335 286 Z"/>
+            <path class="hco-placket" d="M 397 306 L 397 446 M 403 306 L 403 446"/>
+            <circle class="hco-knot" cx="400" cy="330" r="5"/>
+            <circle class="hco-knot" cx="400" cy="372" r="5"/>
+            <circle class="hco-knot" cx="400" cy="414" r="5"/>
           </g>`);
       } else if (mode === 'national') {
         // 国旗披风：U 型肩带（画法同围巾带，从脖子两侧绕出来）+ 左右两片下摆，

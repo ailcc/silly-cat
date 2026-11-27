@@ -685,6 +685,11 @@
         else if (spec === 'listen&doze=1') b.title = '戴着耳机直接睡着，不点头不冒音符';
         else if (spec === 'knead&at=800') b.title = '按着胸口踩奶';
         b.addEventListener('click', () => {
+          if (spec === '__nolimbs') { // 隐藏手脚：独立开关，不影响已选状态的高亮
+            b.classList.toggle('on');
+            if (T && T.event) T.event.emit('silly:debug-demo', { spec });
+            return;
+          }
           for (const x of buttons) x.classList.remove('on');
           b.classList.add('on');
           if (T && T.event) T.event.emit('silly:debug-demo', { spec });
