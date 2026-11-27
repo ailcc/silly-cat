@@ -382,6 +382,17 @@ struct ClickThrough {
     tray_item: CheckMenuItem<tauri::Wry>,
 }
 
+/// 调试模式开着时设置窗口不许关（先退出调试）。开关由前端 enterDebug/exitDebug 调命令同步。
+/// 关闭拦截在 Rust 侧（show_settings 里挂 CloseRequested），不依赖前端存活。
+struct DebugCloseBlock(AtomicBool);
+
+#[tauri::command]
+fn set_debug_close_block(app: AppHandle, blocked: bool) {
+    if let Some(state) = app.try_state::<DebugCloseBlock>() {
+        state.0.store(blocked, Ordering::SeqCst);
+    }
+}
+
 #[derive(Serialize, Deserialize, Default)]
 struct SavedClickThrough {
     enabled: bool,
@@ -588,6 +599,21 @@ fn show_settings(app: &AppHandle) {
         .focused(true)
         .build();
     if let Ok(w) = built {
+        // 关闭拦截放在 Rust 侧：调试模式开着时拦下标题栏关闭（先退出调试）。
+        // 之前用前端 JS 的 onCloseRequested 拦——Tauri v2 里注册了这个监听后关窗就变成
+        // 「Rust 等前端确认」的往返，前端稍有异常窗口就永远关不掉（1.4.0 设置窗口关不掉
+        // 的根因，macOS/Windows 都中招），改成 Rust 侧后关窗不再依赖前端存活。
+        let app2 = app.clone();
+        w.on_window_event(move |e| {
+            if let WindowEvent::CloseRequested { api, .. } = e {
+                if let Some(state) = app2.try_state::<DebugCloseBlock>() {
+                    if state.0.load(Ordering::SeqCst) {
+                        api.prevent_close();
+                        let _ = app2.emit_to("settings", "silly:debug-close-blocked", ());
+                    }
+                }
+            }
+        });
         // macOS：Accessory 应用默认不是前台应用，激活一下设置窗口才能成为键盘焦点窗口。
         // Windows：这一步来自用户刚点过的托盘菜单 / 猫窗口，系统允许本进程把新窗口带到前台
         let _ = w.set_focus();
@@ -794,6 +820,7 @@ fn main() {
             position_locked,
             click_through_status,
             set_click_through,
+            set_debug_close_block,
             show_context_menu,
             copy_snapshot,
             updater::check_update,
@@ -819,6 +846,7 @@ fn main() {
                 enabled: AtomicBool::new(through),
                 tray_item: through_item,
             });
+            app.manage(DebugCloseBlock(AtomicBool::new(false)));
 
             let win = app.get_webview_window("main").expect("main window");
             // 先恢复大小，屏幕检查和默认位置才能用缩放后的尺寸。
