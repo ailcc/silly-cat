@@ -427,6 +427,7 @@
 <script src="water.js"></script>
 <script src="pomodoro.js"></script>
 <script src="holidays.js"></script>
+<script src="bgfx.js"></script>
 <script src="bosskey.js"></script>
 <script src="growth.js"></script>
 <script src="snapshot.js"></script>
@@ -466,9 +467,11 @@
     window.__TAURI__.event.listen('silly:debug-demo', (ev) => {
       const spec = ev.payload && ev.payload.spec;
       const p = new URLSearchParams(location.search);
-      if (spec && spec.startsWith('__')) { // 「__xxx」开关：只切对应参数，demo 保持不变
-        const key = spec.slice(2);
-        if (p.has(key)) p.delete(key); else p.set(key, '1');
+      if (spec && spec.startsWith('__')) { // 「__xxx」开关：只切对应参数（支持 __key=value），demo 保持不变
+        const kv = spec.slice(2);
+        const eq = kv.indexOf('=');
+        if (eq === -1) { if (p.has(kv)) p.delete(kv); else p.set(kv, '1'); }
+        else { const k = kv.slice(0, eq), v = kv.slice(eq + 1); if (p.get(k) === v) p.delete(k); else p.set(k, v); }
       } else if (spec) {
         const [name, ...extra] = spec.split('&');
         p.set('demo', name);

@@ -1,0 +1,75 @@
+// 节日/季节背景特效：底色微调（只网页版；桌面版窗口透明、露出用户桌面，只叠粒子层）
+// + 粒子层（花瓣/萤光/枫叶/细雪/暖光/彩带），画在猫和键盘后面。
+// 场景由 holidays.js 每帧推送（节日优先：生日彩带、春节暖红、圣诞雪夜；平时按月份走四季），
+// 本模块只管渲染，同名不重播。系统开了「减弱动态效果」时不放粒子，底色保留。
+// 调试：URL 加 ?bg=spring|summer|autumn|winter|festival|christmas|birthday|off 强制指定；
+// 网页调试面板/客户端调试栏的「背景」组按钮也是切这个参数（__bg=xxx）。
+(function () {
+  'use strict';
+
+  const SCENES = {
+    spring: { kind: 'petal', density: 1.6, tint: 'linear-gradient(180deg, #fde9ef 0%, #fdf5f7 60%, var(--bg) 100%)' },
+    summer: { kind: 'glow', density: 0.9, tint: 'linear-gradient(180deg, #e4f5ef 0%, #f2fbf8 60%, var(--bg) 100%)' },
+    autumn: { kind: 'leaf', density: 1.2, tint: 'linear-gradient(180deg, #fbe9d6 0%, #fdf4e8 60%, var(--bg) 100%)' },
+    winter: { kind: 'snow', density: 3, tint: 'linear-gradient(180deg, #e9eff7 0%, #f4f8fc 60%, var(--bg) 100%)' },
+    festival: { kind: 'spark', density: 1.6, tint: 'linear-gradient(180deg, #f9e0d2 0%, #fdeedd 55%, var(--bg) 100%)' }, // 春节：暖红金调，金光上浮
+    christmas: { kind: 'snow', density: 3.6, tint: 'linear-gradient(180deg, #e2ebf6 0%, #eef4fb 55%, var(--bg) 100%)' },
+    birthday: { kind: 'confetti', density: 1.6, tint: null }, // 生日：底色不变，彩带庆祝
+  };
+  const ALIAS = { 'spring-festival': 'festival' };
+
+  const desktop = document.documentElement.classList.contains('desktop');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // URL 强制指定（调试）：设置了就盖过 holidays 的推送，直到参数删掉
+  const raw = new URLSearchParams(location.search).get('bg');
+  const forced = raw ? (ALIAS[raw] || raw) : null;
+  const forceValid = forced && (forced === 'off' || SCENES[forced]);
+
+  const fx = document.createElement('div');
+  fx.id = 'bg-fx';
+  const tint = document.createElement('div');
+  tint.className = 'bg-tint';
+  if (!desktop) fx.appendChild(tint); // 桌面透明窗口不染底色
+  const layer = document.createElement('div');
+  layer.className = 'bg-particles';
+  fx.appendChild(layer);
+  document.body.appendChild(fx); // CSS 里 z-index 压在 .hint/#stage 之下
+
+  let current = null;
+  let timer = 0;
+
+  function stop() {
+    if (timer) { clearInterval(timer); timer = 0; }
+    layer.textContent = '';
+  }
+  function start(kind, density) {
+    stop();
+    if (reduced) return; // 减弱动态：不放粒子
+    const spawn = () => {
+      const el = document.createElement('div');
+      const dur = 6 + Math.random() * 6;
+      el.className = 'bgp ' + kind + (Math.random() < 0.4 ? ' b' : ''); // CSS 是 .bgp.snow 这类双类选择器，kind 不带前缀
+      if (kind === 'confetti') el.classList.add('c' + Math.floor(Math.random() * 5));
+      el.style.left = (Math.random() * 100) + '%';
+      // 负延迟预铺：开场就是满天飞的状态，不用等第一批落完
+      el.style.animation = (kind === 'spark' ? 'bg-rise-spark' : 'bg-fall-' + kind) + ' ' + dur.toFixed(1) + 's linear ' + (-Math.random() * dur).toFixed(1) + 's infinite';
+      layer.appendChild(el);
+    };
+    const n = Math.round(density * 8);
+    for (let i = 0; i < n; i++) spawn();
+    timer = setInterval(spawn, 1000 / density);
+  }
+
+  window.SillyBgFx = {
+    // holidays.js 每帧推：'spring'|'summer'|'autumn'|'winter'|'festival'|'christmas'|'birthday'
+    setScene(name) {
+      if (forceValid) name = forced === 'off' ? null : forced; // 调试参数优先
+      if (name === current) return;
+      current = name;
+      const scene = name && SCENES[name];
+      tint.style.background = (scene && scene.tint) || '';
+      if (!scene) { stop(); return; }
+      start(scene.kind, scene.density);
+    },
+  };
+})();

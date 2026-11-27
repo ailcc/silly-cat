@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>四季 / 节日背景 · 样式预览</title>
+<!-- 样机页：预览「背景随季节/节日微调 + 粒子层」的效果，确认后再写进 style.css / holidays.js。
+     每张卡片 = 一个完整场景缩样：背景色调 + 粒子 + 桌面（奶油色）+ 猫，颜色取自应用现有变量。 -->
+<style>
+  :root {
+    --ink: #1d1b22;
+    --cream: #fbf6ea;      /* 桌面木色 */
+    --cream-dark: #e8dfca;
+    --coral: #ff7a59;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    background: #2b2e38; color: #e8e8f0;
+    font: 14px/1.6 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .lead { color: #9aa0b5; margin: 0 0 20px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+  figure { margin: 0; }
+  figcaption { margin-top: 8px; }
+  figcaption b { font-size: 15px; }
+  figcaption span { display: block; color: #9aa0b5; font-size: 12px; }
+  /* 场景卡：16:9 的小舞台，粒子层叠在场景上 */
+  .scene {
+    position: relative; overflow: hidden;
+    aspect-ratio: 16 / 9; border-radius: 14px;
+    border: 2px solid rgba(255,255,255,.14);
+  }
+  .scene .tint { position: absolute; inset: 0; }
+  /* 简化的猫 + 桌面：跟应用一样的奶油桌面和描边风格，用来判断配色搭不搭 */
+  .scene svg.set { position: absolute; inset: auto 0 0 0; width: 100%; display: block; }
+  .particles { position: absolute; inset: 0; pointer-events: none; }
+  .pt { position: absolute; top: -16px; will-change: transform, opacity; }
+
+  /* ---------- 各类粒子：类名按种类分开，互不覆盖 ---------- */
+  .pt.petal { width: 10px; height: 8px; background: #ffc9d6; border-radius: 60% 40% 55% 45%; }
+  .pt.petal.b { background: #ffe3ea; }
+  @keyframes fall-petal { to { transform: translate(34px, 300px) rotate(300deg); opacity: .1; } }
+
+  .pt.snow { width: 5px; height: 5px; background: #fff; border-radius: 50%; opacity: .9;
+    box-shadow: 0 1px 2px rgba(170,195,225,.9); }
+  .pt.snow.b { width: 8px; height: 8px; opacity: .7; }
+  @keyframes fall-snow { to { transform: translate(16px, 300px); opacity: .15; } }
+
+  .pt.leaf { width: 12px; height: 10px; background: linear-gradient(120deg, #f5a15c, #e5764a);
+    border-radius: 0 70% 0 70%; }
+  .pt.leaf.b { background: linear-gradient(120deg, #f6c26e, #e59a4a); }
+  @keyframes fall-leaf { to { transform: translate(-36px, 300px) rotate(420deg); opacity: .1; } }
+
+  .pt.confetti { width: 7px; height: 11px; border-radius: 2px; }
+  .pt.confetti.c0 { background: #ff9eb0; } .pt.confetti.c1 { background: #ff7a59; }
+  .pt.confetti.c2 { background: #7fb069; } .pt.confetti.c3 { background: #7fb2f0; }
+  .pt.confetti.c4 { background: #f6c445; }
+  @keyframes fall-confetti { to { transform: translate(26px, 300px) rotate(540deg); opacity: .1; } }
+
+  /* 上升的暖光粒（烟花/灯笼氛围）：从底部往上飘 */
+  .pt.spark { top: auto; bottom: -10px; width: 4px; height: 4px; border-radius: 50%;
+    background: #ffd76e; box-shadow: 0 0 6px 1px rgba(255,190,80,.65); }
+  .pt.spark.b { background: #ff9d5c; box-shadow: 0 0 6px 1px rgba(255,140,60,.6); }
+  @keyframes rise-spark { from { transform: translate(0, 0); opacity: 1; }
+    to { transform: translate(12px, -220px); opacity: 0; } }
+
+  .pt.glow { width: 7px; height: 7px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,240,.95), rgba(255,255,240,0));
+    box-shadow: 0 0 8px 2px rgba(210,255,230,.35); }
+  @keyframes fall-glow { to { transform: translate(20px, 300px); opacity: 0; } }
+</style>
+</head>
+<body>
+<h1>四季 / 节日背景 · 样式预览</h1>
+<p class="lead">背景 = 页面底色微调（网页版），粒子 = 独立特效层（桌面透明窗口也能叠）。每张卡片里桌面和猫用的是应用现有配色，看搭不搭。</p>
+<div class="grid" id="grid"></div>
+
+<script>
+// ---------- 场景底板：奶油桌面 + 简化猫（奶牛猫配色示意） ----------
+function sceneSVG() {
+  return `<svg class="set" viewBox="0 0 400 150" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="108" width="400" height="42" fill="var(--cream)"/>
+    <rect x="0" y="108" width="400" height="42" fill="none" stroke="var(--ink)" stroke-width="2" opacity=".12"/>
+    <g transform="translate(160 96)">
+      <rect x="0" y="0" width="120" height="26" rx="5" fill="#fffdf8" stroke="var(--ink)" stroke-width="2.5"/>
+      ${[0,1,2,3].map(r => [0,1,2,3,4,5].map(c =>
+        `<rect x="${9 + c * 17.5}" y="${5 + r * 5}" width="12" height="3.4" rx="1.6" fill="var(--cream-dark)"/>`).join('')).join('')}
+    </g>
+    <g stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round">
+      <path d="M 96 108 C 94 84 100 66 120 66 C 140 66 146 84 144 108 Z" fill="#fffdf8"/>
+      <path d="M 92 66 C 91 44 102 34 120 34 C 138 34 149 44 148 66 C 147 82 137 90 120 90 C 103 90 93 82 92 66 Z" fill="#fffdf8"/>
+      <path d="M 96 40 L 100 26 L 110 36 Z" fill="#fffdf8"/>
+      <path d="M 144 40 L 140 26 L 130 36 Z" fill="#1d1b22"/>
+      <path d="M 92 58 C 92 46 100 40 106 40 C 96 48 94 56 92 58 Z" fill="#1d1b22"/>
+      <circle cx="108" cy="58" r="7.5" fill="#fff"/>
+      <circle cx="132" cy="58" r="7.5" fill="#fff"/>
+      <circle cx="109" cy="59" r="3.4" fill="#3f8f4f"/>
+      <circle cx="133" cy="59" r="3.4" fill="#3f8f4f"/>
+      <circle cx="109" cy="59" r="1.7" fill="var(--ink)"/>
+      <circle cx="133" cy="59" r="1.7" fill="var(--ink)"/>
+      <path d="M 116 70 L 120 70 M 113 74 Q 117 78 120 74 Q 123 78 127 74" fill="none" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M 148 86 C 160 84 166 78 164 72" fill="none" stroke-width="4" stroke-linecap="round"/>
+    </g>
+  </svg>`;
+}
+
+// ---------- 粒子循环：每个卡片一层，粒子带随机负延迟，开场就是满天飞的状态 ----------
+function startParticles(box, kind, density) {
+  const layer = document.createElement('div');
+  layer.className = 'particles';
+  box.appendChild(layer);
+  const spawn = () => {
+    const el = document.createElement('div');
+    const dur = 6 + Math.random() * 6;
+    el.className = 'pt ' + kind + (Math.random() < .4 ? ' b' : '');
+    if (kind === 'confetti') el.classList.add('c' + Math.floor(Math.random() * 5));
+    el.style.left = (Math.random() * 100) + '%';
+    el.style.animation = `${kind === 'spark' ? 'rise-spark' : 'fall-' + kind} ${dur.toFixed(1)}s linear ${(-Math.random() * dur).toFixed(1)}s infinite`;
+    layer.appendChild(el);
+  };
+  for (let i = 0; i < Math.round(density * 8); i++) spawn(); // 预铺满场
+}
+
+// ---------- 变体清单 ----------
+const VARIANTS = [
+  { name: '春 · 樱花', desc: '底色染樱花粉，粉白花瓣慢落', kind: 'petal', density: 1.4,
+    bg: 'linear-gradient(180deg, #fde9ef 0%, #fdf5f7 60%, #fbf6ea 100%)' },
+  { name: '夏 · 薄荷', desc: '清爽薄荷绿底，浮游光点', kind: 'glow', density: 0.9,
+    bg: 'linear-gradient(180deg, #e4f5ef 0%, #f2fbf8 60%, #fbf6ea 100%)' },
+  { name: '秋 · 枫叶', desc: '暖橙底色，枫叶打着旋落', kind: 'leaf', density: 1.2,
+    bg: 'linear-gradient(180deg, #fbe9d6 0%, #fdf4e8 60%, #fbf6ea 100%)' },
+  { name: '冬 · 落雪', desc: '冷白蓝底色，细雪慢落', kind: 'snow', density: 3,
+    bg: 'linear-gradient(180deg, #e9eff7 0%, #f4f8fc 60%, #fbf6ea 100%)' },
+  { name: '春节 · 暖红', desc: '暖红金色调，金光暖粒子上浮（烟花氛围）', kind: 'spark', density: 1.6,
+    bg: 'linear-gradient(180deg, #f9e0d2 0%, #fdeedd 55%, #fbf6ea 100%)' },
+  { name: '春节 · 深夜烟花', desc: '更浓的暖红，橘红光点像远处烟花', kind: 'spark', density: 1.2,
+    bg: 'linear-gradient(180deg, #f6d3c0 0%, #f9e5d3 55%, #fbf6ea 100%)' },
+  { name: '圣诞 · 雪夜', desc: '冷蓝雪夜底 + 细雪，和奶油桌面成对比', kind: 'snow', density: 4,
+    bg: 'linear-gradient(180deg, #e2ebf6 0%, #eef4fb 55%, #fbf6ea 100%)' },
+  { name: '生日 · 彩带', desc: '底色不变，彩带纸屑庆祝（只在生日当天）', kind: 'confetti', density: 1.8,
+    bg: 'linear-gradient(180deg, #dfe6f5 0%, #ecf0f8 55%, #fbf6ea 100%)' },
+];
+
+const grid = document.getElementById('grid');
+for (const v of VARIANTS) {
+  const fig = document.createElement('figure');
+  fig.innerHTML = `
+    <div class="scene">
+      <div class="tint" style="background:${v.bg}"></div>
+      ${sceneSVG()}
+    </div>
+    <figcaption><b>${v.name}</b><span>${v.desc}</span></figcaption>`;
+  grid.appendChild(fig);
+  startParticles(fig.querySelector('.scene'), v.kind, v.density);
+}
+</script>
+</body>
+</html>

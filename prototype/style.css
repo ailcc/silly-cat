@@ -207,6 +207,49 @@ body {
   touch-action: none;
 }
 
+/* ---------- 节日/季节背景特效（bgfx.js）：底色只染网页版，粒子层压在猫和键盘后面 ---------- */
+#bg-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hint, #stage { position: relative; z-index: 1; }
+#bg-fx .bg-tint { position: absolute; inset: 0; }
+#bg-fx .bg-particles { position: absolute; inset: 0; }
+#bg-fx .bgp { position: absolute; top: -16px; will-change: transform, opacity; }
+#bg-fx .bgp.petal { width: 10px; height: 8px; background: #ffc9d6; border-radius: 60% 40% 55% 45%; }
+#bg-fx .bgp.petal.b { background: #ffe3ea; }
+#bg-fx .bgp.glow { width: 7px; height: 7px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 240, .95), rgba(255, 255, 240, 0));
+  box-shadow: 0 0 8px 2px rgba(210, 255, 230, .35); }
+#bg-fx .bgp.leaf { width: 12px; height: 10px; background: linear-gradient(120deg, #f5a15c, #e5764a);
+  border-radius: 0 70% 0 70%; }
+#bg-fx .bgp.leaf.b { background: linear-gradient(120deg, #f6c26e, #e59a4a); }
+#bg-fx .bgp.snow { width: 5px; height: 5px; background: #fff; border-radius: 50%; opacity: .9;
+  box-shadow: 0 1px 2px rgba(170, 195, 225, .9); }
+#bg-fx .bgp.snow.b { width: 8px; height: 8px; opacity: .7; }
+#bg-fx .bgp.spark { top: auto; bottom: -10px; width: 4px; height: 4px; border-radius: 50%;
+  background: #ffd76e; box-shadow: 0 0 6px 1px rgba(255, 190, 80, .65); }
+#bg-fx .bgp.spark.b { background: #ff9d5c; box-shadow: 0 0 6px 1px rgba(255, 140, 60, .6); }
+#bg-fx .bgp.confetti { width: 7px; height: 11px; border-radius: 2px; }
+#bg-fx .bgp.confetti.c0 { background: #ff9eb0; }
+#bg-fx .bgp.confetti.c1 { background: #ff7a59; }
+#bg-fx .bgp.confetti.c2 { background: #7fb069; }
+#bg-fx .bgp.confetti.c3 { background: #7fb2f0; }
+#bg-fx .bgp.confetti.c4 { background: #f6c445; }
+@keyframes bg-fall-petal { to { transform: translate(34px, 105vh) rotate(300deg); opacity: .1; } }
+@keyframes bg-fall-glow { to { transform: translate(20px, 105vh); opacity: 0; } }
+@keyframes bg-fall-leaf { to { transform: translate(-36px, 105vh) rotate(420deg); opacity: .1; } }
+@keyframes bg-fall-snow { to { transform: translate(16px, 105vh); opacity: .15; } }
+@keyframes bg-fall-confetti { to { transform: translate(26px, 105vh) rotate(540deg); opacity: .1; } }
+@keyframes bg-rise-spark { from { transform: translate(0, 0); opacity: 1; }
+  to { transform: translate(12px, -105vh); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  #bg-fx .bg-particles { display: none; }
+}
+
 #scene {
   display: block;
   width: 100%;

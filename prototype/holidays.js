@@ -235,6 +235,7 @@
         if (mode) buildDecor(mode); else clearDecor();
         setScarfHidden(mode === 'national'); // 披风出场收起日常围巾，其他节日不冲突
       }
+      window.SillyBgFx?.setScene(bgScene(mode)); // 背景层跟节日/季节走（没有节日就是当季）
       if (!mode) return;
       applyFit(); // 每帧按当前皮肤拟合（内部有缓存，参数没变不写 DOM）
 
@@ -261,6 +262,16 @@
         W.nextFw = now + (demo ? 2600 : rand(FW_EVERY[0], FW_EVERY[1]));
       }
       if (W.fwLook && now < W.fwLook.until) P.look = { x: W.fwLook.x, y: W.fwLook.y };
+    }
+
+    // 背景场景：节日优先（生日彩带、春节暖红、圣诞雪夜），没有节日按月份走四季；
+    // 万圣/国庆没有专属背景，落在当季（秋）上。bgfx.js 收到同名不重播
+    function bgScene(mode) {
+      if (mode === 'birthday') return 'birthday';
+      if (mode === 'spring') return 'festival';
+      if (mode === 'christmas') return 'christmas';
+      const m = new Date().getMonth() + 1;
+      return m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter';
     }
 
     return {

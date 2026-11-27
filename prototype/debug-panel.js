@@ -57,9 +57,15 @@
   // 现有 URL 里的 demo 名（高亮当前状态按钮用）：含附加参数的项（如 knead&at=800）
   // 按主名匹配高亮
   const currentDemo = params.get('demo');
-  function toggleParam(key) { // 「__xxx」类开关：只切对应 URL 参数，demo/皮肤保持不变
+  function toggleParam(spec) { // 「__xxx」开关：只切对应 URL 参数；「__key=value」切到指定值（再点一次取消）
     const p = new URLSearchParams(location.search);
-    if (p.has(key)) p.delete(key); else p.set(key, '1');
+    const eq = spec.indexOf('=');
+    if (eq === -1) {
+      if (p.has(spec)) p.delete(spec); else p.set(spec, '1');
+    } else {
+      const k = spec.slice(0, eq), v = spec.slice(eq + 1);
+      if (p.get(k) === v) p.delete(k); else p.set(k, v);
+    }
     location.href = location.pathname + '?' + p.toString();
   }
   function go(spec) {
@@ -91,9 +97,13 @@
       const b = document.createElement('button');
       b.textContent = label;
       const isToggle = demo.startsWith('__');
-      const toggleKey = isToggle ? demo.slice(2) : null;
-      if (isToggle ? params.has(toggleKey) : currentDemo === demo.split('&')[0]) b.classList.add('on');
-      b.title = isToggle ? '开关（可与任意状态叠加）：' + toggleKey
+      const toggleSpec = isToggle ? demo.slice(2) : null;
+      const eq = toggleSpec ? toggleSpec.indexOf('=') : -1;
+      const on = isToggle
+        ? (eq === -1 ? params.has(toggleSpec) : params.get(toggleSpec.slice(0, eq)) === toggleSpec.slice(eq + 1))
+        : currentDemo === demo.split('&')[0];
+      if (on) b.classList.add('on');
+      b.title = isToggle ? '开关（可与任意状态叠加）：' + toggleSpec
         : label === '听歌戴耳机' ? '戴上耳机听歌，8 秒后自动睡着'
         : label === '听歌睡着' ? '戴着耳机直接睡着，不听点头的' : demo;
       b.addEventListener('click', () => go(demo));

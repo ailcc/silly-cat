@@ -60,6 +60,16 @@
       ['国庆节', 'national'],
       ['生日帽', 'birthday'],
     ]],
+    ['背景（试用）', [ // __bg=xxx：只切背景层参数，demo/皮肤保持不变（bgfx.js 的场景）
+      ['樱花', '__bg=spring'],
+      ['萤光', '__bg=summer'],
+      ['枫叶', '__bg=autumn'],
+      ['落雪', '__bg=winter'],
+      ['春节', '__bg=festival'],
+      ['圣诞', '__bg=christmas'],
+      ['彩带', '__bg=birthday'],
+      ['关闭', '__bg=off'],
+    ]],
     ['其他', [
       ['游戏模式', 'game'],
       ['老板键', 'boss'],
