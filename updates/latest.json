@@ -1,39 +1,39 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "notes": "捣蛋奶牛猫桌宠。macOS 下载 .dmg（Intel 和 Apple Silicon 通用），Windows 下载 -setup.exe。Windows 7、8、8.1 下载文件名带 win7 的 -setup.exe，并先按 README 常见问题装好 WebView2 109。首次打开需要手动放行。",
-  "pub_date": "2026-11-25T17:03:31.868Z",
+  "pub_date": "2026-11-27T12:28:23.993Z",
   "platforms": {
-    "windows-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmFTSFVQSit4S2w5VzA0MDhFcjJCem1NR05ERXNmYnprTEFsY2FhdzhzOWVyVll2RlFERHFwVm5BYm40SERaZ3lWeFF0cWhVc0VpQ0dqclI0OS8wYWc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjI0MDIwCWZpbGU6U2lsbHlDYXRfMS4zLjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMy4wCnVNcmJqQWx0RUZqUUFDbUtMVUJZV0hJdER2MW5rdVJWeWk0VEJ4RWM4T3JOdkkzOEdhcDBPWEhnWjdYbUljWjFYWC83VkFWRXVEQjJBNWxvV0pSL0F3PT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.3.0/SillyCat_1.3.0_x64-setup.exe"
-    },
-    "windows-x86_64-nsis": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmFTSFVQSit4S2w5VzA0MDhFcjJCem1NR05ERXNmYnprTEFsY2FhdzhzOWVyVll2RlFERHFwVm5BYm40SERaZ3lWeFF0cWhVc0VpQ0dqclI0OS8wYWc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjI0MDIwCWZpbGU6U2lsbHlDYXRfMS4zLjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuMy4wCnVNcmJqQWx0RUZqUUFDbUtMVUJZV0hJdER2MW5rdVJWeWk0VEJ4RWM4T3JOdkkzOEdhcDBPWEhnWjdYbUljWjFYWC83VkFWRXVEQjJBNWxvV0pSL0F3PT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.3.0/SillyCat_1.3.0_x64-setup.exe"
-    },
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmZxZ3lac2FYOG9RaXdXN1VrT3ZRTmdod3p1allSRzJ4c3dDSnUvb3ZuOUY1NHd3MkZMTEs4enEzQy9oNStzMU1zWlRraHUyWjZsdkpXUHFxYWRmTncwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjI2MjA1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMy4wCjhoUDQ5cUc5bGZrdHZzQS9HSEpSaHF4R1FSbjFQcHNKRTY3MmRRYzc1cEE5WVArRGlSYlFRNGdRbGh3aDU2dW5wc1ZEOGlLdHlhNWtHdkZCdzRxUkNBPT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.3.0/SillyCat_1.3.0_universal.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclVxV1Z5aEhlODN0YlljSDZkeThPcDRBL3hKTVEzYTFsT2NvUDR2L0hqQjhGQTVVU1ExZnY0dTMzZDdiSUZPUWd1SXB3aHVXaGFhWkhZcWdYcWI5L2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzgyMTAyCWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuNC4wCnNZUzIvdGUxUFpVWElCcjZYb3l3YnZKVkxZb0V4S2ZXL200Y3pnV0VreDc0ZUJKMDU3ajdGMzE5a29SOVVBZlM4TkdOalJVRng3ZGpFdmczZ09JREJBPT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.4.0/SillyCat_1.4.0_universal.app.tar.gz"
     },
     "darwin-x86_64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmZxZ3lac2FYOG9RaXdXN1VrT3ZRTmdod3p1allSRzJ4c3dDSnUvb3ZuOUY1NHd3MkZMTEs4enEzQy9oNStzMU1zWlRraHUyWjZsdkpXUHFxYWRmTncwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjI2MjA1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMy4wCjhoUDQ5cUc5bGZrdHZzQS9HSEpSaHF4R1FSbjFQcHNKRTY3MmRRYzc1cEE5WVArRGlSYlFRNGdRbGh3aDU2dW5wc1ZEOGlLdHlhNWtHdkZCdzRxUkNBPT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.3.0/SillyCat_1.3.0_universal.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclVxV1Z5aEhlODN0YlljSDZkeThPcDRBL3hKTVEzYTFsT2NvUDR2L0hqQjhGQTVVU1ExZnY0dTMzZDdiSUZPUWd1SXB3aHVXaGFhWkhZcWdYcWI5L2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzgyMTAyCWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuNC4wCnNZUzIvdGUxUFpVWElCcjZYb3l3YnZKVkxZb0V4S2ZXL200Y3pnV0VreDc0ZUJKMDU3ajdGMzE5a29SOVVBZlM4TkdOalJVRng3ZGpFdmczZ09JREJBPT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.4.0/SillyCat_1.4.0_universal.app.tar.gz"
     },
     "darwin-universal": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmZxZ3lac2FYOG9RaXdXN1VrT3ZRTmdod3p1allSRzJ4c3dDSnUvb3ZuOUY1NHd3MkZMTEs4enEzQy9oNStzMU1zWlRraHUyWjZsdkpXUHFxYWRmTncwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjI2MjA1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMy4wCjhoUDQ5cUc5bGZrdHZzQS9HSEpSaHF4R1FSbjFQcHNKRTY3MmRRYzc1cEE5WVArRGlSYlFRNGdRbGh3aDU2dW5wc1ZEOGlLdHlhNWtHdkZCdzRxUkNBPT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.3.0/SillyCat_1.3.0_universal.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclVxV1Z5aEhlODN0YlljSDZkeThPcDRBL3hKTVEzYTFsT2NvUDR2L0hqQjhGQTVVU1ExZnY0dTMzZDdiSUZPUWd1SXB3aHVXaGFhWkhZcWdYcWI5L2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzgyMTAyCWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuNC4wCnNZUzIvdGUxUFpVWElCcjZYb3l3YnZKVkxZb0V4S2ZXL200Y3pnV0VreDc0ZUJKMDU3ajdGMzE5a29SOVVBZlM4TkdOalJVRng3ZGpFdmczZ09JREJBPT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.4.0/SillyCat_1.4.0_universal.app.tar.gz"
     },
     "darwin-aarch64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmZxZ3lac2FYOG9RaXdXN1VrT3ZRTmdod3p1allSRzJ4c3dDSnUvb3ZuOUY1NHd3MkZMTEs4enEzQy9oNStzMU1zWlRraHUyWjZsdkpXUHFxYWRmTncwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjI2MjA1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMy4wCjhoUDQ5cUc5bGZrdHZzQS9HSEpSaHF4R1FSbjFQcHNKRTY3MmRRYzc1cEE5WVArRGlSYlFRNGdRbGh3aDU2dW5wc1ZEOGlLdHlhNWtHdkZCdzRxUkNBPT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.3.0/SillyCat_1.3.0_universal.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclVxV1Z5aEhlODN0YlljSDZkeThPcDRBL3hKTVEzYTFsT2NvUDR2L0hqQjhGQTVVU1ExZnY0dTMzZDdiSUZPUWd1SXB3aHVXaGFhWkhZcWdYcWI5L2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzgyMTAyCWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuNC4wCnNZUzIvdGUxUFpVWElCcjZYb3l3YnZKVkxZb0V4S2ZXL200Y3pnV0VreDc0ZUJKMDU3ajdGMzE5a29SOVVBZlM4TkdOalJVRng3ZGpFdmczZ09JREJBPT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.4.0/SillyCat_1.4.0_universal.app.tar.gz"
     },
     "darwin-x86_64-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmZxZ3lac2FYOG9RaXdXN1VrT3ZRTmdod3p1allSRzJ4c3dDSnUvb3ZuOUY1NHd3MkZMTEs4enEzQy9oNStzMU1zWlRraHUyWjZsdkpXUHFxYWRmTncwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjI2MjA1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMy4wCjhoUDQ5cUc5bGZrdHZzQS9HSEpSaHF4R1FSbjFQcHNKRTY3MmRRYzc1cEE5WVArRGlSYlFRNGdRbGh3aDU2dW5wc1ZEOGlLdHlhNWtHdkZCdzRxUkNBPT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.3.0/SillyCat_1.3.0_universal.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclVxV1Z5aEhlODN0YlljSDZkeThPcDRBL3hKTVEzYTFsT2NvUDR2L0hqQjhGQTVVU1ExZnY0dTMzZDdiSUZPUWd1SXB3aHVXaGFhWkhZcWdYcWI5L2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzgyMTAyCWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuNC4wCnNZUzIvdGUxUFpVWElCcjZYb3l3YnZKVkxZb0V4S2ZXL200Y3pnV0VreDc0ZUJKMDU3ajdGMzE5a29SOVVBZlM4TkdOalJVRng3ZGpFdmczZ09JREJBPT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.4.0/SillyCat_1.4.0_universal.app.tar.gz"
     },
     "darwin-universal-app": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKcmZxZ3lac2FYOG9RaXdXN1VrT3ZRTmdod3p1allSRzJ4c3dDSnUvb3ZuOUY1NHd3MkZMTEs4enEzQy9oNStzMU1zWlRraHUyWjZsdkpXUHFxYWRmTncwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjI2MjA1CWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuMy4wCjhoUDQ5cUc5bGZrdHZzQS9HSEpSaHF4R1FSbjFQcHNKRTY3MmRRYzc1cEE5WVArRGlSYlFRNGdRbGh3aDU2dW5wc1ZEOGlLdHlhNWtHdkZCdzRxUkNBPT0K",
-      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.3.0/SillyCat_1.3.0_universal.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclVxV1Z5aEhlODN0YlljSDZkeThPcDRBL3hKTVEzYTFsT2NvUDR2L0hqQjhGQTVVU1ExZnY0dTMzZDdiSUZPUWd1SXB3aHVXaGFhWkhZcWdYcWI5L2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzgyMTAyCWZpbGU6U2lsbHlDYXQuYXBwLnRhci5negl2ZXJzaW9uOjEuNC4wCnNZUzIvdGUxUFpVWElCcjZYb3l3YnZKVkxZb0V4S2ZXL200Y3pnV0VreDc0ZUJKMDU3ajdGMzE5a29SOVVBZlM4TkdOalJVRng3ZGpFdmczZ09JREJBPT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.4.0/SillyCat_1.4.0_universal.app.tar.gz"
+    },
+    "windows-x86_64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclY0WXVtY1pFR2s1WGNzUUdXK29vcHQ0SGxxVU54eS85VWRqcmtmTW1XbnNDWEMxZWxFQ1JRbjZxTlh3Q2tlTVNDeUFJaWg3WkV0UERFVFJ5TmFIYmc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzgyNTAxCWZpbGU6U2lsbHlDYXRfMS40LjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuNC4wCmYrSk9nc2RGTi85NmtLaFNmT1pGSGFoK1VTb2l1dFVjdkE5TFIvNnE1WVM1VmFuMFpuZHBETFVONzdIaU1WMG96cFVYdkYrd2Y3dmpERXZVYUoxbUF3PT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.4.0/SillyCat_1.4.0_x64-setup.exe"
+    },
+    "windows-x86_64-nsis": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRYWxsV2FYMCtKclY0WXVtY1pFR2s1WGNzUUdXK29vcHQ0SGxxVU54eS85VWRqcmtmTW1XbnNDWEMxZWxFQ1JRbjZxTlh3Q2tlTVNDeUFJaWg3WkV0UERFVFJ5TmFIYmc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NzgyNTAxCWZpbGU6U2lsbHlDYXRfMS40LjBfeDY0LXNldHVwLmV4ZQl2ZXJzaW9uOjEuNC4wCmYrSk9nc2RGTi85NmtLaFNmT1pGSGFoK1VTb2l1dFVjdkE5TFIvNnE1WVM1VmFuMFpuZHBETFVONzdIaU1WMG96cFVYdkYrd2Y3dmpERXZVYUoxbUF3PT0K",
+      "url": "https://gitee.com/ailcc/silly-cat/releases/download/v1.4.0/SillyCat_1.4.0_x64-setup.exe"
     }
   }
 }
