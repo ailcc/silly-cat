@@ -64,8 +64,12 @@
         dr = lDown ? -2 : 3;
       } else if ((window.SillyListenMusic && window.SillyListenMusic.bobbing && window.SillyListenMusic.bobbing()) ||
                  (window.SillyUserMusic && window.SillyUserMusic.bobbing && window.SillyUserMusic.bobbing())) {
-        // 听歌：跟着点头节拍（两模式都是 460）后脚跟打拍子（听睡着后就不拍了）
-        const tap = Math.floor(now / 460) % 2 === 0;
+        // 听歌打拍子：用户听歌（SillyUserMusic）的节拍是跟着真音乐现场估的，
+        // 用它的 beatTap；猫自己空闲听歌没有检测，还是固定 460ms
+        const tap = window.SillyUserMusic && window.SillyUserMusic.bobbing && window.SillyUserMusic.bobbing() &&
+                    window.SillyUserMusic.beatTap
+          ? window.SillyUserMusic.beatTap(now)
+          : Math.floor(now / 460) % 2 === 0;
         dl = tap ? 2.5 : -1;
         dr = tap ? -1 : 2.5;
       } else if (demo || now - S.lastInput < 350) {

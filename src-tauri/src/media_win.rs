@@ -335,3 +335,220 @@ impl RetryProbe {
         self.delay_secs = (self.delay_secs * 2).min(30);
     }
 }
+
+// ---------- 节拍采集：WASAPI loopback ----------
+// 猫戴上耳机后开一条线程，把默认播放设备的混音拷回来（AUDCLNT_STREAMFLAGS_LOOPBACK，
+// 内存里过一道就算节拍，不落盘不外传），喂给 beat_detect 估节拍。COM 对象照旧留在
+// 创建它的线程上，线程退出时一起释放。
+
+const AUDIO_CLIENT: Guid = guid(
+    (0x1CB9AD4Cu128 << 96) | (0xDBFAu128 << 80) | (0x4c32u128 << 64) | 0xB178C2F568A703B2, // IID_IAudioClient
+);
+const CAPTURE_CLIENT: Guid = guid(
+    (0xC8ADBD64u128 << 96) | (0x71B2u128 << 80) | (0x4e34u128 << 64) | 0x8AC76E36A7D151CF, // IID_IAudioCaptureClient
+);
+const LOOPBACK: u32 = 0x00020000; // AUDCLNT_STREAMFLAGS_LOOPBACK
+const SILENT: u32 = 2; // AUDCLNT_BUFFERFLAGS_SILENT
+
+#[link(name = "ole32")]
+extern "system" {
+    fn CoTaskMemFree(mem: Raw);
+}
+
+unsafe fn read_u16(p: Raw, off: usize) -> u16 {
+    *(p.add(off) as *const u16)
+}
+unsafe fn read_u32(p: Raw, off: usize) -> u32 {
+    *(p.add(off) as *const u32)
+}
+
+struct Loopback {
+    client: Interface,
+    capture: Interface,
+    _apartment: Apartment, // 字段 drop 顺序：先释放接口再卸 COM
+    channels: u32,
+    rate: u32,
+    bits: u32,
+}
+impl Loopback {
+    fn new() -> Result<Self> {
+        unsafe {
+            check(CoInitializeEx(ptr::null_mut(), 0))?;
+            let apartment = Apartment;
+            let enumerator = Interface::obtain(|out| {
+                CoCreateInstance(&ENUM_CLASS, ptr::null_mut(), CLSCTX_ALL, &ENUM, out)
+            })?;
+            // IMMDeviceEnumerator : IUnknown, 4 GetDefaultAudioEndpoint(eRender=0, eConsole=0)
+            let device = {
+                let get = method!(
+                    enumerator,
+                    4,
+                    unsafe extern "system" fn(Raw, i32, i32, *mut Raw) -> Hr
+                );
+                Interface::obtain(|out| get(enumerator.0, 0, 0, out))?
+            };
+            let client = device.activate(&AUDIO_CLIENT)?;
+            // IAudioClient : IUnknown, 8 GetMixFormat
+            let format = {
+                let get = method!(client, 8, unsafe extern "system" fn(Raw, *mut Raw) -> Hr);
+                let mut wfx: Raw = ptr::null_mut();
+                check(get(client.0, &mut wfx))?;
+                if wfx.is_null() {
+                    return Err(0x80004003u32 as Hr);
+                }
+                wfx
+            };
+            let channels = read_u16(format, 2) as u32;   // nChannels
+            let rate = read_u32(format, 4);              // nSamplesPerSec
+            let bits = read_u16(format, 14) as u32;      // wBitsPerSample（12 是 nBlockAlign，别拿错）
+            // 3 Initialize(LOOPBACK, 200ms 缓冲, 无周期, mix 格式, 无 GUID, 0)
+            let init = method!(
+                client,
+                3,
+                unsafe extern "system" fn(Raw, u32, i64, i64, Raw, Raw, u32) -> Hr
+            );
+            check(init(client.0, LOOPBACK, 2_000_000, 0, format, ptr::null_mut(), 0))?;
+            CoTaskMemFree(format);
+            // 14 GetService(IAudioCaptureClient)
+            let capture = Interface::obtain(|out| {
+                let get = method!(
+                    client,
+                    14,
+                    unsafe extern "system" fn(Raw, *const Guid, *mut Raw) -> Hr
+                );
+                get(client.0, &CAPTURE_CLIENT, out)
+            })?;
+            // 10 Start
+            let start = method!(client, 10, unsafe extern "system" fn(Raw) -> Hr);
+            check(start(client.0))?;
+            Ok(Self {
+                client,
+                capture,
+                _apartment: apartment,
+                channels,
+                rate,
+                bits,
+            })
+        }
+    }
+
+    /// 把已经到的包全搬走喂给 beat_detect；没数据就空转返回
+    fn drain(&self) {
+        unsafe {
+            let next = method!(self.capture, 5, unsafe extern "system" fn(Raw, *mut u32) -> Hr);
+            let get_buffer = method!(
+                self.capture,
+                3,
+                unsafe extern "system" fn(Raw, *mut Raw, *mut u32, *mut u32, *mut u64, *mut u64) -> Hr
+            );
+            let release =
+                method!(self.capture, 4, unsafe extern "system" fn(Raw, u32) -> Hr);
+            let mut packet = 0u32;
+            if next(self.capture.0, &mut packet) < 0 {
+                return;
+            }
+            while packet > 0 {
+                let mut data: Raw = ptr::null_mut();
+                let (mut frames, mut flags) = (0u32, 0u32);
+                let (mut dev_pos, mut qpc) = (0u64, 0u64);
+                if get_buffer(
+                    self.capture.0,
+                    &mut data,
+                    &mut frames,
+                    &mut flags,
+                    &mut dev_pos,
+                    &mut qpc,
+                ) < 0
+                {
+                    return;
+                }
+                if frames > 0 {
+                    let ch = self.channels.max(1);
+                    if flags & SILENT != 0 || data.is_null() {
+                        // 静音包也喂零，时间轴别断（暂停片段不影响后续 onset 间隔）
+                        let zeros = vec![0.0f32; frames as usize * ch as usize];
+                        crate::beat_detect::feed(&zeros, ch, self.rate);
+                    } else if self.bits == 32 {
+                        let slice = std::slice::from_raw_parts(
+                            data as *const f32,
+                            frames as usize * ch as usize,
+                        );
+                        crate::beat_detect::feed(slice, ch, self.rate);
+                    } else if self.bits == 16 {
+                        let slice = std::slice::from_raw_parts(
+                            data as *const i16,
+                            frames as usize * ch as usize,
+                        );
+                        let samples: Vec<f32> =
+                            slice.iter().map(|s| *s as f32 / 32768.0).collect();
+                        crate::beat_detect::feed(&samples, ch, self.rate);
+                    }
+                }
+                release(self.capture.0, frames);
+                if next(self.capture.0, &mut packet) < 0 {
+                    return;
+                }
+            }
+        }
+    }
+}
+impl Drop for Loopback {
+    fn drop(&mut self) {
+        unsafe {
+            // IAudioClient : IUnknown, 11 Stop
+            let stop = method!(self.client, 11, unsafe extern "system" fn(Raw) -> Hr);
+            stop(self.client.0);
+        }
+    }
+}
+
+/// 节拍采集的启停（music_detect 戴/摘耳机时调用）
+pub mod beat_capture {
+    use super::Loopback;
+    use std::{
+        sync::atomic::{AtomicBool, Ordering},
+        thread,
+        time::Duration,
+    };
+
+    static RUNNING: AtomicBool = AtomicBool::new(false);
+    static STOP: AtomicBool = AtomicBool::new(false);
+
+    pub fn start() {
+        if RUNNING.load(Ordering::SeqCst) {
+            return;
+        }
+        STOP.store(false, Ordering::SeqCst);
+        if thread::Builder::new()
+            .name("silly-beat-capture".into())
+            .spawn(run)
+            .is_ok()
+        {
+            RUNNING.store(true, Ordering::SeqCst);
+        }
+    }
+
+    pub fn stop() {
+        STOP.store(true, Ordering::SeqCst);
+        crate::beat_detect::reset();
+    }
+
+    fn run() {
+        loop {
+            if STOP.load(Ordering::SeqCst) {
+                break;
+            }
+            match Loopback::new() {
+                Ok(lp) => {
+                    while !STOP.load(Ordering::SeqCst) {
+                        lp.drain();
+                        thread::sleep(Duration::from_millis(20));
+                    }
+                }
+                Err(_) => thread::sleep(Duration::from_millis(500)), // 初始化失败退避重试
+            }
+        }
+        RUNNING.store(false, Ordering::SeqCst);
+        crate::beat_detect::reset();
+    }
+}

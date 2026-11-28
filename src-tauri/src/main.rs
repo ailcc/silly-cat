@@ -5,6 +5,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod autostart;
+mod beat_detect;
 mod game_detect;
 #[cfg(target_os = "macos")]
 mod media_mac;
