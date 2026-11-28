@@ -163,6 +163,14 @@ fn audible_device(device: u32) -> bool {
     }
 }
 
+/// 当前在出声的白名单音乐软件的「进程对象 ID」（'prs#' 里的 AudioObjectID，
+/// 不是 pid）。进程级 tap 用它把采集限定到音乐软件本身——用户边看电视边听歌时，
+/// 电视的人声音效根本进不来，节拍不会被干扰。14.2 以下拿不到进程列表，返回 None。
+pub fn active_music_process() -> Option<u32> {
+    let list = Address::new(b"prs#", GLOBAL, 0);
+    process_objects(&list).into_iter().find(|id| music_process(*id))
+}
+
 /// (有没有在出声, 判定方式 "process" / "device")
 pub fn sample() -> (bool, &'static str) {
     let list = Address::new(b"prs#", GLOBAL, 0);
@@ -321,7 +329,8 @@ struct TapSession {
 
 /// 建 tap + 聚合设备 + IOProc 并启动；任何一步失败都清理干净返回 None（老系统、
 /// 没符号、没授权等，前端自然回退默认节拍）。启动第一次会触发系统权限弹窗。
-unsafe fn setup_tap() -> Option<TapSession> {
+/// `process`：Some(进程对象 ID) = 只采那个进程（音乐软件）的输出；None = 全系统。
+unsafe fn setup_tap(process: Option<u32>) -> Option<TapSession> {
     // CATapDescription 是 ObjC 类，macOS 14.2 之前的系统没这个类
     let cls = objc_getClass(c"CATapDescription".as_ptr());
     if cls.is_null() {
@@ -350,13 +359,37 @@ unsafe fn setup_tap() -> Option<TapSession> {
         std::mem::transmute(objc_msgSend as *const ());
     let send_release: extern "C" fn(*mut c_void, *mut c_void) =
         std::mem::transmute(objc_msgSend as *const ());
+    // 带一个 NSInteger 参数的发送器（NSNumber initWithInteger: 用）
+    let send_init_int: extern "C" fn(*mut c_void, *mut c_void, isize) -> *mut c_void =
+        std::mem::transmute(objc_msgSend as *const ());
     let allocd = send_alloc(cls, sel(c"alloc"));
     if allocd.is_null() {
         return None;
     }
-    let empty = CFArrayCreate(ptr::null(), ptr::null_mut(), 0, ptr::null()) as *mut c_void;
-    let desc = send_obj(allocd, sel(c"initStereoGlobalTapButExcludeProcesses:"), empty);
-    CFRelease(empty); // init 里面已经拷贝了，这边交还
+    // Some(obj) = 只混音白名单音乐软件那个进程（看电视不干扰节拍）；
+    // None = 全系统立体声混音（老式兜底）
+    let desc = match process {
+        Some(obj) => {
+            let num_cls = objc_getClass(c"NSNumber".as_ptr());
+            if num_cls.is_null() {
+                CFRelease(allocd); // alloc 出来没用上，交还
+                return None;
+            }
+            let num_allocd = send_alloc(num_cls, sel(c"alloc"));
+            let num = send_init_int(num_allocd, sel(c"initWithInteger:"), obj as isize);
+            let arr = CFArrayCreate(ptr::null(), [num].as_mut_ptr() as *mut *const c_void, 1, ptr::null());
+            let d = send_obj(allocd, sel(c"initStereoMixdownOfProcesses:"), arr as *mut c_void);
+            CFRelease(arr);
+            CFRelease(num as *const c_void);
+            d
+        }
+        None => {
+            let empty = CFArrayCreate(ptr::null(), ptr::null_mut(), 0, ptr::null()) as *mut c_void;
+            let d = send_obj(allocd, sel(c"initStereoGlobalTapButExcludeProcesses:"), empty);
+            CFRelease(empty); // init 里面已经拷贝了，这边交还
+            d
+        }
+    };
     if desc.is_null() {
         return None;
     }
@@ -461,16 +494,22 @@ unsafe fn teardown(session: TapSession) {
     destroy_tap(session.tap);
 }
 
-/// 猫戴上耳机时开始采节拍（见文件头注释：14.2 以下静默不采集）
-pub fn beat_capture_start() {
+/// 猫戴上耳机时开始采节拍（见文件头注释：14.2 以下静默不采集）。
+/// `process`：Some(音乐软件进程对象 ID) = 只采那个进程，电视等其它声音不干扰；
+/// 进程级建不起来（个别系统实现问题）时线程里自动退回全局采集。
+pub fn beat_capture_start(process: Option<u32>) {
     if BEAT_RUNNING.load(Ordering::SeqCst) {
         return;
     }
     BEAT_STOP.store(false, Ordering::SeqCst);
     if std::thread::Builder::new()
         .name("silly-beat-capture".into())
-        .spawn(|| {
-            let session = unsafe { setup_tap() };
+        .spawn(move || {
+            let mut session = unsafe { setup_tap(process) };
+            if session.is_none() && process.is_some() {
+                crate::log::write("beat", "进程级 tap 建不起来，退回全局采集");
+                session = unsafe { setup_tap(None) };
+            }
             if let Some(session) = session {
                 while !BEAT_STOP.load(Ordering::SeqCst) {
                     std::thread::sleep(std::time::Duration::from_millis(100));

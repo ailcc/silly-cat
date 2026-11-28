@@ -58,25 +58,35 @@ fn sample() -> Option<bool> {
     }
 }
 
-// 节拍采集随平台走（macOS: Process Tap；Windows: WASAPI loopback）；其它平台没有
+// 节拍采集随平台走（macOS: Process Tap 可只绑音乐进程；Windows: WASAPI loopback 全局）；其它平台没有
 #[cfg(target_os = "macos")]
-fn beat_capture(start: bool) {
+fn beat_capture(start: bool, process: Option<u32>) {
     if start {
-        media_mac::beat_capture_start();
+        media_mac::beat_capture_start(process);
     } else {
         media_mac::beat_capture_stop();
     }
 }
 #[cfg(windows)]
-fn beat_capture(start: bool) {
+fn beat_capture(start: bool, _process: Option<u32>) {
     if start {
-        crate::media_win::beat_capture::start();
+        crate::media_win::beat_capture::start(_process);
     } else {
         crate::media_win::beat_capture::stop();
     }
 }
 #[cfg(not(any(target_os = "macos", windows)))]
-fn beat_capture(_start: bool) {}
+fn beat_capture(_start: bool, _process: Option<u32>) {}
+
+// 当前该绑定的音乐软件进程对象 ID：macOS 查白名单进程；其它平台 None = 全局采集
+#[cfg(target_os = "macos")]
+fn active_music_process() -> Option<u32> {
+    media_mac::active_music_process()
+}
+#[cfg(not(target_os = "macos"))]
+fn active_music_process() -> Option<u32> {
+    None
+}
 
 fn emit(app: &AppHandle, active: bool) {
     MUSIC_ACTIVE.store(active, Ordering::Relaxed);
@@ -101,12 +111,13 @@ pub fn start(app: AppHandle) {
         let mut raw_since = Instant::now();
         let mut wearing = false;
         let mut beat_emitted = 0u32;
+        let mut proc_captured: Option<u32> = None;
         loop {
             std::thread::sleep(POLL);
             if !ENABLED.load(Ordering::Relaxed) {
                 if wearing {
                     wearing = false;
-                    beat_capture(false);
+                    beat_capture(false, None);
                     emit(&app, false);
                 }
                 raw_prev = false;
@@ -119,14 +130,23 @@ pub fn start(app: AppHandle) {
                 raw_prev = raw;
                 raw_since = now;
             }
-            // 持续出声 3 秒才戴，静音 8 秒才摘；戴上时开始采波形估节拍，摘下时停
+            // 持续出声 3 秒才戴，静音 8 秒才摘；戴上时开始采波形估节拍，摘下时停。
+            // macOS 优先只绑音乐软件进程（电视等其它声音进不来），绑不到就全局兜底
             let hold = if raw { ON_HOLD } else { OFF_HOLD };
             if raw != wearing && now.duration_since(raw_since) >= hold {
                 wearing = raw;
-                beat_capture(wearing);
+                proc_captured = wearing.then(active_music_process).flatten();
+                beat_capture(wearing, proc_captured);
                 emit(&app, wearing);
             }
             if wearing {
+                // 戴着期间音乐软件切换 / 重启了（进程对象变了）→ 重建 tap 跟过去
+                let proc_now = active_music_process();
+                if proc_now != proc_captured {
+                    beat_capture(false, None);
+                    proc_captured = proc_now;
+                    beat_capture(true, proc_captured);
+                }
                 let beat = crate::beat_detect::beat_ms();
                 if beat != 0 && (beat_emitted == 0 || beat.abs_diff(beat_emitted) >= BEAT_DELTA) {
                     beat_emitted = beat;
@@ -134,6 +154,7 @@ pub fn start(app: AppHandle) {
                 }
             } else {
                 beat_emitted = 0;
+                proc_captured = None;
             }
         }
     });
@@ -149,7 +170,7 @@ pub fn user_music_active() -> bool {
 pub fn set_user_music_enabled(app: AppHandle, enabled: bool) {
     ENABLED.store(enabled, Ordering::Relaxed);
     if !enabled && MUSIC_ACTIVE.swap(false, Ordering::Relaxed) {
-        beat_capture(false);
+        beat_capture(false, None);
         let _ = app.emit_to(
             "main",
             "silly:user-music",

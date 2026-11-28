@@ -516,7 +516,9 @@ pub mod beat_capture {
     static RUNNING: AtomicBool = AtomicBool::new(false);
     static STOP: AtomicBool = AtomicBool::new(false);
 
-    pub fn start() {
+    /// 启动节拍采集；`_process` 是 macOS 进程级绑定的参数，Windows loopback 是
+    /// 端点级的（系统没有按进程截获的公开通道），忽略之
+    pub fn start(_process: Option<u32>) {
         if RUNNING.load(Ordering::SeqCst) {
             return;
         }

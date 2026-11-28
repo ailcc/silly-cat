@@ -818,12 +818,9 @@ fn main() {
         .setup(|app| {
             // 日志最先初始化：后面的启动步骤（更新、tap、锁文件）出错都有地方记
             log::init(app.handle());
-            {
-                let handle = app.handle().clone();
-                std::panic::set_hook(Box::new(move |info| {
-                    log::write("panic", &info.to_string());
-                }));
-            }
+            std::panic::set_hook(Box::new(move |info| {
+                log::write("panic", &info.to_string());
+            }));
             log::write("app", &format!("启动 v{}", app.package_info().version));
             updater::setup(app.handle());
             #[cfg(target_os = "macos")]
