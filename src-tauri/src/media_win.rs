@@ -432,8 +432,9 @@ impl Loopback {
         }
     }
 
-    /// 把已经到的包全搬走喂给 beat_detect；没数据就空转返回
-    fn drain(&self) {
+    /// 把已经到的包全搬走喂给 beat_detect；没数据就空转返回 true，
+    /// 出错（设备热切换 / 失效等）返回 false 让外层重建采集
+    fn drain(&self) -> bool {
         unsafe {
             let next = method!(self.capture, 5, unsafe extern "system" fn(Raw, *mut u32) -> Hr);
             let get_buffer = method!(
@@ -445,7 +446,7 @@ impl Loopback {
                 method!(self.capture, 4, unsafe extern "system" fn(Raw, u32) -> Hr);
             let mut packet = 0u32;
             if next(self.capture.0, &mut packet) < 0 {
-                return;
+                return false;
             }
             while packet > 0 {
                 let mut data: Raw = ptr::null_mut();
@@ -460,7 +461,7 @@ impl Loopback {
                     &mut qpc,
                 ) < 0
                 {
-                    return;
+                    return false;
                 }
                 if frames > 0 {
                     let ch = self.channels.max(1);
@@ -486,10 +487,11 @@ impl Loopback {
                 }
                 release(self.capture.0, frames);
                 if next(self.capture.0, &mut packet) < 0 {
-                    return;
+                    return false;
                 }
             }
         }
+        true
     }
 }
 impl Drop for Loopback {
@@ -540,10 +542,16 @@ pub mod beat_capture {
             }
             match Loopback::new() {
                 Ok(lp) => {
+                    // drain 出错（换耳机 / 默认设备切换等）就丢弃会话重建，
+                    // 别对着失效的 loopback 空转到摘耳机
                     while !STOP.load(Ordering::SeqCst) {
-                        lp.drain();
+                        if !lp.drain() {
+                            break;
+                        }
                         thread::sleep(Duration::from_millis(20));
                     }
+                    drop(lp);
+                    thread::sleep(Duration::from_millis(200)); // 给系统一点重建余量
                 }
                 Err(_) => thread::sleep(Duration::from_millis(500)), // 初始化失败退避重试
             }

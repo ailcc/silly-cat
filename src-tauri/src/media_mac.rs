@@ -292,21 +292,23 @@ extern "C" fn io_callback(
             return 0;
         }
         // AudioBufferList：mNumberBuffers(u32) 后空 4 字节对齐，每个 AudioBuffer
-        // 是 {mNumberChannels u32, mDataByteSize u32, mData 指针}，只取第一个
+        // 是 {mNumberChannels u32, mDataByteSize u32, mData 指针}。布局两种都可能：
+        // 交错（1 个 buffer 双声道）或非交错（每声道一个 buffer），全都喂进去，
+        // beat_detect 那边本来就按「来什么混什么」处理
         let count = *(input as *const u32);
-        if count == 0 {
-            return 0;
+        let rate = CAP_RATE.load(Ordering::Relaxed);
+        for i in 0..count as usize {
+            let buf = (input as *const u8).add(8 + i * 16);
+            let channels = *(buf as *const u32);
+            let bytes = *(buf.add(4) as *const u32);
+            let data = *(buf.add(8) as *const *const c_void);
+            if data.is_null() || bytes == 0 || channels == 0 {
+                continue;
+            }
+            let frames = bytes as usize / 4 / channels as usize;
+            let slice = std::slice::from_raw_parts(data as *const f32, frames * channels as usize);
+            crate::beat_detect::feed(slice, channels, rate);
         }
-        let buf = (input as *const u8).add(8);
-        let channels = *(buf as *const u32);
-        let bytes = *(buf.add(4) as *const u32);
-        let data = *(buf.add(8) as *const *const c_void);
-        if data.is_null() || bytes == 0 || channels == 0 {
-            return 0;
-        }
-        let frames = bytes as usize / 4 / channels as usize;
-        let slice = std::slice::from_raw_parts(data as *const f32, frames * channels as usize);
-        crate::beat_detect::feed(slice, channels, CAP_RATE.load(Ordering::Relaxed));
     }
     0
 }
@@ -346,24 +348,32 @@ unsafe fn setup_tap() -> Option<TapSession> {
         std::mem::transmute(objc_msgSend as *const ());
     let send_set_uint: extern "C" fn(*mut c_void, *mut c_void, usize) -> *mut c_void =
         std::mem::transmute(objc_msgSend as *const ());
+    let send_release: extern "C" fn(*mut c_void, *mut c_void) =
+        std::mem::transmute(objc_msgSend as *const ());
     let allocd = send_alloc(cls, sel(c"alloc"));
     if allocd.is_null() {
         return None;
     }
     let empty = CFArrayCreate(ptr::null(), ptr::null_mut(), 0, ptr::null()) as *mut c_void;
     let desc = send_obj(allocd, sel(c"initStereoGlobalTapButExcludeProcesses:"), empty);
+    CFRelease(empty); // init 里面已经拷贝了，这边交还
     if desc.is_null() {
         return None;
     }
-    send_set_id(desc, sel(c"setName:"), cfstr("silly-cat-beat"));
+    let name_cf = cfstr("silly-cat-beat");
+    send_set_id(desc, sel(c"setName:"), name_cf); // property 是 copy 语义，字符串马上放
+    CFRelease(name_cf);
     send_set_uint(desc, sel(c"setMuteBehavior:"), 0); // CATapUnmuted
     send_set_bool(desc, sel(c"setPrivate:"), 1); // 私有 tap：不进系统设备列表
 
     let mut tap = 0u32;
-    if create_tap(desc, &mut tap) != 0 || tap == 0 {
+    let created = create_tap(desc, &mut tap) == 0 && tap != 0;
+    send_release(desc, sel(c"release")); // HAL 建的时候已持有，所有权交还
+    if !created {
         return None;
     }
-    // tap 的 UID（CFString），挂到聚合设备时要用；拿不到就退（记得销毁 tap）
+    // tap 的 UID（CFString），挂到聚合设备时要用；HAL 属性按 Get 规则返回 +1 引用，
+    // 挂完要放；拿不到就退（记得销毁 tap）
     let tap_uid = match scalar::<*const c_void>(tap, TAP_UID, GLOBAL, 0) {
         Some(uid) if !uid.is_null() => uid,
         _ => {
@@ -372,7 +382,7 @@ unsafe fn setup_tap() -> Option<TapSession> {
         }
     };
 
-    // 私有聚合设备：只在猫自己的进程里可见
+    // 私有聚合设备：只在猫自己的进程里可见（HAL 建的时候就拷贝了字典，CF 侧建完即放）
     let keys = [cfstr("name"), cfstr("uid"), cfstr("private")];
     let values = [
         cfstr("silly-cat-agg"),
@@ -388,20 +398,34 @@ unsafe fn setup_tap() -> Option<TapSession> {
         ptr::null(),
     );
     let mut aggregate = 0u32;
-    if AudioHardwareCreateAggregateDevice(dict, &mut aggregate) != 0 || aggregate == 0 {
+    let agg_created =
+        AudioHardwareCreateAggregateDevice(dict, &mut aggregate) == 0 && aggregate != 0;
+    for k in keys.iter().chain(values[..2].iter()) {
+        CFRelease(*k);
+    }
+    CFRelease(dict);
+    if !agg_created {
         destroy_tap(tap);
+        CFRelease(tap_uid);
         return None;
     }
     // 把 tap 挂进聚合设备（kAudioAggregateDevicePropertyTapList = CFArray<CFString UID>）
     let list = CFArrayCreate(ptr::null(), [tap_uid].as_mut_ptr() as *mut *const c_void, 1, ptr::null());
-    let _ = AudioObjectSetPropertyData(
+    let list_set = AudioObjectSetPropertyData(
         aggregate,
         &Address::new(AGG_TAP_LIST, GLOBAL, 0),
         0,
         ptr::null(),
         size_of::<*const c_void>() as u32,
         (&list as *const *const c_void).cast(),
-    );
+    ) == 0;
+    CFRelease(list);
+    CFRelease(tap_uid);
+    if !list_set {
+        AudioHardwareDestroyAggregateDevice(aggregate);
+        destroy_tap(tap);
+        return None;
+    }
     if scalar::<Asbd>(aggregate, STREAM_FORMAT, GLOBAL, 0)
         .map(|f| f.sample_rate.round() as u32)
         .filter(|r| *r >= 8000)
