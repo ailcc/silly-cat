@@ -129,12 +129,14 @@ async function runUpdaterTests({ inMemory = false } = {}) {
       assert.deepEqual(await portableBlake2b512(input), want);
     }
 
-    let manifest, download = bytes, knownLength = true;
+    let manifest, manifest2, download = bytes, knownLength = true;
     let origin = 'http://127.0.0.1';
     const requests = [];
     function route(pathname) {
       requests.push(pathname);
       if (pathname === '/latest.json') return { status: 200, bytes: Buffer.from(JSON.stringify(manifest)) };
+      if (pathname === '/m1.json') return { status: 200, bytes: Buffer.from(JSON.stringify(manifest)) };
+      if (pathname === '/m2.json') return { status: 200, bytes: Buffer.from(JSON.stringify(manifest2 ?? manifest)) };
       if (pathname === '/setup.exe') return { status: 200, bytes: download };
       return { status: 404, bytes: Buffer.alloc(0) };
     }
@@ -254,23 +256,56 @@ async function runUpdaterTests({ inMemory = false } = {}) {
     await blocked.updater.check();
     await blocked.updater.install();
     assert.equal(blocked.updater.status().title, '安装目录不可写');
-    assert.deepEqual(blocked.browsers, ['https://github.com/ailcc/silly-cat/releases']);
+    assert.deepEqual(blocked.browsers, ['https://gitee.com/ailcc/silly-cat/releases']);
     assert.equal(blocked.launches.length, 0);
+
+    // 多源：第一源挂了（404）自动落到第二源
+    const fallbackSource = scenario(signer.pub, { manifests: [origin + '/none.json', origin + '/m2.json'] });
+    manifest2 = { version: '2.0.0', notes: 'notes', pub_date: '2026-01-01T00:00:00Z',
+      platforms: { 'windows-x86_64': { url: origin + '/setup.exe', signature: ed } } };
+    await fallbackSource.updater.check();
+    assert.equal(fallbackSource.updater.status().title, '有新版本 v2.0.0');
+    assert.deepEqual(requests.slice(-2), ['/none.json', '/m2.json']);
+
+    // 换源重试：第一源清单里的下载地址 404，安装失败自动换第二源清单再试
+    const swap = scenario(signer.pub, { manifests: [origin + '/m1.json', origin + '/m2.json'] });
+    manifest = { version: '2.0.0', notes: 'notes', pub_date: '2026-01-01T00:00:00Z',
+      platforms: { 'windows-x86_64': { url: origin + '/broken.exe', signature: ed } } };
+    await swap.updater.check();
+    assert.equal(swap.updater.status().kind, 'offer');
+    await swap.updater.install();
+    assert.equal(swap.launches.length, 1);
+    assert.ok(swap.notices.some(n => n.title === '正在从备用源下载更新'));
+    assert.deepEqual(requests.slice(-4), ['/m1.json', '/broken.exe', '/m2.json', '/setup.exe']);
+
+    // 首源清单滞后（版本不比当前新）不拦住后面源的新版本
+    const stale = scenario(signer.pub, { manifests: [origin + '/m1.json', origin + '/m2.json'] });
+    manifest = { version: '1.0.0', notes: 'notes', pub_date: '2026-01-01T00:00:00Z',
+      platforms: { 'windows-x86_64': { url: origin + '/setup.exe', signature: ed } } };
+    manifest2 = { version: '2.0.0', notes: 'notes', pub_date: '2026-01-01T00:00:00Z',
+      platforms: { 'windows-x86_64': { url: origin + '/setup.exe', signature: ed } } };
+    await stale.updater.check();
+    assert.equal(stale.updater.status().title, '有新版本 v2.0.0');
+    assert.deepEqual(requests.slice(-2), ['/m1.json', '/m2.json']);
     // The real factory selects a private session when fetching the release manifest.
     // Only the net factory is redirected to the local test fixture.
-    const partitions = [], isolatedSession = {};
+    serve('2.0.0', ed);
+    const partitions = [], isolatedSession = {}, requested = [];
     const factory = createElectronUpdater({
       app: { getVersion: () => '1.0.0', getPath: () => dir }, shell: {}, emit() {},
       settings: { autoUpdate: false },
       session: { fromPartition(name) { partitions.push(name); return isolatedSession; } },
       net: { request(options) {
-        assert.equal(options.url, 'https://github.com/ailcc/silly-cat/releases/latest/download/latest-electron.json');
+        requested.push(options.url);
         assert.equal(options.session, isolatedSession);
         return request(origin + '/latest.json');
       } },
     });
     await factory.check();
     assert.equal(factory.status().kind, 'offer');
+    // 默认多源首位是 Gitee Release 附件清单（可达性最好），真实请求顺序以此开头
+    assert.deepEqual(requested,
+      ['https://gitee.com/ailcc/silly-cat/releases/download/latest/latest-electron.json']);
     assert.deepEqual(partitions, ['updater']);
     factory.stop();
 

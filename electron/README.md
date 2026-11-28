@@ -22,7 +22,7 @@ macOS 上运行 dist 时，准备脚本按 package-lock.json 的版本和 SHA-51
 
 发版走 `.github/workflows/release.yml` 的 `electron` 任务。CI 检查应用版本与 `src-tauri/tauri.conf.json` 一致，测试和打包后用 Tauri 的更新密钥为最终安装包签名，再用 Electron 运行应用的验签代码，校验成功后生成 `latest-electron.json`。标签构建将安装包、`.sig`、免安装 zip 和清单上传到同一个草稿 Release。手动运行可从 workflow artifact 下载产物，缺更新密钥时只出安装包和 zip 等构建产物。
 
-自动更新从 `releases/latest/download/latest-electron.json` 获取 `windows-x86_64` 安装包，并在启动安装器前核对签名和版本。
+自动更新清单按顺序尝试三个源，第一个能拉到的生效（下载地址写在清单里，取哪份清单就用哪个源下载）：Gitee Release 附件 `releases/download/latest/latest-electron.json`（可达性最好）→ Gitee 仓库 `raw/main/updates/latest-electron.json` → GitHub `releases/latest/download/latest-electron.json`。下载失败自动换别的源重试一次，安装目录不可写时打开 Gitee 发布页手动下载。
 
 需要手动出包时，从仓库根目录执行以下步骤。
 

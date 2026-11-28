@@ -66,6 +66,7 @@
       "requireSignedVersion": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFEODk0RjVGOUE1NTk2MUEKUldRYWxsV2FYMCtKcmRtbFFoSzRHUUhHaEtwN3U5M0xOUVpzdUpldVJyMERiTEFmU1MxaSsyekMK",
       "endpoints": [
+        "https://gitee.com/ailcc/silly-cat/releases/download/latest/latest.json",
         "https://gitee.com/ailcc/silly-cat/raw/main/updates/latest.json",
         "https://github.com/ailcc/silly-cat/releases/latest/download/latest.json"
       ],

@@ -6,7 +6,17 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const RELEASES = 'https://github.com/ailcc/silly-cat/releases';
-const MANIFEST = RELEASES + '/latest/download/latest-electron.json';
+const GITEE_RELEASES = 'https://gitee.com/ailcc/silly-cat/releases';
+// 更新清单多源，按顺序取第一个能拉到的（下载地址写在清单里，取哪份清单就用哪个源下载）。
+// Gitee Release 附件走 foruda.gitee.com，可达性最好放首位；raw.giteeusercontent.com
+// 在部分网络被重置放第二；GitHub 兜底。
+const MANIFESTS = [
+  GITEE_RELEASES + '/download/latest/latest-electron.json',
+  'https://gitee.com/ailcc/silly-cat/raw/main/updates/latest-electron.json',
+  RELEASES + '/latest/download/latest-electron.json',
+];
+// 安装目录不可写时打开的手动下载页：Gitee 发布页国内可达，GitHub 仅兜底
+const RELEASE_PAGE = GITEE_RELEASES;
 const PUBLIC_KEY = 'dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFEODk0RjVGOUE1NTk2MUEKUldRYWxsV2FYMCtKcmRtbFFoSzRHUUhHaEtwN3U5M0xOUVpzdUpldVJyMERiTEFmU1MxaSsyekMK';
 const INVALID_SIGNATURE = '更新签名无效';
 const BAD_MANIFEST = '更新清单格式错误';
@@ -276,8 +286,10 @@ async function launchInstaller(file, args) {
   });
 }
 
-function createUpdater({ publicKey = PUBLIC_KEY, currentVersion, manifestUrl = MANIFEST, fetch,
+function createUpdater({ publicKey = PUBLIC_KEY, currentVersion, manifests, manifestUrl, fetch,
   probe, openRelease, launch, quit, tempDir, emit, schedule = true, settings = {} }) {
+  // 多源清单地址；旧调用传单个 manifestUrl 时视为只有一个源
+  const sources = manifests ?? (manifestUrl ? [manifestUrl] : MANIFESTS);
   let key = null;
   try { key = readKey(publicKey); } catch { /* Manual checks explain missing or invalid keys. */ }
   const current = parseVersion(currentVersion);
@@ -296,6 +308,22 @@ function createUpdater({ publicKey = PUBLIC_KEY, currentVersion, manifestUrl = M
   function notify(kind, title, detail, installable = false) { publish({ kind, title, detail, installable }); }
   function reason(error) { return Array.from(error.message).slice(0, 60).join(''); }
 
+  // 多源取清单：按顺序请求，第一个有更新的入选；某源明确「无更新」（空响应或
+  // 版本不比当前新）时继续看下一源，防止某个源滞后把新版本拦下来；全部失败抛最后的错误
+  async function candidateFrom(start, skip) {
+    let failure = null;
+    for (let i = start; i < sources.length; i++) {
+      if (sources[i] === skip) continue;
+      try {
+        const bytes = await fetch(sources[i], { manifest: true });
+        const found = bytes == null ? null : readManifest(bytes, current);
+        if (found) return { ...found, sourceUrl: sources[i] };
+      } catch (error) { failure = error; }
+    }
+    if (failure) throw failure;
+    return null;
+  }
+
   function check(manual = true) {
     return serial(async () => {
       if (stopped) return;
@@ -307,11 +335,10 @@ function createUpdater({ publicKey = PUBLIC_KEY, currentVersion, manifestUrl = M
       else if (!enabled) return;
       const started = generation;
       try {
-        const bytes = await fetch(manifestUrl, { manifest: true });
-        const candidate = bytes == null ? null : readManifest(bytes, current);
+        const found = await candidateFrom(0);
         if (stopped || (!manual && started !== generation)) return;
-        if (candidate) {
-          offer = { ...candidate, manual };
+        if (found) {
+          offer = { ...found, manual };
           notify('offer', '有新版本 v' + offer.version, '点这里更新', true);
         } else {
           const previous = offer;
@@ -329,14 +356,14 @@ function createUpdater({ publicKey = PUBLIC_KEY, currentVersion, manifestUrl = M
 
   async function fallback() {
     let detail = '请到发布页下载安装包';
-    try { await openRelease(RELEASES); } catch { detail = RELEASES; }
+    try { await openRelease(RELEASE_PAGE); } catch { detail = RELEASE_PAGE; }
     notify('failed', '安装目录不可写', detail);
   }
 
   function install() {
     return serial(async () => {
       if (!offer || stopped) return;
-      const candidate = offer;
+      let candidate = offer;
       offer = null;
       if (!candidate.manual && !enabled) { publish(null); return; }
       try { await probe(); } catch (error) {
@@ -345,31 +372,40 @@ function createUpdater({ publicKey = PUBLIC_KEY, currentVersion, manifestUrl = M
         notify('failed', '无法开始安装', reason(error), true);
         return;
       }
-      notify('progress', '正在下载更新', '准备下载…');
       let dir;
-      try {
-        let last;
-        const progress = (count, total) => {
-          const detail = total > 0 ? Math.floor(100 * count / total) + '%' : (64 * Math.floor(count / 65536)) + ' KiB';
-          if (last !== detail) { last = detail; notify('progress', '正在下载更新', detail); }
-        };
-        const bytes = await fetch(candidate.url, { manifest: false, progress });
-        notify('progress', '正在校验并安装', '完成后自动重启');
-        await verifySignature(bytes, candidate.signature, key, candidate.version);
-        if (stopped) return;
-        dir = await fs.mkdtemp(path.join(tempDir, 'sillycat-update-'));
-        const file = path.join(dir, 'setup.exe');
-        await fs.writeFile(file, bytes, { flag: 'wx', mode: 0o600 });
-        await launch(file, [...INSTALL_ARGS]);
-        // The detached NSIS process still needs this file after the old app exits.
-        dir = null;
-        quit();
-      } catch (error) {
-        if (unwritable(error)) return fallback();
-        offer = candidate;
-        notify('failed', '更新失败', reason(error), true);
-      } finally {
-        if (dir) await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+      for (let attempt = 0; ; attempt++) {
+        try {
+          notify('progress', attempt ? '正在从备用源下载更新' : '正在下载更新', '准备下载…');
+          let last;
+          const progress = (count, total) => {
+            const detail = total > 0 ? Math.floor(100 * count / total) + '%' : (64 * Math.floor(count / 65536)) + ' KiB';
+            if (last !== detail) { last = detail; notify('progress', attempt ? '正在从备用源下载更新' : '正在下载更新', detail); }
+          };
+          const bytes = await fetch(candidate.url, { manifest: false, progress });
+          notify('progress', '正在校验并安装', '完成后自动重启');
+          await verifySignature(bytes, candidate.signature, key, candidate.version);
+          if (stopped) return;
+          dir = await fs.mkdtemp(path.join(tempDir, 'sillycat-update-'));
+          const file = path.join(dir, 'setup.exe');
+          await fs.writeFile(file, bytes, { flag: 'wx', mode: 0o600 });
+          await launch(file, [...INSTALL_ARGS]);
+          // The detached NSIS process still needs this file after the old app exits.
+          dir = null;
+          quit();
+          return;
+        } catch (error) {
+          if (unwritable(error)) return fallback();
+          // 下载或校验失败换源重试一次：换一份别的源的清单（清单里写着下载地址，换清单即换源）
+          const other = attempt === 0 && !stopped ? await candidateFrom(0, candidate.sourceUrl) : null;
+          if (!other || stopped) {
+            offer = candidate;
+            notify('failed', '更新失败', reason(error), true);
+            return;
+          }
+          candidate = other;
+        } finally {
+          if (dir) await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+        }
       }
     });
   }

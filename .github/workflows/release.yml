@@ -438,7 +438,7 @@ jobs:
   #    这次提交会触发 sync-gitee.yml 把 updates/ 镜像到 Gitee。
   # 主线构建失败时不同步（免得 Gitee 上只有半套包）；Win7 构建失败只少一个包，照常同步。
   gitee:
-    needs: [build, win7]
+    needs: [build, win7, electron]
     if: ${{ !cancelled() && github.repository == 'ailcc/silly-cat' && github.event_name == 'push' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
@@ -472,9 +472,11 @@ jobs:
           else
             : > /tmp/asset-map.txt
           fi
-          cat > /tmp/gitee-manifest.mjs <<'NODE'
+          cat > /tmp/manifest-rewrite.mjs <<'NODE'
             import fs from 'node:fs';
-            const [src, dst, tag, mapFile] = process.argv.slice(2);
+            // 把清单里各平台的下载地址统一改写到指定前缀（Gitee 版 / GitHub 兜底版共用）。
+            // [源清单, 目标清单, 下载地址前缀(含标签), 资产ID->文件名对照表]
+            const [src, dst, prefix, mapFile] = process.argv.slice(2);
             const map = new Map();
             if (mapFile && fs.existsSync(mapFile)) {
               for (const line of fs.readFileSync(mapFile, 'utf8').split('\n')) {
@@ -488,22 +490,38 @@ jobs:
               const last = decodeURIComponent(path.split('/').pop());
               const id = (path.match(/\/assets\/(\d+)$/) || [])[1];
               const name = id && map.has(id) ? map.get(id) : last;
-              v.url = `https://gitee.com/ailcc/silly-cat/releases/download/${tag}/${name}`;
+              v.url = `${prefix}/${name}`;
             }
             fs.writeFileSync(dst, JSON.stringify(m, null, 2));
           NODE
-          node /tmp/gitee-manifest.mjs assets/latest.json updates/latest.json "$GITHUB_REF_NAME" /tmp/asset-map.txt
+          gitee_prefix="https://gitee.com/ailcc/silly-cat/releases/download/$GITHUB_REF_NAME"
+          github_prefix="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME"
+          node /tmp/manifest-rewrite.mjs assets/latest.json updates/latest.json "$gitee_prefix" /tmp/asset-map.txt
           if [[ -f assets/latest-win7.json ]]; then
-            node /tmp/gitee-manifest.mjs assets/latest-win7.json updates/latest-win7.json "$GITHUB_REF_NAME" /tmp/asset-map.txt
+            node /tmp/manifest-rewrite.mjs assets/latest-win7.json updates/latest-win7.json "$gitee_prefix" /tmp/asset-map.txt
           else
             echo "::warning::没有 latest-win7.json（Win7 构建可能失败了），本次跳过 Win7 清单"
+          fi
+          # Electron 兼容版清单：electron job 晚于 build 结束，needs 已串行等待，这里正常都在
+          if [[ -f assets/latest-electron.json ]]; then
+            node /tmp/manifest-rewrite.mjs assets/latest-electron.json updates/latest-electron.json "$gitee_prefix" /tmp/asset-map.txt
+          else
+            echo "::warning::没有 latest-electron.json（Electron 构建可能失败了），本次跳过 Electron 清单"
           fi
           # 兜底校验：清单里不允许再出现纯数字的资产 ID 地址
           if grep -qE 'releases/download/[^/]+/[0-9]+"' updates/latest.json; then
             echo "::error::更新清单仍是资产 ID 而非文件名，终止发布"
             exit 1
           fi
-          echo '--- latest.json ---'
+          # GitHub 兜底清单也要改写：api.github.com 的资产地址在国内常连不通，
+          # 换成 github.com 的普通下载地址后，老客户端从 GitHub 兜底时还有机会下载成功
+          mkdir -p github-manifests
+          node /tmp/manifest-rewrite.mjs assets/latest.json github-manifests/latest.json "$github_prefix" /tmp/asset-map.txt
+          for name in latest-win7.json latest-electron.json; do
+            [[ -f assets/$name ]] && node /tmp/manifest-rewrite.mjs "assets/$name" "github-manifests/$name" "$github_prefix" /tmp/asset-map.txt
+          done
+          gh release upload "$GITHUB_REF_NAME" github-manifests/*.json -R "$GITHUB_REPOSITORY" --clobber
+          echo '--- updates/latest.json ---'
           cat updates/latest.json
 
       - name: 提交更新清单到 main
@@ -531,15 +549,48 @@ jobs:
           old=$(curl -sS --max-time 30 "$api/releases/tags/$GITHUB_REF_NAME?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);console.log(r.id||"")}catch{console.log("")}})')
           if [[ -n $old ]]; then
             echo "Gitee Release 已存在（编号 $old），跳过创建；请手动确认安装包已上传"
-            exit 0
+          else
+            body=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq 'map(select(.tag_name==env.GITHUB_REF_NAME))[0].body')
+            # target_commitish 是 Gitee 必填字段（2026-11-25 实测缺了会报 "target_commitish is missing"）
+            payload=$(node -e 'const [tag,name,body]=process.argv.slice(1);console.log(JSON.stringify({tag_name:tag,name,body,prerelease:false,target_commitish:"main"}))' "$GITHUB_REF_NAME" "SillyCat $GITHUB_REF_NAME" "$body")
+            rid=$(curl -sS --max-time 30 -X POST -H 'Content-Type: application/json' \
+              -d "$payload" "$api/releases?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.id){process.stderr.write(s);process.exit(1)}console.log(r.id)})')
+            echo "Gitee Release 创建成功（编号 $rid）：https://gitee.com/$GITEE_REPO/releases"
+            echo "请从 GitHub Release 下载安装包，手动上传到上面的 Gitee Release（含 updates/ 三份清单）"
           fi
-          body=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq 'map(select(.tag_name==env.GITHUB_REF_NAME))[0].body')
-          # target_commitish 是 Gitee 必填字段（2026-11-25 实测缺了会报 "target_commitish is missing"）
-          payload=$(node -e 'const [tag,name,body]=process.argv.slice(1);console.log(JSON.stringify({tag_name:tag,name,body,prerelease:false,target_commitish:"main"}))' "$GITHUB_REF_NAME" "SillyCat $GITHUB_REF_NAME" "$body")
-          rid=$(curl -sS --max-time 30 -X POST -H 'Content-Type: application/json' \
-            -d "$payload" "$api/releases?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.id){process.stderr.write(s);process.exit(1)}console.log(r.id)})')
-          echo "Gitee Release 创建成功（编号 $rid）：https://gitee.com/$GITEE_REPO/releases"
-          echo "请从 GitHub Release 下载安装包，手动上传到上面的 Gitee Release（含 updates/latest.json 与 latest-win7.json 两份清单）"
+
+      # 维护常驻的 latest 标签 Release：客户端更新端点的第一优先源指向它
+      # （releases/download/latest/…走 foruda.gitee.com，可达性比 raw.giteeusercontent.com
+      # 好——2026-11-28 实测 raw 在部分网络被重置）。每次发版用新清单覆盖同名附件。
+      - name: 维护 Gitee latest 常驻更新清单
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -euo pipefail
+          api="https://gitee.com/api/v5/repos/$GITEE_REPO"
+          rid=$(curl -sS --max-time 30 "$api/releases/tags/latest?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const r=JSON.parse(s);console.log(r.id||"")}catch{console.log("")}})')
+          if [[ -z $rid ]]; then
+            payload=$(node -e 'console.log(JSON.stringify({tag_name:"latest",name:"更新清单（常驻）",body:"此 Release 只存放最新版的三份更新清单，由 CI 每次发版自动覆盖。不要从这里下载安装包。",prerelease:false,target_commitish:"main"}))')
+            rid=$(curl -sS --max-time 30 -X POST -H 'Content-Type: application/json' \
+              -d "$payload" "$api/releases?access_token=$GITEE_TOKEN" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);if(!r.id){process.stderr.write(s);process.exit(1)}console.log(r.id)})')
+            echo "Gitee latest 常驻 Release 已创建（编号 $rid）"
+          fi
+          for name in latest.json latest-win7.json latest-electron.json; do
+            file="updates/$name"
+            if [[ ! -f $file ]]; then continue; fi
+            # 同名附件不会自动覆盖，先删旧的再传新的
+            curl -sS --max-time 30 "$api/releases/$rid/attach_files?access_token=$GITEE_TOKEN" | node -e '
+              let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
+                for (const a of JSON.parse(s)) if (a.name === process.argv[1]) console.log(a.id);
+              }' "$name" | while read -r aid; do
+                [[ -n $aid ]] && curl -sS --max-time 30 -X DELETE "$api/releases/$rid/attach_files/$aid?access_token=$GITEE_TOKEN" -o /dev/null
+              done
+            code=$(curl -sS --max-time 300 -X POST "$api/releases/$rid/attach_files?access_token=$GITEE_TOKEN" \
+              -F "file=@$file" -o /tmp/attach.json -w "%{http_code}")
+            node -e 'const r=require("/tmp/attach.json");if(!r.name)process.exit(1);console.log("已更新清单", r.name)' || { cat /tmp/attach.json; exit 1; }
+            echo "$name 上传返回 $code"
+          done
+          echo "Gitee latest 清单已刷新：https://gitee.com/$GITEE_REPO/releases/download/latest/"
 
   # Windows 7 / 8 / 8.1 兼容版（Electron 22，不依赖 WebView2）。
   # 和正式版共用同一套 Tauri 更新密钥签名；构建产物、.sig 和 latest-electron.json 挂到同一个草稿 Release。

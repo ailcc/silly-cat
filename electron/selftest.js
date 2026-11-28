@@ -285,15 +285,17 @@ async function run(ctx, check) {
   await check('开机自启、任务管理器禁用和重新启用（桩）', async () => {
     assert.equal((await invoke('set_autostart', { enabled: true })).enabled, true);
     ctx.systemTest.launchItems[0].enabled = false;
-    ctx.systemTest.launchItems.push({ name: 'SillyCat', scope: 'user', enabled: true, args: [] });
+    // 同名但 machine 作用域的项不应被算作开机自启（autostart_status 只认 user 作用域）
+    ctx.systemTest.launchItems.push({ name: 'SillyCat', scope: 'machine', enabled: true, args: [] });
     assert.equal((await invoke('autostart_status')).enabled, false);
     assert.equal((await invoke('set_autostart', { enabled: true })).enabled, true);
     assert.equal((await invoke('set_autostart', { enabled: false })).enabled, false);
   });
   await check('已知链接和重启（桩）', async () => {
-    for (const target of ['github', 'douyin']) await invoke('open_link', { target });
-    assert.deepEqual(ctx.systemTest.openedLinks, ['https://github.com/S0u1/silly-cat',
-      'https://www.douyin.com/user/MS4wLjABAAAAgiL6r1k59SPVX7I3Hu2RImPW3Vs5RR2UUEjduDIP3jM']);
+    // 链接映射见 main.js openLink：github/gitee 是本仓库，origin 是上游
+    for (const target of ['github', 'gitee']) await invoke('open_link', { target });
+    assert.deepEqual(ctx.systemTest.openedLinks, ['https://github.com/ailcc/silly-cat',
+      'https://gitee.com/ailcc/silly-cat']);
     await invoke('restart_app');
     assert.equal(ctx.systemTest.restarts, 1);
   });
