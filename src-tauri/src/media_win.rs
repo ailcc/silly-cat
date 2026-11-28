@@ -13,19 +13,22 @@ type Raw = *mut c_void;
 type Hr = i32;
 type Result<T> = std::result::Result<T, Hr>;
 const CLSCTX_ALL: u32 = 23;
-const EXCLUDED: &[&str] = &[
-    "wechat.exe",
-    "weixin.exe",
-    "qq.exe",
-    "wemeetapp.exe",
-    "dingtalk.exe",
-    "feishu.exe",
-    "lark.exe",
-    "zoom.exe",
-    "ms-teams.exe",
-    "teams.exe",
-    "discord.exe",
-    "trae.exe", // Trae IDE：内嵌浏览器开着猫的调试页面/预览时，页面声音走 Trae 进程，不算听歌
+// 音乐软件白名单：只有这些在播放才算「用户在听歌」。2026-11-28 从黑名单改成白名单——
+// IDE、浏览器等其它任何软件出声都不该让猫戴耳机（比如浏览器网页放歌、IDE 内嵌预览）。
+// 精确匹配进程 exe 文件名（不分大小写）。
+const MUSIC_APPS: &[&str] = &[
+    "cloudmusic.exe", // 网易云音乐
+    "qqmusic.exe",    // QQ音乐
+    "spotify.exe",    // Spotify
+    "kugou.exe",      // 酷狗音乐
+    "kuwo.exe",       // 酷我音乐
+    "kwmusic.exe",    // 酷我音乐（另一版本）
+    "migu.exe",       // 咪咕音乐
+    "migumusic.exe",  // 咪咕音乐（另一版本）
+    "applemusic.exe", // Apple Music
+    "itunes.exe",     // iTunes（老版）
+    "foobar2000.exe", // foobar2000
+    "aimp.exe",       // AIMP
 ];
 
 #[repr(C)]
@@ -65,7 +68,7 @@ extern "system" {
     fn CloseHandle(handle: Raw) -> i32;
 }
 
-fn excluded_process(pid: u32) -> bool {
+fn music_process(pid: u32) -> bool {
     unsafe {
         let handle = OpenProcess(0x1000, 0, pid); // PROCESS_QUERY_LIMITED_INFORMATION
         if handle.is_null() {
@@ -80,7 +83,9 @@ fn excluded_process(pid: u32) -> bool {
         }
         let path = String::from_utf16_lossy(&name[..len as usize]);
         let exe = path.rsplit('\\').next().unwrap_or("");
-        EXCLUDED.iter().any(|entry| exe.eq_ignore_ascii_case(entry))
+        MUSIC_APPS
+            .iter()
+            .any(|entry| exe.eq_ignore_ascii_case(entry))
     }
 }
 
@@ -246,7 +251,9 @@ unsafe fn session_active(session: &Interface, exclude_pids: &[u32]) -> Result<bo
         return Ok(false);
     }
     let pid: u32 = control.value(14)?;
-    if exclude_pids.contains(&pid) || excluded_process(pid) {
+    // 白名单：只有音乐软件的 session 才算「用户在听歌」；exclude_pids 是猫自己
+    // （探针场景是探针进程），白名单外的 pid 一律不算，猫自己的 pid 天然不在名单里
+    if exclude_pids.contains(&pid) || !music_process(pid) {
         return Ok(false);
     }
     // ISimpleAudioVolume : IUnknown, 6 GetMute, 4 GetMasterVolume

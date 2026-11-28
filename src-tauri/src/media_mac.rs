@@ -5,34 +5,23 @@
 // - 不录音、不读音频内容，只查音量电平和进程属性。
 use std::{ffi::c_void, mem::size_of, ptr};
 
-// 通话 / 会议 / 语音软件：它们在出声也不算听歌（按 bundle id 前缀匹配）。
-// com.apple.WebKit.GPU / WebContent：猫自己的音效跑在 WKWebView 的 GPU 进程里（bundle id
-// 不是 com.drew.sillycat，单排自己没用），而且 AudioContext 建了之后音频输出 IO 常驻——
-// 「正在输出」标记常亮，不排的话猫一打字就给自己戴上耳机（2026-11-27 探针实测）。
-// 代价：Safari 等内嵌 WebKit 的浏览器放歌也不会触发（Chrome/Edge 是 Blink 不受影响）。
-// com.yourcompany.UZPlayer：zspace 工具的常驻视频组件，不发声也一直占着音频输出 IO，
-// 同样会误触发，一并排除。
-const EXCLUDED: &[&str] = &[
-    "com.tencent.xinWeChat",
-    "com.tencent.qq",
-    "com.tencent.meeting",
-    "com.alibaba.DingTalkMac",
-    "com.bytedance.lark",
-    "com.electron.lark",
-    "us.zoom.xos",
-    "com.microsoft.teams",
-    "com.microsoft.teams2",
-    "com.apple.FaceTime",
-    "com.apple.avconferenced",
-    "com.apple.systemsoundserverd",
-    "com.apple.audio.systemsoundserverd",
-    "com.hnc.Discord",
-    "com.drew.sillycat", // 猫自己的音效
-    "com.apple.WebKit.GPU",
-    "com.apple.WebKit.WebContent",
-    "com.yourcompany.UZPlayer",
-    "cn.trae", // Trae IDE：内嵌浏览器开着猫的调试页面/预览时，页面声音走 Trae 进程，不算听歌
-    "com.trae",
+// 音乐软件白名单：只有这些在播放才算「用户在听歌」。2026-11-28 从黑名单改成白名单——
+// IDE、浏览器等其它任何软件出声都不该让猫戴耳机（实测 Trae 内嵌浏览器开着猫的调试
+// 页面，页面音效让 Trae 进程持续出声而误触发）。前缀匹配（整段或到 '.' 为止）；
+// 没有 bundle id 的进程不再触发——白名单优先，宁可漏戴也不误戴。代价：不在名单里的
+// 小众播放器和网页听歌不再触发；好处是浏览器/IDE/通话软件怎么出声都不会误戴，
+// 之前黑名单里那一串通话/会议/语音软件（微信、QQ、腾讯会议、钉钉、飞书、Zoom、
+// Teams、FaceTime、Discord）以及猫自己（com.drew.sillycat）、WebKit.GPU/WebContent、
+// UZPlayer 全部天然排除，不用再逐个追。
+const MUSIC_APPS: &[&str] = &[
+    "com.apple.Music",      // Apple Music
+    "com.spotify.client",   // Spotify
+    "com.netease.163music", // 网易云音乐
+    "com.tencent.QQMusic",  // QQ音乐（覆盖 QQMusicMac 等）
+    "com.kugou",            // 酷狗音乐
+    "com.kuwo",             // 酷我音乐
+    "com.migu",             // 咪咕音乐
+    "com.foobar2000",       // foobar2000
 ];
 const SYSTEM: u32 = 1;
 const GLOBAL: u32 = u32::from_be_bytes(*b"glob");
@@ -120,7 +109,7 @@ fn process_objects(addr: &Address) -> Vec<u32> {
     }
 }
 
-fn eligible_process(id: u32) -> bool {
+fn music_process(id: u32) -> bool {
     unsafe {
         // 'piro' = kAudioProcessPropertyIsRunningOutput（进程正在跑音频输出 IO；
         // 注意真正的 IsRunning 是 'pir?'，别搞混——2026-11-27 对 SDK 头文件核实）
@@ -132,9 +121,9 @@ fn eligible_process(id: u32) -> bool {
             _ => return false,
         }
         let cf = scalar::<*const c_void>(id, b"pbid", GLOBAL, 0).unwrap_or(ptr::null());
-        // 命令行播放器可能没有 bundle id，照样算。
+        // 没有 bundle id 的进程（命令行播放器等）不触发：白名单优先，宁可漏戴不误戴
         if cf.is_null() {
-            return true;
+            return false;
         }
         let mut buf = vec![0u8; (CFStringGetLength(cf) * 4 + 1) as usize];
         let ok = CFStringGetCString(cf, buf.as_mut_ptr(), buf.len() as isize, 0x08000100);
@@ -144,7 +133,7 @@ fn eligible_process(id: u32) -> bool {
         }
         let end = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
         let bundle = String::from_utf8_lossy(&buf[..end]);
-        !EXCLUDED.iter().any(|&entry| {
+        MUSIC_APPS.iter().any(|&entry| {
             bundle
                 .strip_prefix(entry)
                 .is_some_and(|suffix| suffix.is_empty() || suffix.starts_with('.'))
@@ -182,7 +171,7 @@ pub fn sample() -> (bool, &'static str) {
     let audible = device != 0 && audible_device(device);
     if by_process {
         (
-            audible && process_objects(&list).into_iter().any(eligible_process),
+            audible && process_objects(&list).into_iter().any(music_process),
             "process",
         )
     } else {
