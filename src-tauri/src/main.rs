@@ -240,11 +240,14 @@ fn cat_size_of(settings: &serde_json::Value) -> f64 {
 }
 
 /// 用物理像素固定右下角，缩放时只移动左上角。
+/// 缩放策略：size ≤ 1 时窗口保持基准大小（100% 时的尺寸），场景由前端 #zoom 组
+/// 整体缩放、气泡等文字保持 1×（见 index.html）；size > 1 时窗口放大装下场景。
 fn apply_cat_size(win: &WebviewWindow, size: f64) {
     let Ok(k) = win.scale_factor() else { return };
+    let eff = size.max(1.0);
     let target = PhysicalSize::new(
-        (BASE_W * size * k).round() as u32,
-        (BASE_H * size * k).round() as u32,
+        (BASE_W * eff * k).round() as u32,
+        (BASE_H * eff * k).round() as u32,
     );
     let Ok(current) = win.outer_size() else { return };
     if current.width.abs_diff(target.width) <= 1 && current.height.abs_diff(target.height) <= 1 {
@@ -261,6 +264,7 @@ fn apply_cat_size(win: &WebviewWindow, size: f64) {
 }
 
 /// 拖动滑块时只调整主窗口大小，设置由 save_settings 写盘和广播。
+/// size ≤ 1 窗口不动，实时把 size 发给前端做 #zoom 缩放预览。
 #[tauri::command]
 fn preview_cat_size(app: AppHandle, size: f64) {
     if !size.is_finite() || !(SIZE_MIN..=SIZE_MAX).contains(&size) {
@@ -268,6 +272,7 @@ fn preview_cat_size(app: AppHandle, size: f64) {
     }
     if let Some(win) = app.get_webview_window("main") {
         apply_cat_size(&win, size);
+        let _ = app.emit_to("main", "silly:cat-size", size);
     }
 }
 
@@ -840,8 +845,9 @@ fn main() {
 
             let win = app.get_webview_window("main").expect("main window");
             // 先恢复大小，屏幕检查和默认位置才能用缩放后的尺寸。
+            // size ≤ 1 时窗口保持基准大小（场景由前端 #zoom 缩放），> 1 才放大窗口
             let size = load_settings(app.handle().clone()).as_ref().map_or(1.0, cat_size_of);
-            if size != 1.0 {
+            if size > 1.0 {
                 let _ = win.set_size(tauri::LogicalSize::new(BASE_W * size, BASE_H * size));
             }
             let start = load_pos(app.handle()).filter(|p| on_some_screen(&win, *p)).unwrap_or_else(|| default_pos(&win));

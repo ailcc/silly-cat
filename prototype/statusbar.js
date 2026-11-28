@@ -84,7 +84,7 @@
     }
 
     // ---------- 渲染 ----------
-    const R = { shown: 'none', op: 0, p: 0, drawnOp: -1, drawnP: -1, drawnKind: null, display: false, last: null };
+    const R = { shown: 'none', op: 0, p: 0, drawnOp: -1, drawnP: -1, drawnKind: null, display: false, last: null, drawnInv: 1 };
     function render(now, frameDt, rm) {
       // 淡入淡出按真实经过的时间推进（cat.js 给的 dt 每帧最多 64ms，后台被节流时会拖得很慢）
       const wall = performance.now();
@@ -107,6 +107,7 @@
       const visible = R.op > 0 && R.shown !== 'none';
       if (visible !== R.display) { R.display = visible; g.style.display = visible ? '' : 'none'; }
       if (!visible) return;
+      const inv = 1 / (window.__catSize || 1); // 场景缩放时保持字号 1×
       if (R.shown !== R.drawnKind) {
         R.drawnKind = R.shown;
         const K = KINDS[R.shown];
@@ -121,11 +122,15 @@
         const w = p <= 0 ? 0 : Math.max(TRACK.h, TRACK.w * p);
         fill.setAttribute('width', f1(w));
       }
-      if (R.op !== R.drawnOp) {
+      if (R.op !== R.drawnOp || R.drawnInv !== inv) {
         R.drawnOp = R.op;
+        R.drawnInv = inv;
         const e = R.op * R.op * (3 - 2 * R.op); // smoothstep
         g.setAttribute('opacity', e.toFixed(3));
-        g.setAttribute('transform', rm ? '' : `translate(0 ${f1(RISE * (1 - e))})`);
+        // 场景缩放时围绕自身中心逆缩放（跟着猫头顶走，字号保持 1×），再叠淡入时的上浮
+        g.setAttribute('transform',
+          (inv === 1 ? '' : `translate(${BOX.x + BOX.w / 2} ${BOX.y + BOX.h / 2}) scale(${inv.toFixed(4)}) translate(${-(BOX.x + BOX.w / 2)} ${-(BOX.y + BOX.h / 2)}) `) +
+          (rm ? '' : `translate(0 ${f1(RISE * (1 - e))})`));
       }
     }
 

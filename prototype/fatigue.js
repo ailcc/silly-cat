@@ -853,7 +853,9 @@
         const b = F.bubbles[i], p = (now - b.start) / 1100;
         if (p >= 1 || !F.strike) { b.g.remove(); F.bubbles.splice(i, 1); continue; }
         const dy = rm ? 0 : -24 * easeOut(p);
-        b.g.setAttribute('transform', `translate(${f1(b.x)} ${f1(b.y + dy)})`);
+        // 场景缩放时气泡位置跟着走、字号保持 1×
+        const inv = (1 / (window.__catSize || 1)).toFixed(4);
+        b.g.setAttribute('transform', `translate(${f1(b.x)} ${f1(b.y + dy)}) scale(${inv})`);
         b.g.setAttribute('opacity', (p < 0.15 ? p / 0.15 : p > 0.7 ? (1 - p) / 0.3 : 1).toFixed(3));
       }
 

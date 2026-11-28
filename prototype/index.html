@@ -39,6 +39,11 @@
     </mask>
   </defs>
 
+  <!-- 场景整体缩放组：settings.size ≤ 1 时窗口保持基准大小，这里把整个场景
+       （猫、键盘、键鼠、水杯等物件）按 size 缩放、右下角锚定；
+       气泡/状态条等文字类 UI 在组内自己做逆缩放保持 1×（见各模块）。
+       size > 1 时窗口放大，本组不缩放（SVG 拉伸负责放大）。 -->
+  <g id="zoom">
   <ellipse id="ground-shadow" class="shadow" cx="400" cy="594" rx="300" ry="20"/>
 
   <!-- 尾巴：黑色带白尖，轮廓由 cat.js 每帧按中线算（平时在身后摆，动鼠标时绕到前面搭在鼠标上） -->
@@ -293,6 +298,7 @@
   <g id="bubble-layer" pointer-events="none"></g>
   <!-- 浮起的键名：在猫和键盘之上，正着显示给观众，不接收指针 -->
   <g id="fx-layer" pointer-events="none"></g>
+  </g>
 </svg>
 </main>
 
@@ -643,9 +649,10 @@
     // 品种和画风只读设置。其他支持 URL 的字段在启动时优先用 URL 参数，之后以设置窗口为准。
     const applySettings = (raw, skipUrl) => {
       const s = SillySettings.sanitize(raw);
-      // 窗口外层缩放（settings.size 由 Tauri 窗口层 set_size 实现）会把 scene 里所有元素一起缩。
-      // 把 size 暴露给模块，让番茄钟等小部件做逆缩放保持固定视觉大小。
+      // size 暴露给各模块：文字类 UI（气泡/状态条/番茄钟等）按它逆缩放保持 1×。
+      // ≤ 1 时窗口不变、场景由 #zoom 组缩放（右下角锚定）；> 1 时窗口放大、SVG 拉伸负责缩放。
       window.__catSize = s.size || 1;
+      applyZoom(window.__catSize);
       SillyCoats.setArtStyle(s.artStyle, s.cat);
       if (!(skipUrl && SillyKeyboard.isStyle(keyboardParam))) cat.setKeyboardStyle(s.keyboard);
       const use = (k) => !(skipUrl && num(k) !== null);
@@ -677,6 +684,20 @@
       if (!(skipUrl && Number.isFinite(pushEveryParam))) push.setEverySeconds(s.pushEvery);
     };
     const T = window.__TAURI__;
+    // 场景缩放：≤1 时 #zoom 组右下角锚定缩放（窗口保持基准大小），>1 时窗口放大由 SVG 拉伸
+    function applyZoom(size) {
+      const z = document.getElementById('zoom');
+      if (!z) return;
+      const k = Math.min(size, 1);
+      z.setAttribute('transform', k === 1 ? '' :
+        `translate(${(800 * (1 - k)).toFixed(2)} ${(620 * (1 - k)).toFixed(2)}) scale(${k.toFixed(4)})`);
+    }
+    // 设置页拖滑杆的实时预览（窗口 ≤1 时不 resize，缩放走这里）
+    if (T && T.event) T.event.listen('silly:cat-size', (ev) => {
+      const size = Number(ev.payload) || 1;
+      window.__catSize = size;
+      applyZoom(size);
+    });
     let settingsChanged = false;
     T.event.listen('silly:settings', (ev) => {
       settingsChanged = true;

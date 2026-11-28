@@ -119,7 +119,9 @@
         return;
       }
       E.sign.style.opacity = op;
-      E.sign.setAttribute('transform', `translate(190 ${(352 + 80 - rise).toFixed(1)})`);
+      // 场景缩放时牌子位置跟着走、字号保持 1×
+      const inv = (1 / (window.__catSize || 1)).toFixed(4);
+      E.sign.setAttribute('transform', `translate(190 ${(352 + 80 - rise).toFixed(1)}) scale(${inv})`);
     }
 
     return {

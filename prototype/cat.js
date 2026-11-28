@@ -242,7 +242,9 @@
           rot = f.rot * e;
           op = p < 0.12 ? p / 0.12 : p < 0.55 ? 1 : 1 - (p - 0.55) / 0.45;
         }
-        f.g.setAttribute('transform', `translate(${f1(tx)} ${f1(ty)}) rotate(${rot.toFixed(2)}) scale(${sc.toFixed(3)})`);
+        // 场景缩放（#zoom / 窗口拉伸）时逆缩放：位置跟着猫走，键名/气泡字保持 1× 可读
+        const inv = (1 / (window.__catSize || 1)).toFixed(4);
+        f.g.setAttribute('transform', `translate(${f1(tx)} ${f1(ty)}) scale(${inv}) rotate(${rot.toFixed(2)}) scale(${sc.toFixed(3)})`);
         f.g.setAttribute('opacity', op.toFixed(3));
       }
     }
@@ -1140,7 +1142,9 @@
         const x = origin.x + P.zzzDx + ph * 40 + Math.sin(ph * 6) * 4;
         const y = origin.y + P.zzzDy - ph * 78;
         const sc = 0.7 + ph * 0.8;
-        z.setAttribute('transform', `translate(${f1(x)} ${f1(y)}) scale(${sc.toFixed(3)})`);
+        // ZZZ 跟着场景缩放走位置，字号保持 1×（对白类，方便看清）
+        const inv = (1 / (window.__catSize || 1)).toFixed(4);
+        z.setAttribute('transform', `translate(${f1(x)} ${f1(y)}) scale(${inv}) scale(${sc.toFixed(3)})`);
         z.setAttribute('opacity', Math.sin(Math.PI * ph).toFixed(3));
       });
     }
