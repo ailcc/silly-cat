@@ -31,6 +31,8 @@ const EXCLUDED: &[&str] = &[
     "com.apple.WebKit.GPU",
     "com.apple.WebKit.WebContent",
     "com.yourcompany.UZPlayer",
+    "cn.trae", // Trae IDE：内嵌浏览器开着猫的调试页面/预览时，页面声音走 Trae 进程，不算听歌
+    "com.trae",
 ];
 const SYSTEM: u32 = 1;
 const GLOBAL: u32 = u32::from_be_bytes(*b"glob");

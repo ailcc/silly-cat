@@ -25,6 +25,7 @@ const EXCLUDED: &[&str] = &[
     "ms-teams.exe",
     "teams.exe",
     "discord.exe",
+    "trae.exe", // Trae IDE：内嵌浏览器开着猫的调试页面/预览时，页面声音走 Trae 进程，不算听歌
 ];
 
 #[repr(C)]
