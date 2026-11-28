@@ -12,7 +12,8 @@
 
   const NOTE_EVERY = 1600;  // ♪ 冒泡间隔
   const BOB_BEAT = 460;     // 点头节拍（hindpaws 的打拍子也用这个数）
-  const DOZE_CHANCE = 0.4;  // 一轮听歌最后睡着的概率
+  const LISTEN_CHANCE = 0.35; // 每个空闲期掷一次签，约三分之一听歌（2026-11-28 前是一半，戴得太频繁）
+  const DOZE_CHANCE = 0.3;  // 一轮听歌最后睡着的概率
   const DOZE_MIN = 45000;   // 听够这么久才可能睡着
   const DOZE_MAX = 105000;  // 睡着的上限
   const DOZE_DEMO = 8000;   // demo 模式固定 8 秒必睡，方便看效果
@@ -49,10 +50,10 @@
       const idleEnough = demo ? true : now - S.lastInput >= S.sleepMs;
       if (A.on && (!A.enabled || !idleEnough || gaming() || userMusic())) { A.on = false; A.doze = false; A.willDoze = false; }
       if (!A.on && A.enabled && !gaming() && !userMusic() && idleEnough && !S.pet) {
-        // 每个空闲期只掷一次签（以 lastInput 为期号）；掷中一半概率听歌
+        // 每个空闲期只掷一次签（以 lastInput 为期号）；掷中 LISTEN_CHANCE 概率听歌
         if (demo || A.decidedFor !== S.lastInput) {
           A.decidedFor = S.lastInput;
-          if (demo || Math.random() < 0.5) {
+          if (demo || Math.random() < LISTEN_CHANCE) {
             A.on = true;
             window.SillyHeadphoneColor?.onWear?.(); // 随机配色：戴上时才换色，戴着期间不变
             // 这轮听歌只有 DOZE_CHANCE 概率最后听着睡着（demo 必睡，8 秒；&doze=1 直接睡着）；

@@ -3,6 +3,7 @@
   'use strict';
 
   const MIN_SLEEP = 5000, SHAKE = 420, CALM = 2000;
+  const RAGE_CHANCE = 0.3; // 每次睡醒掷骰子，约三成闹起床气（2026-11-28 前是必闹，太频繁）
   const PASSIVE_MS = 60000, PET_RATE = 0.25 / 1000, PET_MOVEMENT_MS = 140;
   const SMILE_AT = 0.3, FRONT = { x: 400, y: 178 };
   const EFFECT_ORIGIN = { x: 548, y: 121 };
@@ -44,7 +45,8 @@
     const mark = effect.firstElementChild, heart = effect.lastElementChild;
 
     function onWake(now) {
-      if (enabled && !demoFrame && S.state === STATES.ASLEEP && now - S.sleepSince >= MIN_SLEEP) {
+      if (enabled && !demoFrame && S.state === STATES.ASLEEP && now - S.sleepSince >= MIN_SLEEP
+        && Math.random() < RAGE_CHANCE) {
         wakeAt = Math.max(now, S.shakeStart) + SHAKE;
       }
     }
