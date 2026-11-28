@@ -221,10 +221,12 @@
 
       // ---------- pose 钩子：蝴蝶时猫盯着看、扑击时伸爪 ----------
       function pose(now, dt, rm, P) {
-        if (S.state !== STATES.AWAKE) return; // 睡着时不演
+        // 三个 tick 跟着猫的睡醒走会「点了没反应」（猫 20 秒没人动就睡着，tick 全停）——
+        // 预览页工具栏是用户手动点的，必须常跑；只有真猫的姿态联动才要求清醒
         const bf = tickBf(now);
         tickKitten(now);
         tickFur(now);
+        if (S.state !== STATES.AWAKE) return; // 睡着时不联动真猫的眼睛/爪子
         if (bf && bf.pos && (bf.phase === 'fly' || bf.phase === 'hover')) {
           P.look = { x: bf.pos.x, y: bf.pos.y };
           P.earDroop -= 5;
