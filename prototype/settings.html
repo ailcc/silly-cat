@@ -201,6 +201,12 @@
 </div>
 <!-- 检查更新的一行提示：就在按钮下面；查完没更新会自动消失，避免用户没看到提示而狂点 -->
 <div id="update-status" hidden aria-live="polite"></div>
+<!-- 有新版本时的「发现新版本 + 下载安装」区：同样贴在按钮下面 -->
+<section id="update-result" class="row" hidden aria-live="polite">
+  <strong id="update-title"></strong>
+  <span id="update-detail"></span>
+  <button type="button" id="update-install" hidden>下载安装</button>
+</section>
 <div class="duo">
   <div class="row" data-stats>
     <div class="head"><strong>小账本</strong>
@@ -213,11 +219,6 @@
     <div class="hint" id="affection-line">♥ 0（陌生）· 常摸摸头会增进感情</div>
   </div>
 </div>
-<section id="update-result" class="row" hidden aria-live="polite">
-  <strong id="update-title"></strong>
-  <span id="update-detail"></span>
-  <button type="button" id="update-install" hidden>下载安装</button>
-</section>
 <div id="qq-dialog-backdrop" hidden>
   <div id="qq-dialog" role="dialog" aria-modal="true" aria-labelledby="qq-dialog-title">
     <h3 id="qq-dialog-title">捣蛋猫交流群</h3>
