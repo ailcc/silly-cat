@@ -476,12 +476,25 @@
   const params = new URLSearchParams(location.search);
   SillySpecies.select('cat');
   const desktopMode = SillyDesktopInput.isDesktop();
+  // 客户端调试状态：设置窗口调试栏把完整调试 query 存进 sessionStorage 再重载主窗口
+  // （自定义协议对带 query 的重载不可靠，?demo=national 会静默丢参数、猫查真实日期）。
+  // 这里读回合并，URL 参数优先（网页版不走这段）；sessionStorage 重启自动清空，调试状态不跨启动。
+  if (desktopMode) {
+    try {
+      const saved = sessionStorage.getItem('silly-debug-query');
+      if (saved) for (const [k, v] of new URLSearchParams(saved)) if (!params.has(k)) params.set(k, v);
+    } catch (e) { /* 读不到就当没有 */ }
+  }
   // 桌面版调试模式：设置窗口（连点 10 次检查更新开启）发 silly:debug-demo 过来，
   // 主窗口带 ?demo= 参数重载进入对应状态（复用网页版调试面板的 URL 参数机制）
   if (desktopMode && window.__TAURI__ && window.__TAURI__.event) {
     window.__TAURI__.event.listen('silly:debug-demo', (ev) => {
       const spec = ev.payload && ev.payload.spec;
       const p = new URLSearchParams(location.search);
+      try { // 在当前调试状态的基础上增删（__ 开关、附加参数都要保留）
+        const saved = sessionStorage.getItem('silly-debug-query');
+        if (saved) for (const [k, v] of new URLSearchParams(saved)) if (!p.has(k)) p.set(k, v);
+      } catch (e) { /* 存不了就只靠 URL 参数 */ }
       if (spec && spec.startsWith('__')) { // 「__xxx」开关：只切对应参数（支持 __key=value），demo 保持不变
         const kv = spec.slice(2);
         const eq = kv.indexOf('=');
@@ -498,7 +511,8 @@
       } else {
         for (const k of ['demo', 'loop', 'at', 'doze', 'nolimbs', 'nokeys']) p.delete(k);
       }
-      location.href = location.pathname + '?' + p.toString();
+      try { sessionStorage.setItem('silly-debug-query', p.toString()); } catch (e) { /* 存不了就算了 */ }
+      location.reload(); // 调试状态走 sessionStorage，不依赖重载保留 query
     }).catch(() => {});
   }
   // 耳机颜色：headphoneColor = 'random' 时每次戴上随机挑一个，戴着期间不变（摘了下次戴再随机）。
@@ -508,7 +522,7 @@
   const pickHpColor = () => HP_KEYS[Math.floor(Math.random() * HP_KEYS.length)];
   const sceneEl = document.getElementById('scene');
   // 调试：?nolimbs=1 藏手臂前爪后脚、?nokeys=1 藏键盘（网页调试面板/客户端调试栏的开关按钮）
-  const bootParams = new URLSearchParams(location.search);
+  const bootParams = params; // 已含客户端 sessionStorage 合并结果
   for (const key of ['nolimbs', 'nokeys']) if (bootParams.has(key)) sceneEl.classList.add(key);
   const applyHpColor = (value) => {
     hpColor = SillySettings.normalizeHeadphoneColor(value);

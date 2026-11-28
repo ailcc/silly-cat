@@ -20,8 +20,12 @@
 
   const desktop = document.documentElement.classList.contains('desktop');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // URL 强制指定（调试）：设置了就盖过 holidays 的推送，直到参数删掉
-  const raw = new URLSearchParams(location.search).get('bg');
+  // URL 强制指定（调试）：设置了就盖过 holidays 的推送，直到参数删掉。
+  // 客户端自定义协议重载会丢 URL 参数，调试切背景改存 sessionStorage，这里补读（URL 优先）
+  let raw = new URLSearchParams(location.search).get('bg');
+  if (raw === null && window.__TAURI__) {
+    try { raw = new URLSearchParams(sessionStorage.getItem('silly-debug-query') || '').get('bg'); } catch (e) { /* 忽略 */ }
+  }
   const forced = raw ? (ALIAS[raw] || raw) : null;
   const forceValid = forced && (forced === 'off' || SCENES[forced]);
 
