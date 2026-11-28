@@ -582,7 +582,7 @@ jobs:
             curl -sS --max-time 30 "$api/releases/$rid/attach_files?access_token=$GITEE_TOKEN" | node -e '
               let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
                 for (const a of JSON.parse(s)) if (a.name === process.argv[1]) console.log(a.id);
-              }' "$name" | while read -r aid; do
+              })' "$name" | while read -r aid; do
                 [[ -n $aid ]] && curl -sS --max-time 30 -X DELETE "$api/releases/$rid/attach_files/$aid?access_token=$GITEE_TOKEN" -o /dev/null
               done
             code=$(curl -sS --max-time 300 -X POST "$api/releases/$rid/attach_files?access_token=$GITEE_TOKEN" \

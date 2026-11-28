@@ -497,7 +497,8 @@ function catSizeOf(settings) {
 }
 
 function sizeBounds(size) {
-  return { width: Math.round(BASE_W * size), height: Math.round(BASE_H * size) };
+  // size ≤ 1 时窗口保持基准大小（场景由前端 #zoom 组缩放），> 1 才放大——与 Rust 侧 apply_cat_size 同一策略
+  return { width: Math.round(BASE_W * Math.max(size, 1)), height: Math.round(BASE_H * Math.max(size, 1)) };
 }
 
 function liveWindow() {
@@ -553,6 +554,8 @@ function flushPosition() {
 
 function applyCatSize(size) {
   if (!liveWindow()) return;
+  // size ≤ 1 窗口不动，把 size 实时发给主窗口做 #zoom 缩放（含拖滑杆预览）
+  send('silly:cat-size', size);
   const bounds = win.getBounds();
   const { width, height } = sizeBounds(size);
   if (bounds.width === width && bounds.height === height) return;
@@ -838,6 +841,10 @@ function invokeCommand(command, args, caller) {
     case 'preview_cat_size':
       if (validSize(args?.size)) applyCatSize(args.size);
       return;
+    // 错误日志是桌面版（Rust）的能力：兼容版没有日志文件，设置页「日志」一栏检测到
+    // path 为空会自动隐藏；export_log 防御性兜底（按钮根本不显示，永远不会被调）
+    case 'log_info': return { path: '', lines: 0 };
+    case 'export_log': return null;
     case 'cursor_local': return cursorLocal();
     case 'position_locked': return positionLocked;
     case 'click_through_status': return clickThroughStatus();
