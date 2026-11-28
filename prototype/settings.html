@@ -459,6 +459,13 @@
     <button id="autostart-login-items" type="button" hidden>打开登录项</button>
     <div class="err" id="autostart-error" role="status"></div>
   </div>
+  <div class="row full" id="log-row" hidden>
+    <div class="head"><label for="log-export">日志</label>
+      <span class="field"><button id="log-export" type="button">导出日志</button></span></div>
+    <div id="log-path" class="hint" style="user-select:all"></div>
+    <div class="hint">出问题时猫会把错误写进上面的日志文件（只记错误和时间，不记你的输入内容），点「导出日志」选个保存位置，把文件发给开发者就能帮忙排查。</div>
+    <div class="err" id="log-error" role="status"></div>
+  </div>
   <div class="row full" data-bool="mcpServer">
     <div class="head"><label for="f-mcpServer">MCP 外观接口</label>
       <span class="field"><input id="f-mcpServer" type="checkbox" aria-describedby="mcp-hint"></span></div>
@@ -963,6 +970,27 @@
       autostartError.textContent = '';
       invoke('open_login_items').catch((err) => {
         autostartError.textContent = '打开登录项失败：' + err;
+      });
+    });
+
+    // ---------- 日志：显示路径 + 导出（拿不到 log_info 的环境就不显示这行） ----------
+    const logRow = document.getElementById('log-row');
+    const logExport = document.getElementById('log-export');
+    const logError = document.getElementById('log-error');
+    invoke('log_info').then((info) => {
+      if (!info || !info.path) { logRow.hidden = true; return; }
+      logRow.hidden = false;
+      document.getElementById('log-path').textContent = info.path;
+    }).catch(() => { logRow.hidden = true; });
+    logExport.addEventListener('click', () => {
+      logError.textContent = '';
+      logExport.disabled = true;
+      invoke('export_log').then((dest) => {
+        logExport.disabled = false;
+        if (dest) setStatus('日志已导出到 ' + dest, 'ok');
+      }).catch((err) => {
+        logExport.disabled = false;
+        logError.textContent = '导出失败：' + err;
       });
     });
 

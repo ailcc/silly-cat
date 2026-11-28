@@ -20,11 +20,15 @@ tauri-plugin-updater = "2.14.1"
 tauri-plugin-single-instance = "2"
 # 截猫表情包：PNG 写进系统剪贴板（不落盘）
 tauri-plugin-clipboard-manager = "2"
+# 日志导出：设置页「导出日志」按钮的系统保存对话框
+tauri-plugin-dialog = "2"
 png = "0.17"
 base64 = "0.23"
 minisign-verify = "0.3"
 tokio = { version = "1", features = ["macros", "sync", "time"] }
 tempfile = "3"
+# 日志时间戳（本地时间格式化），纯 Rust 无 C 依赖
+time = { version = "0.3", features = ["formatting", "local-offset", "macros"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6.5"

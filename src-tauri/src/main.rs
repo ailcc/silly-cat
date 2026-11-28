@@ -14,6 +14,7 @@ mod media_worker;
 #[cfg(windows)]
 mod media_win;
 mod mcp;
+mod log;
 mod music_detect;
 mod privacy;
 mod updater;
@@ -779,6 +780,8 @@ fn main() {
             }
         }))
         .plugin(tauri_plugin_clipboard_manager::init())
+        // 日志导出的系统保存对话框（设置页「导出日志」按钮）
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             cursor_local,
             held_input_state,
@@ -808,9 +811,20 @@ fn main() {
             updater::updater_configured,
             updater::update_status,
             music_detect::user_music_active,
-            music_detect::set_user_music_enabled
+            music_detect::set_user_music_enabled,
+            log::log_info,
+            log::export_log
         ])
         .setup(|app| {
+            // 日志最先初始化：后面的启动步骤（更新、tap、锁文件）出错都有地方记
+            log::init(app.handle());
+            {
+                let handle = app.handle().clone();
+                std::panic::set_hook(Box::new(move |info| {
+                    log::write("panic", &info.to_string());
+                }));
+            }
+            log::write("app", &format!("启动 v{}", app.package_info().version));
             updater::setup(app.handle());
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);

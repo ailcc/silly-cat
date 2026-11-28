@@ -476,6 +476,9 @@ pub fn beat_capture_start() {
                     std::thread::sleep(std::time::Duration::from_millis(100));
                 }
                 unsafe { teardown(session) };
+            } else {
+                // 每次戴上耳机才试一次，不会刷屏；老系统/没符号/没授权都归这里
+                crate::log::write("beat", "节拍 tap 建不起来（macOS <14.2、没符号或没授权），回退默认节拍");
             }
             BEAT_RUNNING.store(false, Ordering::SeqCst);
             crate::beat_detect::reset();

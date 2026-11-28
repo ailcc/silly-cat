@@ -222,6 +222,7 @@ async fn check(app: &AppHandle, manual: bool) {
         }
         Err(e) if manual => {
             *candidate = None;
+            crate::log::write("update", &format!("检查失败：{}", reason(&e)));
             notify(app, NoticeKind::Result, "检查失败", reason(&e), false);
         }
         Err(_) => {}
@@ -303,8 +304,10 @@ pub async fn install_update(app: AppHandle) {
     }
     if let Err(e) = std::env::current_exe().and_then(|path| probe_install_dir(&path)) {
         if unwritable(&e) {
+            crate::log::write("update", &format!("安装目录不可写（{e}），回退浏览器下载（{source}）"));
             fallback(&app, source);
         } else {
+            crate::log::write("update", &format!("无法开始安装：{e}"));
             *candidate = Some(Offer { update, manual, source });
             notify(
                 &app,
@@ -385,6 +388,7 @@ pub async fn install_update(app: AppHandle) {
                         source = source_of(&u);
                         update = u;
                         swapped = true;
+                        crate::log::write("update", "主源下载失败，已切换备用源重试");
                     }
                     _ => break outcome,
                 }
@@ -395,6 +399,7 @@ pub async fn install_update(app: AppHandle) {
         Ok(()) => app.restart(),
         Err(Error::Io(e)) if unwritable(&e) => fallback(&app, source),
         Err(e) => {
+            crate::log::write("update", &format!("更新失败（{source}）：{}", reason(&e)));
             *candidate = Some(Offer { update, manual, source });
             notify(&app, NoticeKind::Failed, "更新失败", reason(&e), true);
         }
