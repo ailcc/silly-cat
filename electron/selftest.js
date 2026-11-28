@@ -496,17 +496,16 @@ async function run(ctx, check) {
       await windowCall('setIgnoreCursorEvents', false);
       await windowCall('startDragging');
       assert(ctx.isDragging());
-      await click('鼠标穿透');
+      // 菜单里已没有鼠标穿透项（只留设置页开关），这里直接走设置页用的同一命令
+      await invoke('set_click_through', { enabled: true });
       assert(!ctx.isDragging());
       assert(ctx.getIgnore().applied);
       await windowCall('setIgnoreCursorEvents', false);
       assert(ctx.getIgnore().applied);
-      assert.equal(item('鼠标穿透').checked, true);
       assert.deepEqual(readState('click-through'), { enabled: true });
       assert.deepEqual(await invoke('set_click_through', { enabled: false }), { enabled: false, available: true });
-      assert.equal(item('鼠标穿透').checked, false);
       assert.equal(await invoke('position_locked'), false);
-      return '菜单启用后结束拖动、持续穿透并存盘，设置命令可关闭';
+      return '设置命令开启后结束拖动、持续穿透并存盘，可关闭';
     } finally {
       await invoke('set_click_through', { enabled: false });
       if (ctx.isDragging()) await dragEnd();
@@ -547,7 +546,7 @@ async function run(ctx, check) {
   });
   await check('菜单模板及动作', async () => {
     assert.deepEqual(ctx.menuTemplate().map(entry => entry.label || entry.type),
-      ['设置…', '玩法说明…', '检查更新…', '显示/隐藏猫', '锁定位置', '鼠标穿透', '重置位置', '打开日志文件夹', 'separator', '退出']);
+      ['设置…', '玩法说明…', '检查更新…', '显示/隐藏猫', '锁定位置', '重置位置', '打开日志文件夹', 'separator', '退出']);
     await lock(false);
     win.showInactive();
     try {
@@ -689,7 +688,7 @@ if (require.main === module) {
   for (const method of contract.methods) assert.equal(typeof bridge.window.getCurrentWindow()[method], 'function');
   assert.equal(typeof registered['silly:event'], 'function');
   assert.deepEqual(main.menuTemplate().map(e => e.label || e.type),
-    ['设置…', '玩法说明…', '检查更新…', '显示/隐藏猫', '锁定位置', '鼠标穿透', '重置位置', '打开日志文件夹', 'separator', '退出']);
+    ['设置…', '玩法说明…', '检查更新…', '显示/隐藏猫', '锁定位置', '重置位置', '打开日志文件夹', 'separator', '退出']);
   for (const filename of ['index.html', 'settings.html']) {
     const file = path.join(dir, filename);
     assert(main.isPage(pathToFileURL(file).href, file));

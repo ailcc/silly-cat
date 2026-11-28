@@ -379,7 +379,6 @@ fn save_lock(app: &AppHandle, locked: bool) -> Result<(), Box<dyn std::error::Er
 /// 鼠标穿透：开窗忽略鼠标事件，点击直接落到后面的窗口。开关记在本机，下次启动沿用。
 struct ClickThrough {
     enabled: AtomicBool,
-    tray_item: CheckMenuItem<tauri::Wry>,
 }
 
 /// 调试模式开着时设置窗口不许关（先退出调试）。开关由前端 enterDebug/exitDebug 调命令同步。
@@ -442,7 +441,6 @@ fn set_click_through(app: AppHandle, enabled: bool) -> Result<ClickThroughStatus
             let _ = win.set_ignore_cursor_events(true);
         }
     }
-    let _ = state.tray_item.set_checked(enabled);
     let status = ClickThroughStatus { enabled };
     // 前端收到后立刻接管：开穿透期间鼠标动作全部来自全局监听，关掉后恢复智能命中
     let _ = app.emit_to("main", "silly:click-through", status);
@@ -459,12 +457,8 @@ fn position_locked(app: AppHandle) -> bool {
 }
 
 /// 托盘和右键共用菜单内容，前缀区分两个原生菜单里的项目。
-fn build_cat_menu(
-    app: &AppHandle,
-    prefix: &str,
-    locked: bool,
-    click_through: bool,
-) -> tauri::Result<(Menu<tauri::Wry>, CheckMenuItem<tauri::Wry>, CheckMenuItem<tauri::Wry>)> {
+/// 鼠标穿透只从设置页开关（菜单里曾经有，2026-11-28 按用户要求移除）。
+fn build_cat_menu(app: &AppHandle, prefix: &str, locked: bool) -> tauri::Result<(Menu<tauri::Wry>, CheckMenuItem<tauri::Wry>)> {
     let item = |id, label| MenuItem::with_id(app, format!("{prefix}{id}"), label, true, None::<&str>);
     let lock = CheckMenuItem::with_id(
         app,
@@ -472,14 +466,6 @@ fn build_cat_menu(
         "锁定位置",
         true,
         locked,
-        None::<&str>,
-    )?;
-    let through = CheckMenuItem::with_id(
-        app,
-        format!("{prefix}click-through"),
-        "鼠标穿透",
-        true,
-        click_through,
         None::<&str>,
     )?;
     let menu = Menu::with_items(
@@ -490,7 +476,6 @@ fn build_cat_menu(
             &item("check-update", "检查更新…")?,
             &item("toggle", "显示/隐藏猫")?,
             &lock,
-            &through,
             &item("reset", "重置位置")?,
         ],
     )?;
@@ -498,7 +483,7 @@ fn build_cat_menu(
     menu.append(&item("settings", "打开输入监控设置")?)?;
     menu.append(&PredefinedMenuItem::separator(app)?)?;
     menu.append(&item("quit", "退出")?)?;
-    Ok((menu, lock, through))
+    Ok((menu, lock))
 }
 
 /// 右键猫（或键盘、鼠标等有画面的地方）：在指针位置弹出和托盘内容相同的原生菜单。
@@ -517,7 +502,7 @@ async fn show_context_menu(app: AppHandle, window: WebviewWindow) -> Result<(), 
     if through {
         return Ok(());
     }
-    let (menu, _, _) = build_cat_menu(&app, "ctx-", locked, through).map_err(|e| e.to_string())?;
+    let (menu, _) = build_cat_menu(&app, "ctx-", locked).map_err(|e| e.to_string())?;
     window.popup_menu(&menu).map_err(|e| e.to_string())
 }
 
@@ -540,12 +525,6 @@ fn handle_menu_event(app: &AppHandle, id: &str) {
             // 原生菜单可能自行切换勾选，以 Rust 状态为准。右键菜单会在下次打开时重建。
             let _ = state.tray_item.set_checked(locked);
             let _ = app.emit_to("main", "silly:lock", locked);
-        }
-        "click-through" => {
-            let enabled = !click_through_status(app.clone()).enabled;
-            if let Err(err) = set_click_through(app.clone(), enabled) {
-                eprintln!("[silly-cat] {err}");
-            }
         }
         "quit" => app.exit(0),
         _ => {
@@ -837,14 +816,13 @@ fn main() {
 
             let locked = load_lock(app.handle()).unwrap_or_default().locked;
             let through = load_click_through(app.handle()).unwrap_or_default().enabled;
-            let (menu, tray_item, through_item) = build_cat_menu(app.handle(), "", locked, through)?;
+            let (menu, tray_item) = build_cat_menu(app.handle(), "", locked)?;
             app.manage(PositionLock {
                 locked: AtomicBool::new(locked),
                 tray_item,
             });
             app.manage(ClickThrough {
                 enabled: AtomicBool::new(through),
-                tray_item: through_item,
             });
             app.manage(DebugCloseBlock(AtomicBool::new(false)));
 

@@ -989,14 +989,6 @@ function setDebugCloseBlock(blocked) {
   }
 }
 
-function toggleClickThrough() {
-  try {
-    setClickThrough(!clickThroughEnabled());
-  } catch (error) {
-    log('WARN', error.message);
-  }
-}
-
 function toggleVisibility() {
   if (!liveWindow()) return;
   if (!win.isVisible()) win.showInactive();
@@ -1049,8 +1041,6 @@ function menuTemplate() {
     { label: '检查更新…', click: async () => { await showSettings(); await updater.check(true); } },
     { label: '显示/隐藏猫', enabled: selftest || trayAvailable(), click: toggleVisibility },
     { label: '锁定位置', type: 'checkbox', checked: positionLocked, click: togglePositionLock },
-    { label: '鼠标穿透', type: 'checkbox', checked: clickThroughEnabled(),
-      enabled: clickThroughAvailable(), click: toggleClickThrough },
     { label: '重置位置', click: resetPosition },
     { label: '打开日志文件夹', click: openLogFolder },
     { type: 'separator' },
