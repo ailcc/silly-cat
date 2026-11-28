@@ -382,13 +382,17 @@ html:is([data-cat="lihua"], [data-cat="maine"][data-art-style="line"]) #scene .a
 #scene .wand-ball circle { fill: var(--coral); stroke: var(--ink); stroke-width: 4; }
 #scene .wand-ball .wand-yarn { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; opacity: 0.65; }
 
-/* 小奶猫串门 */
+/* 小奶猫串门（2026-11-28 Clack-Clack 风格重绘：胖团子身形 + 大圆眼 + 重点色） */
 #scene .visitor-shadow { fill: rgba(0, 0, 0, 0.12); }
-#scene .visitor-body, #scene .visitor-head, #scene .visitor-ear, #scene .visitor-leg { stroke-width: 3; stroke-linejoin: round; }
-#scene .visitor-tail { fill: none; stroke-width: 7; stroke-linecap: round; }
-#scene .visitor-tail-tip { fill: none; stroke-width: 7; stroke-linecap: round; }
+#scene .visitor-body, #scene .visitor-head, #scene .visitor-ear, #scene .visitor-leg { stroke-width: 2.6; stroke-linejoin: round; }
+#scene .visitor-tail { stroke-width: 2.2; stroke-linejoin: round; }
+#scene .visitor-tail-tip { stroke: none; }
 #scene .visitor-eye { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
-#scene .visitor-eye-dot, #scene .visitor-nose { fill: var(--ink); stroke: none; }
+#scene .visitor-eye-dot { fill: var(--ink); stroke: none; }
+#scene .visitor-iris { stroke: var(--ink); stroke-width: 1.6; }
+#scene .visitor-nose { stroke: none; }
+#scene .visitor-mouth, #scene .visitor-whisker { fill: none; stroke-width: 1.4; stroke-linecap: round; opacity: 0.75; }
+#scene .visitor-ear-in, #scene .visitor-sock { stroke: none; }
 
 /* 耳机配色：草莓奶 / 薄荷 / 奶咖 / 天蓝（设置里的耳机颜色，写在 #scene 上）
    游戏模式、空闲听歌、用户听歌三处耳机共用同一套变量 */

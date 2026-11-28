@@ -45,9 +45,9 @@
   const segOf = (name) => SEG.find((s) => s.name === name);
 
   const COAT = [               // 小奶猫毛色：橘 / 灰 / 黑（「奶猫随机花色」关掉时的三色）
-    { fur: '#e8a25b', line: '#5c3a1e' },
-    { fur: '#9aa0a6', line: '#3d4045' },
-    { fur: '#3a3a3a', line: '#111' },
+    { fur: '#e8a25b', line: '#5c3a1e', iris: '#6fb3e0' },
+    { fur: '#9aa0a6', line: '#3d4045', iris: '#6fb3e0' },
+    { fur: '#3a3a3a', line: '#111', iris: '#c9b26b' },
   ];
 
   // 「奶猫随机花色」：底色从猫常见色系里抽一个，再随机叠斑点 / 虎斑条纹 / 白手套 / 白尾尖。
@@ -61,7 +61,8 @@
     { h: 220, s: 6,  l: 46 },  // 蓝灰
   ];
   // 冻结帧演示用的固定花色：橘底 + 斑点 + 条纹 + 白手套 + 白尾尖，方便截图验收
-  const DEMO_COAT = { fur: '#e8a25b', line: '#5c3a1e', mark: '#b96f2a', spots: 3, stripes: true, gloves: true, tip: true, fancy: true };
+  const DEMO_COAT = { fur: '#e8a25b', line: '#5c3a1e', mark: '#b96f2a', spots: 3, stripes: true, gloves: true, tip: true, fancy: true, iris: '#6fb3e0' };
+  const IRIS = ['#6fb3e0', '#5aa87a', '#8a7fd0', '#d0879a', '#c9b26b']; // 大眼睛的虹膜色（Clack-Clack 风格的大圆眼）
   function makeRandomCoat() {
     const dark = Math.random() < 0.12; // 一成概率抽到纯黑（深色猫配浅色斑才看得见）
     const b = BASES[Math.floor(Math.random() * BASES.length)];
@@ -73,6 +74,7 @@
       : `hsl(${b.h} ${b.s + 6}% ${Math.round(l * 0.5)}%)`;          // 浅色猫配深色斑
     return {
       fur, line, mark,
+      iris: dark ? '#c9b26b' : IRIS[Math.floor(Math.random() * (IRIS.length - 1))],
       spots: Math.random() < 0.6 ? 2 + Math.floor(Math.random() * 4) : 0, // 身上斑点数
       stripes: Math.random() < 0.45,  // 虎斑条纹（背上 + 额头 + 尾巴环）
       gloves: Math.random() < 0.4,    // 四只白手套
@@ -89,13 +91,24 @@
     const rand = (a, b) => a + Math.random() * (b - a);
     const ease = (t) => 0.5 - 0.5 * Math.cos(Math.PI * clamp(t, 0, 1));
 
-    // 局部坐标原点 = 脚底中心，前进方向 +x。腿旋转中心在髋部（y=-22）
-    // 花色叠加：body-marks / head-marks 裁剪在身体和头里；glove 是每条腿的白手套（腿转动时跟着转）；
-    // tail-tip / tail-rings 画在尾巴曲线上（由 pose 每帧跟着尾巴算位置）
+    // 局部坐标原点 = 脚底中心，前进方向 +x。腿旋转中心在髋部（y=-22）。
+    // 2026-11-28 画风重绘（参考 Clack-Clack 的暹罗猫）：胖团子身形、大圆眼（虹膜+瞳孔+
+    // 高光，瞳孔会看向大猫）、重点色渐变（脸上眼周晕 + 深色袜子）、粗细渐变的绶带尾巴、
+    // 胡须和 ω 嘴。所有骨骼锚点（髋部、头位 30,-62、尾根 -34,-36、趴卧压扁）保持不变。
+    // 花色叠加：body-marks / head-marks 裁剪在身体和头里；glove 是每条腿的白手套；
+    // sock 是深色爪尖（重点色）；tail-tip / tail-rings 画在尾巴绶带上（pose 每帧算位置）
     document.getElementById('fx-layer').insertAdjacentHTML('beforebegin', `
       <defs>
-        <clipPath id="clip-visitor-body"><path d="M -34 -14 Q -41 -30 -27 -46 Q -9 -60 10 -58 Q 31 -56 37 -40 Q 43 -26 34 -14 Q 16 -8 0 -8 Q -17 -8 -34 -14 Z"/></clipPath>
-        <clipPath id="clip-visitor-head"><circle cx="0" cy="0" r="19"/></clipPath>
+        <clipPath id="clip-visitor-body"><path d="M -36 -12 C -45 -24 -44 -42 -30 -51 C -16 -60 8 -60 22 -54 C 36 -48 44 -34 40 -20 C 37 -11 30 -6 18 -5 C 6 -4 -8 -4 -18 -5 C -26 -6 -32 -8 -36 -12 Z"/></clipPath>
+        <clipPath id="clip-visitor-head"><path d="M -21 4 C -23 -6 -19 -15 -10 -18 C -6 -19.5 6 -19.5 10 -18 C 19 -15 23 -6 21 4 C 19 12 10 16 0 16 C -10 16 -19 12 -21 4 Z"/></clipPath>
+        <radialGradient id="visitor-mask-grad">
+          <stop id="visitor-mask-stop" offset="0" stop-opacity="0.5"/>
+          <stop id="visitor-mask-stop2" offset="1" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="visitor-belly-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+          <stop offset="1" stop-color="#ffffff" stop-opacity="0.3"/>
+        </linearGradient>
       </defs>
       <g id="visitor-layer" style="display:none">
         <ellipse id="visitor-shadow" class="visitor-shadow" rx="38" ry="6"/>
@@ -103,31 +116,44 @@
           <path id="visitor-tail" class="visitor-tail" d=""/>
           <g id="visitor-tail-rings"></g>
           <path id="visitor-tail-tip" class="visitor-tail-tip" d=""/>
-          <g id="visitor-leg-br"><rect class="visitor-leg" x="-14.5" y="-22" width="9" height="22" rx="4.5"/><rect class="visitor-glove" x="-14.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
-          <g id="visitor-leg-bl"><rect class="visitor-leg" x="-26.5" y="-22" width="9" height="22" rx="4.5"/><rect class="visitor-glove" x="-26.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
+          <g id="visitor-leg-br"><rect class="visitor-leg" x="-14.5" y="-22" width="9" height="22" rx="4.5"/><ellipse class="visitor-sock" cx="-10" cy="-2.5" rx="5.4" ry="3.4"/><rect class="visitor-glove" x="-14.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
+          <g id="visitor-leg-bl"><rect class="visitor-leg" x="-26.5" y="-22" width="9" height="22" rx="4.5"/><ellipse class="visitor-sock" cx="-22" cy="-2.5" rx="5.4" ry="3.4"/><rect class="visitor-glove" x="-26.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
           <g id="visitor-body-wrap">
-            <path id="visitor-body" class="visitor-body" d="M -34 -14 Q -41 -30 -27 -46 Q -9 -60 10 -58 Q 31 -56 37 -40 Q 43 -26 34 -14 Q 16 -8 0 -8 Q -17 -8 -34 -14 Z"/>
+            <path id="visitor-body" class="visitor-body" d="M -36 -12 C -45 -24 -44 -42 -30 -51 C -16 -60 8 -60 22 -54 C 36 -48 44 -34 40 -20 C 37 -11 30 -6 18 -5 C 6 -4 -8 -4 -18 -5 C -26 -6 -32 -8 -36 -12 Z"/>
+            <ellipse cx="-2" cy="-18" rx="34" ry="20" fill="url(#visitor-belly-grad)" clip-path="url(#clip-visitor-body)"/>
             <g id="visitor-body-marks" clip-path="url(#clip-visitor-body)"></g>
           </g>
           <g id="visitor-upper">
             <g id="visitor-head">
-              <path class="visitor-ear" d="M -17 -9 L -21 -29 L -3 -18 Z"/>
-              <path class="visitor-ear" d="M 17 -9 L 21 -29 L 3 -18 Z"/>
-              <circle class="visitor-head" cx="0" cy="0" r="19"/>
+              <g id="visitor-ear-l"><path class="visitor-ear" d="M -20 -9 C -24 -17 -23 -26 -18 -31 C -12 -27 -7 -21 -5 -15 C -10 -13 -16 -11 -20 -9 Z"/><path class="visitor-ear-in" d="M -17 -12 C -19 -17 -18 -22 -16 -25 C -13 -22 -10 -18 -9 -15 C -12 -14 -15 -13 -17 -12 Z"/></g>
+              <g id="visitor-ear-r"><path class="visitor-ear" d="M 20 -9 C 24 -17 23 -26 18 -31 C 12 -27 7 -21 5 -15 C 10 -13 16 -11 20 -9 Z"/><path class="visitor-ear-in" d="M 17 -12 C 19 -17 18 -22 16 -25 C 13 -22 10 -18 9 -15 C 12 -14 15 -13 17 -12 Z"/></g>
+              <path class="visitor-head" d="M -21 4 C -23 -6 -19 -15 -10 -18 C -6 -19.5 6 -19.5 10 -18 C 19 -15 23 -6 21 4 C 19 12 10 16 0 16 C -10 16 -19 12 -21 4 Z"/>
+              <ellipse cx="0" cy="-2" rx="16" ry="12" fill="url(#visitor-mask-grad)"/>
               <g id="visitor-head-marks" clip-path="url(#clip-visitor-head)"></g>
+              <path class="visitor-whisker" d="M -21 1 q -7 -1 -10 -4"/>
+              <path class="visitor-whisker" d="M -21 4 q -7 0 -11 -1"/>
+              <path class="visitor-whisker" d="M 21 1 q 7 -1 10 -4"/>
+              <path class="visitor-whisker" d="M 21 4 q 7 0 11 -1"/>
               <g id="visitor-eyes-open">
-                <circle class="visitor-eye-dot" cx="-8" cy="-2" r="2.6"/>
-                <circle class="visitor-eye-dot" cx="8" cy="-2" r="2.6"/>
+                <circle class="visitor-iris" cx="-9" cy="-3" r="6.1"/>
+                <circle class="visitor-iris" cx="9" cy="-3" r="6.1"/>
+                <g id="visitor-pupils">
+                  <circle class="visitor-eye-dot" cx="-9" cy="-2.6" r="3"/>
+                  <circle class="visitor-eye-dot" cx="9" cy="-2.6" r="3"/>
+                  <circle cx="-10.4" cy="-4.6" r="1.7" fill="#ffffff"/>
+                  <circle cx="7.6" cy="-4.6" r="1.7" fill="#ffffff"/>
+                </g>
               </g>
               <g id="visitor-eyes-closed" style="display:none">
-                <path class="visitor-eye" d="M -11 -2 Q -8 1 -5 -2"/>
-                <path class="visitor-eye" d="M 5 -2 Q 8 1 11 -2"/>
+                <path class="visitor-eye" d="M -13 -3 Q -9 1 -5 -3"/>
+                <path class="visitor-eye" d="M 5 -3 Q 9 1 13 -3"/>
               </g>
-              <path class="visitor-nose" d="M -2.5 4 L 2.5 4 L 0 7 Z"/>
+              <path class="visitor-nose" d="M -2.4 3.4 L 2.4 3.4 L 0 6.4 Z" fill="#e0828f"/>
+              <path id="visitor-mouth" class="visitor-mouth" d="M -3 8.6 Q -1.5 10.4 0 8.9 Q 1.5 10.4 3 8.6"/>
             </g>
           </g>
-          <g id="visitor-leg-fr"><rect class="visitor-leg" x="5.5" y="-22" width="9" height="22" rx="4.5"/><rect class="visitor-glove" x="5.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
-          <g id="visitor-leg-fl"><rect class="visitor-leg" x="17.5" y="-22" width="9" height="22" rx="4.5"/><rect class="visitor-glove" x="17.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
+          <g id="visitor-leg-fr"><rect class="visitor-leg" x="5.5" y="-22" width="9" height="22" rx="4.5"/><ellipse class="visitor-sock" cx="10" cy="-2.5" rx="5.4" ry="3.4"/><rect class="visitor-glove" x="5.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
+          <g id="visitor-leg-fl"><rect class="visitor-leg" x="17.5" y="-22" width="9" height="22" rx="4.5"/><ellipse class="visitor-sock" cx="22" cy="-2.5" rx="5.4" ry="3.4"/><rect class="visitor-glove" x="17.5" y="-9" width="9" height="9" rx="4.5" fill="#f7f3ea"/></g>
         </g>
       </g>`);
     const E = {
@@ -148,10 +174,18 @@
       },
       eyesOpen: document.getElementById('visitor-eyes-open'),
       eyesClosed: document.getElementById('visitor-eyes-closed'),
+      pupils: document.getElementById('visitor-pupils'),
+      ears: { l: document.getElementById('visitor-ear-l'), r: document.getElementById('visitor-ear-r') },
+      mouth: document.getElementById('visitor-mouth'),
     };
     // 白手套图层：每条腿里的那只白爪（不戴手套时整只隐藏）
     const GLOVES = {};
     for (const k of Object.keys(E.legs)) GLOVES[k] = E.legs[k].querySelector('.visitor-glove');
+    // 重点色图层：深色爪尖袜子、耳内、虹膜、胡须（上色在 coatEls 里按花色铺）
+    const SOCKS = [...document.querySelectorAll('#visitor-root .visitor-sock')];
+    const EARINS = [...document.querySelectorAll('#visitor-root .visitor-ear-in')];
+    const IRISES = [...document.querySelectorAll('#visitor-root .visitor-iris')];
+    const WHISKERS = [...document.querySelectorAll('#visitor-root .visitor-whisker')];
     // 髋部位置（x）：腿绕这点旋转
     const HIP = { fl: 22, fr: 10, bl: -22, br: -10 };
 
@@ -159,9 +193,19 @@
       const c = V.coatObj;
       const els = [E.head.querySelector('.visitor-head'), ...E.head.querySelectorAll('.visitor-ear'), E.body, ...Object.values(E.legs)];
       els.forEach((el) => { el.style.fill = c.fur; el.style.stroke = c.line; });
+      E.tail.style.fill = c.fur;
       E.tail.style.stroke = c.line;
+      E.tailTip.style.fill = '#f7f3ea';
+      E.tailTip.style.stroke = 'none';
+      // 重点色：脸上眼周晕（radial 渐变）、深色袜子、耳内、虹膜、嘴和胡须的线
+      document.getElementById('visitor-mask-stop').style.stopColor = c.mark;
+      document.getElementById('visitor-mask-stop2').style.stopColor = c.mark;
+      for (const el of SOCKS) { el.style.fill = c.mark; el.style.opacity = 0.6; }
+      for (const el of EARINS) { el.style.fill = c.mark; el.style.opacity = 0.55; el.style.stroke = 'none'; }
+      for (const el of IRISES) el.style.fill = c.iris;
+      E.mouth.style.stroke = c.line;
+      for (const el of WHISKERS) el.style.stroke = c.line;
       paintMarks(c);
-      E.tailTip.style.stroke = '#f7f3ea';
       for (const k of Object.keys(GLOVES)) GLOVES[k].style.display = c.gloves ? '' : 'none';
     }
 
@@ -195,20 +239,40 @@
       const u = 1 - t;
       return [u * u * -34 + 2 * u * t * mx + t * t * ex, u * u * -36 + 2 * u * t * my + t * t * ey];
     }
-    // 画尾巴主线；随机花色开启时再叠白尾尖（曲线末端一小段同弧度的线）和虎斑环（中段三个圆点）
+    // 尾巴绶带：沿二次贝塞尔中线取点，按宽度往两侧偏移成闭合填充路径（根粗 9 → 尖细 3.2，
+    // Clack-Clack 那种「有肉」的尾巴；起点藏在身体里不用封口）。
+    // 白尾尖 = 末端 28% 一段更细的同弧度绶带（往里缩 0.5 露出底下毛色）；虎斑环 = 中段
+    // 三个横跨椭圆（沿切线角度摆放，宽度跟着尾巴粗细走）
+    function ribbon(pts, w0, w1, inset = 0) {
+      const n = pts.length, L = [], R = [];
+      for (let i = 0; i < n; i++) {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)];
+        const len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+        const nx = -(b[1] - a[1]) / len, ny = (b[0] - a[0]) / len;
+        const w = Math.max(0.8, (w0 + (w1 - w0) * (i / (n - 1))) / 2 - inset);
+        L.push((pts[i][0] + nx * w).toFixed(1) + ' ' + (pts[i][1] + ny * w).toFixed(1));
+        R.push((pts[i][0] - nx * w).toFixed(1) + ' ' + (pts[i][1] - ny * w).toFixed(1));
+      }
+      return `M ${L.join(' L ')} L ${R.reverse().join(' L ')} Z`;
+    }
     function paintTail(mx, my, ex, ey) {
-      E.tail.setAttribute('d', `M -34 -36 Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+      const pts = [];
+      for (let i = 0; i <= 8; i++) pts.push(qp(i / 8, mx, my, ex, ey));
+      E.tail.setAttribute('d', ribbon(pts, 9, 3.2));
       const c = V.coatObj;
       if (c.tip) {
-        const a = qp(0.7, mx, my, ex, ey), m = qp(0.85, mx, my, ex, ey);
-        E.tailTip.setAttribute('d', `M ${a[0].toFixed(1)} ${a[1].toFixed(1)} Q ${m[0].toFixed(1)} ${m[1].toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+        const tp = [];
+        for (let i = 0; i <= 4; i++) tp.push(qp(0.72 + 0.07 * i, mx, my, ex, ey));
+        E.tailTip.setAttribute('d', ribbon(tp, 5.6, 2.4, 0.5));
       } else E.tailTip.setAttribute('d', '');
       E.tailRings.textContent = '';
       if (c.stripes) {
         for (const t of [0.3, 0.5, 0.7]) {
-          const p = qp(t, mx, my, ex, ey);
+          const p = qp(t, mx, my, ex, ey), q = qp(Math.min(1, t + 0.03), mx, my, ex, ey);
+          const ang = Math.atan2(q[1] - p[1], q[0] - p[0]) * 180 / Math.PI;
+          const w = 9 + (3.2 - 9) * t;
           E.tailRings.insertAdjacentHTML('beforeend',
-            `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.4" fill="${c.mark}"/>`);
+            `<ellipse cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" rx="2.1" ry="${(w / 2 + 1.1).toFixed(1)}" fill="${c.mark}" opacity="0.85" transform="rotate(${ang.toFixed(1)} ${p[0].toFixed(1)} ${p[1].toFixed(1)})"/>`);
         }
       }
     }
@@ -342,6 +406,9 @@
       E.upper.setAttribute('transform', 'translate(0 0)');
       E.eyesOpen.style.display = '';
       E.eyesClosed.style.display = 'none';
+      E.pupils.setAttribute('transform', 'translate(0 0)'); // 吓呆：瞳孔瞪圆看正前方
+      E.ears.l.setAttribute('transform', '');
+      E.ears.r.setAttribute('transform', '');
       paintTail(-50, -52, -44, -68);
       E.shadow.setAttribute('cx', x.toFixed(1));
       E.shadow.setAttribute('cy', (Y_KEYS + 5).toFixed(1));
@@ -425,6 +492,12 @@
       const blink = lieK < 0.3 && (t % 2400) < 130;
       E.eyesOpen.style.display = blink || (lieK > 0.5 && !looking) ? 'none' : '';
       E.eyesClosed.style.display = blink || (lieK > 0.5 && !looking) ? '' : 'none';
+      // 微表情：耳朵隔几秒抖一下；瞳孔看向大猫方向（趴下时眼睛往下瞟），Clack-Clack 式的「活着」感
+      const twitch = lieK < 0.5 && (t % 3400) < 160;
+      E.ears.l.setAttribute('transform', twitch ? 'rotate(-12 -18 -12)' : '');
+      E.ears.r.setAttribute('transform', twitch ? 'rotate(12 18 -12)' : '');
+      const look = Math.max(-3.2, Math.min(3.2, (400 - x) * 0.04));
+      E.pupils.setAttribute('transform', `translate(${look.toFixed(1)} ${(lieK * 1.6).toFixed(1)})`);
 
       // 尾巴：走路翘着左右摆，趴下时顺着身后斜垂到地面（带呼吸轻轻晃）
       const walkTail = 35 + Math.sin((ph || 0) * 0.5 + 1) * 8;
