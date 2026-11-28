@@ -3,7 +3,9 @@
 // 2026-11-28 起是音乐软件白名单：只有网易云/QQ音乐/Spotify 等在播放才算，
 // 浏览器、IDE 等其它软件出声不算（白名单在 media_mac.rs / media_win.rs）。
 // 期间猫一切照常：打字、睡觉、玩彩蛋都正常，耳机只是个挂着的外观；
-// 猫睡觉时也戴着（听着主人的歌睡着，合理）。
+// 猫睡觉时也戴着（听着主人的歌睡着，合理）。醒着时跟着点头节拍从耳机两侧
+// 冒音符：每 2–6 拍一个、偶尔冒一对（像副歌重音）——不匀速狂漂，睡着不冒
+// （睡着的语言是 ZZZ，音符会让位）。
 // 游戏模式优先：游戏耳机带麦克风，游戏进行中这边让路。
 // 猫自己的空闲听歌（listenmusic）在用户听歌时不掺和——耳机已经戴着了，不用再演一遍。
 // 网页版没有音频检测，这个模块不启用。
@@ -13,7 +15,9 @@
   function create(ctx) {
     const T = window.__TAURI__;
     if (!T || !window.SillyGameModeEgg) return {};
-    const A = { on: false, enabled: true };
+    const { S, STATES, fx } = ctx;
+    const A = { on: false, enabled: true, nextNote: 0, noteAlt: false };
+    const BEAT = 460;         // 点头节拍，和空闲听歌一致（hindpaws 打拍子也用这个数）
 
     // 耳机摆放参数（每皮肤一套：锚点 + 缩放）来自 decor-fit.js；缺席时回退猫基准（1.35 倍）
     const phoneFit = () => {
@@ -36,10 +40,21 @@
     const gaming = () => !!(window.SillyGameMode && window.SillyGameMode.active && window.SillyGameMode.active());
     window.SillyUserMusic = { create, active: () => A.on };
 
-    function pose() {
+    function pose(now) {
       const on = A.on && A.enabled && !gaming();
       phones.style.display = on ? '' : 'none';
       if (on) fitPhones(); // 同物种换毛色（切皮肤）也重摆一次耳机
+      // 音符只在醒着时冒：睡着让位给 ZZZ；中断时清掉计时，恢复后第一帧就冒
+      if (!on || S.state !== STATES.AWAKE) { A.nextNote = 0; return; }
+      if (now < A.nextNote) return;
+      A.noteAlt = !A.noteAlt;
+      const jitter = (n) => n + Math.random() * 36 - 18;
+      fx.spawn(A.noteAlt ? '♪' : '♫', jitter(A.noteAlt ? 298 : 502), jitter(148), '', now);
+      // 四分之一概率成对冒：像一句重音，两只音符错开一边
+      if (Math.random() < 0.25) {
+        fx.spawn(A.noteAlt ? '♫' : '♪', jitter(A.noteAlt ? 502 : 298), jitter(148), '', now);
+      }
+      A.nextNote = now + BEAT * (2 + Math.floor(Math.random() * 5)); // 2–6 拍后冒下一个
     }
 
     // 设置里「电脑出声时戴耳机」的开关：关掉后 Rust 停止采样，耳机也不再冒出来
